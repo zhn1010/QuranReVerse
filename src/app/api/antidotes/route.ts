@@ -10,9 +10,9 @@ The Logic:
 1. Analyze the External Event (what happened/what was read).
 2. Analyze the Internal Feeling (the spiritual symptom).
 3. Identify the Root Spiritual Drift (e.g., Fear of Poverty, Attachment to Status, Heedlessness, Social Comparison).
-4. Select 1-5 Quranic Ayahs that act as a direct Antidote—specifically verses that reframe the event through the lens of Allah's Power, Wisdom, or Provision.
+4. Select 1-3 Quranic Ayahs that act as a direct Antidote—specifically verses that reframe the event through the lens of Allah's Power, Wisdom, or Provision.
 
-Return only JSON. Do not include any introductory or trailing text. Use the Clear Quran or Sahih International logic for verse selection.`;
+Return only JSON. Do not include any introductory or trailing text. Use the Clear Quran or Sahih International logic for verse selection. Keep each reasoning brief, concrete, and under 25 words.`;
 
 const responseSchema = {
   additionalProperties: false,
@@ -68,6 +68,17 @@ type EnrichedAntidote = OpenAIAntidote & {
   verse: EnrichedAyah | null;
 };
 
+function normalizeAyahNo(surahNo: number, ayahNo: string) {
+  const normalized = ayahNo.trim();
+  const exactMatch = new RegExp(`^${surahNo}:(\\d+(?:-\\d+)?)$`, 'u').exec(normalized);
+
+  if (exactMatch) {
+    return exactMatch[1];
+  }
+
+  return normalized;
+}
+
 function extractResponseText(payload: Record<string, unknown>) {
   if (typeof payload.output_text === 'string' && payload.output_text.trim().length > 0) {
     return payload.output_text;
@@ -118,7 +129,7 @@ async function callOpenAI(eventText: string, feelingText: string) {
         {
           content: [
             {
-              text: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide a JSON response containing the most relevant Quranic antidotes. Each suggestion must include the Surah name, Surah number, Ayah number, and a brief Spiritual Reframing reasoning.`,
+              text: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide only the most relevant Quranic antidotes. Each suggestion must include the Surah name, Surah number, Ayah number, and a short Spiritual Reframing reasoning.`,
               type: 'input_text',
             },
           ],
@@ -126,11 +137,13 @@ async function callOpenAI(eventText: string, feelingText: string) {
         },
       ],
       instructions: systemPrompt,
+      max_output_tokens: 350,
       model: OPENAI_MODEL,
       reasoning: {
-        effort: 'medium',
+        effort: 'minimal',
       },
       text: {
+        verbosity: 'low',
         format: {
           name: 'quranic_antidotes',
           schema: responseSchema,
@@ -164,16 +177,19 @@ async function callOpenAI(eventText: string, feelingText: string) {
 
 async function enrichAntidotes(antidotes: OpenAIAntidote[]) {
   return Promise.all(
-    antidotes.map(
-      async (antidote): Promise<EnrichedAntidote> => ({
+    antidotes.map(async (antidote): Promise<EnrichedAntidote> => {
+      const normalizedAyahNo = normalizeAyahNo(antidote.surah_no, antidote.ayah_no);
+
+      return {
         ...antidote,
+        ayah_no: normalizedAyahNo,
         verse: await getVerseWithTranslation(
           antidote.surah_no,
-          antidote.ayah_no,
+          normalizedAyahNo,
           antidote.surah_name,
         ),
-      }),
-    ),
+      };
+    }),
   );
 }
 
