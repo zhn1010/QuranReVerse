@@ -11,7 +11,10 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm run typecheck && pnpm run lint"
+    "check": "pnpm run typecheck && pnpm run lint",
+    "reflections:fetch": "node scripts/quran-reflect-fetch.mjs",
+    "reflections:generate": "node scripts/quran-reflect-generate-all.mjs",
+    "reflections:stats": "node scripts/quran-reflect-stats.mjs"
   },
   "dependencies": {
     "@quranjs/api": "^2.2.0",
