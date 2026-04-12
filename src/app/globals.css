@@ -1,15 +1,15 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #f5ede0;
-  --foreground: #2e2316;
-  --surface: rgba(255, 251, 245, 0.84);
-  --surface-strong: rgba(255, 249, 241, 0.92);
-  --line: rgba(112, 75, 33, 0.16);
-  --accent: #c66d1f;
-  --accent-strong: #9b4d11;
-  --ink-soft: #6f5c48;
-  --ink-strong: #2f2417;
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --surface: rgba(200, 200, 200, 0.84);
+  --surface-strong: rgba(255, 255, 255, 0.94);
+  --line: rgba(63, 63, 70, 0.12);
+  --accent: #52525b;
+  --accent-strong: #27272a;
+  --ink-soft: #71717a;
+  --ink-strong: #18181b;
 }
 
 @theme inline {
@@ -31,15 +31,17 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Avenir Next', 'Segoe UI', sans-serif;
-  background-image:
-    radial-gradient(circle at top left, rgba(245, 203, 134, 0.35), transparent 30%),
-    radial-gradient(circle at top right, rgba(198, 109, 31, 0.14), transparent 22%),
-    linear-gradient(180deg, #fbf5ea 0%, #f3e7d6 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%;
 }
 
 code {
   border-radius: 999px;
-  background: rgba(112, 75, 33, 0.08);
+  background: rgba(63, 63, 70, 0.08);
   padding: 0.15rem 0.5rem;
   font-family: 'SFMono-Regular', 'Menlo', monospace;
   font-size: 0.92em;
@@ -49,7 +51,7 @@ code {
   position: relative;
   border: 1px solid var(--line);
   background:
-    linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(244, 232, 210, 0.9)), var(--surface);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.9)), var(--surface);
 }
 
 .hero-panel::after {
@@ -59,7 +61,7 @@ code {
   width: 18rem;
   height: 18rem;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(198, 109, 31, 0.18), transparent 65%);
+  background: radial-gradient(circle, rgba(161, 161, 170, 0.18), transparent 65%);
   pointer-events: none;
 }
 
@@ -74,7 +76,7 @@ code {
 .stat-card {
   border: 1px solid var(--line);
   border-radius: 1.25rem;
-  background: rgba(255, 252, 247, 0.72);
+  background: rgba(230, 230, 230, 0.72);
   padding: 1rem;
 }
 
@@ -97,7 +99,7 @@ code {
   border-radius: 1.5rem;
   background: var(--surface-strong);
   padding: 1.5rem;
-  box-shadow: 0 18px 44px rgba(70, 45, 14, 0.08);
+  box-shadow: 0 18px 44px rgba(24, 24, 27, 0.06);
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -106,8 +108,8 @@ code {
 
 .chapter-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(155, 77, 17, 0.3);
-  box-shadow: 0 26px 64px rgba(70, 45, 14, 0.12);
+  border-color: rgba(82, 82, 91, 0.28);
+  box-shadow: 0 26px 64px rgba(24, 24, 27, 0.1);
 }
 
 @media (max-width: 640px) {

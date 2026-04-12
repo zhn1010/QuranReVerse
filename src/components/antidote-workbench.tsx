@@ -1,23 +1,47 @@
 'use client';
 
+import Script from 'next/script';
 import { useState } from 'react';
 
-type Verse = {
-  arabicText: string;
-  ayahNo: string;
-  englishTranslation: string;
-  surahName: string;
-  surahNo: number;
-  translationName: string;
-  verseKey: string;
+type ReflectionReference = {
+  chapterId: number;
+  from: number;
+  id: string;
+  to: number;
+};
+
+type RelatedReflection = {
+  authorName: string;
+  body: string;
+  commentsCount: number;
+  createdAt: string | null;
+  id: number;
+  languageName: string | null;
+  likesCount: number;
+  postTypeName: string | null;
+  references: ReflectionReference[];
+};
+
+type SelectedReflection = {
+  ayah_no: string;
+  reflection: RelatedReflection | null;
+  selected_reflection_id: number;
+  selection_reason: string;
+  surah_name: string;
+  surah_no: number;
+};
+
+type ReflectionGuide = {
+  conclusion_text: string;
+  intro_text: string;
 };
 
 type Antidote = {
   ayah_no: string;
+  related_reflections: RelatedReflection[];
   reasoning: string;
   surah_name: string;
   surah_no: number;
-  verse: Verse | null;
 };
 
 type Diagnosis = {
@@ -30,11 +54,75 @@ type ApiResponse = {
   antidotes: Antidote[];
   diagnosis: Diagnosis;
   error?: string;
+  reflection_guide: ReflectionGuide | null;
+  selected_reflection: SelectedReflection | null;
 };
 
 const starterEvent =
   'I read a story celebrating wealth, influence, and social recognition, and it made success feel like the main proof that a person matters.';
 const starterFeeling = 'I felt restless, small, and afraid that I am falling behind in life.';
+const QURAN_COM_TRANSLATION_ID = '135';
+
+function buildQuranEmbedUrl(surahNo: number, ayahNo: string) {
+  const verseRef = `${surahNo}:${ayahNo}`;
+  const params = new URLSearchParams({
+    answers: 'false',
+    lessons: 'false',
+    mergeVerses: 'true',
+    mushaf: 'kfgqpc_v2',
+    reflections: 'false',
+    tafsir: 'false',
+    translations: QURAN_COM_TRANSLATION_ID,
+    verses: verseRef,
+  });
+
+  return `https://quran.com/embed/v1?${params.toString()}`;
+}
+
+function formatReferenceAyah(reference: ReflectionReference) {
+  if (reference.from < 1 || reference.to < 1) {
+    return null;
+  }
+
+  return reference.from === reference.to
+    ? `${reference.chapterId}:${reference.from}`
+    : `${reference.chapterId}:${reference.from}-${reference.to}`;
+}
+
+function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
+  const references =
+    selectedReflection.reflection?.references
+      .map((reference) => ({
+        label: formatReferenceAyah(reference),
+        reference,
+      }))
+      .filter((item): item is { label: string; reference: ReflectionReference } => !!item.label)
+      .filter(
+        (item, index, items) =>
+          items.findIndex((candidate) => candidate.label === item.label) === index,
+      ) ?? [];
+
+  if (references.length > 0) {
+    return references;
+  }
+
+  return [
+    {
+      label: `${selectedReflection.surah_no}:${selectedReflection.ayah_no}`,
+      reference: {
+        chapterId: selectedReflection.surah_no,
+        from: Number.parseInt(selectedReflection.ayah_no.split('-')[0] ?? '0', 10),
+        id: `${selectedReflection.surah_no}:${selectedReflection.ayah_no}`,
+        to: Number.parseInt(
+          selectedReflection.ayah_no.split('-')[1] ??
+            selectedReflection.ayah_no.split('-')[0] ??
+            '0',
+          10,
+        ),
+      },
+    },
+  ];
+}
 
 export default function AntidoteWorkbench() {
   const [eventContent, setEventContent] = useState(starterEvent);
@@ -79,55 +167,19 @@ export default function AntidoteWorkbench() {
 
   return (
     <main className="min-h-screen px-5 py-10 sm:px-8 lg:px-12">
+      <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
+
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-        <section className="hero-panel overflow-hidden rounded-4xl px-6 py-8 shadow-[0_30px_120px_rgba(43,27,8,0.16)] sm:px-8 sm:py-10">
-          <div className="flex flex-col gap-6 lg:max-w-4xl">
-            <p className="eyebrow">Ilm an-Nafs Workbench</p>
-            <div className="space-y-4">
-              <h1 className="text-4xl font-semibold tracking-[-0.05em] text-(--ink-strong) sm:text-5xl">
-                Reframe an event from material pull toward God-centered meaning
-              </h1>
-              <p className="max-w-3xl text-base leading-8 text-(--ink-soft) sm:text-lg">
-                Enter what happened or what the user consumed, then describe the feeling that
-                followed. The backend uses <code>gpt-5</code> to diagnose the spiritual drift and
-                select Quranic antidotes, then enriches those ayahs with Arabic text and English
-                translation.
-              </p>
-            </div>
-            <div className="grid gap-4 text-sm text-(--ink-soft) sm:grid-cols-3">
-              <div className="stat-card">
-                <span className="stat-label">Model</span>
-                <strong className="stat-value">GPT-5</strong>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Output</span>
-                <strong className="stat-value">Strict JSON schema</strong>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Verse Enrichment</span>
-                <strong className="stat-value">Arabic + English</strong>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <section className="grid gap-8]">
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-            <div className="rounded-4xl border border-(--line) bg-[rgba(255,249,241,0.92)] p-6 shadow-[0_18px_44px_rgba(70,45,14,0.08)] sm:p-8">
+            <div className="rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_44px_rgba(24,24,27,0.06)] sm:p-8">
               <div className="space-y-5">
-                <div>
-                  <p className="eyebrow">Input</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)">
-                    Event, content, and emotional response
-                  </h2>
-                </div>
-
                 <label className="flex flex-col gap-3">
                   <span className="text-sm font-medium uppercase tracking-[0.18em] text-(--accent-strong)">
                     What happened or what was read?
                   </span>
                   <textarea
-                    className="min-h-64 rounded-[1.6rem] border border-(--line) bg-white/70 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(155,77,17,0.45)] focus:ring-4 focus:ring-[rgba(198,109,31,0.12)]"
+                    className="min-h-64 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
                     onChange={(inputEvent) => setEventContent(inputEvent.target.value)}
                     placeholder="Describe the event, article, post, video, conversation, or experience."
                     value={eventContent}
@@ -136,10 +188,10 @@ export default function AntidoteWorkbench() {
 
                 <label className="flex flex-col gap-3">
                   <span className="text-sm font-medium uppercase tracking-[0.18em] text-(--accent-strong)">
-                    What did she feel after that?
+                    How do you feel after that?
                   </span>
                   <textarea
-                    className="min-h-32 rounded-[1.6rem] border border-(--line) bg-white/70 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(155,77,17,0.45)] focus:ring-4 focus:ring-[rgba(198,109,31,0.12)]"
+                    className="min-h-32 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
                     onChange={(inputEvent) => setUserFeeling(inputEvent.target.value)}
                     placeholder="Describe the emotional or spiritual feeling that followed."
                     value={userFeeling}
@@ -164,57 +216,106 @@ export default function AntidoteWorkbench() {
               </div>
             ) : null}
           </form>
-
-          <div className="flex flex-col gap-6">
-            <section className="rounded-4xl border border-(--line) bg-[rgba(255,249,241,0.92)] p-6 shadow-[0_18px_44px_rgba(70,45,14,0.08)] sm:p-8">
-              <p className="eyebrow">Diagnosis</p>
-              {result ? (
-                <div className="mt-4 flex flex-col gap-5">
-                  <div className="rounded-3xl border border-(--line) bg-[rgba(255,252,247,0.72)] p-4">
-                    <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
-                      Spiritual Drift
-                    </p>
-                    <p className="mt-2 text-base leading-8 text-(--ink-strong)">
-                      {result.diagnosis.spiritual_drift}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-(--line) bg-[rgba(255,252,247,0.72)] p-4">
-                    <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
-                      Materialistic Narrative
-                    </p>
-                    <p className="mt-2 text-base leading-8 text-(--ink-strong)">
-                      {result.diagnosis.materialistic_narrative}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-(--line) bg-[rgba(255,252,247,0.72)] p-4">
-                    <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
-                      God-Centric Reframe
-                    </p>
-                    <p className="mt-2 text-base leading-8 text-(--ink-strong)">
-                      {result.diagnosis.god_centric_reframe}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-4 text-base leading-8 text-(--ink-soft)">
-                  Submit the form to see the spiritual diagnosis and Quranic antidotes.
-                </p>
-              )}
-            </section>
-          </div>
         </section>
 
         <section className="flex flex-col gap-5">
-          <div>
-            <p className="eyebrow">Ayah Response</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)">
-              Arabic text and English translation
-            </h2>
-          </div>
-
           {result ? (
             <div className="grid gap-4">
-              {result.antidotes.map((antidote) => (
+              {result.selected_reflection?.reflection ? (
+                <section className="overflow-hidden rounded-[2rem] border border-(--line) bg-[rgba(255,255,255,0.94)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
+                  <div className="grid gap-8 px-6 py-8 sm:px-8">
+                    <article className="flex flex-col gap-8">
+                      {result.reflection_guide ? (
+                        <p className="text-lg leading-9 text-(--ink-strong)">
+                          {result.reflection_guide.intro_text}
+                        </p>
+                      ) : null}
+
+                      <div className="rounded-[1.7rem] border border-[rgba(82,82,91,0.14)] bg-[linear-gradient(180deg,rgba(244,244,245,0.82),rgba(255,255,255,0.96))] px-5 py-6 sm:px-6">
+                        <div className="flex flex-col gap-3 border-b border-[rgba(82,82,91,0.12)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+                          <div>
+                            <p className="text-base font-semibold text-(--ink-strong)">
+                              {result.selected_reflection.reflection.authorName}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
+                              {result.selected_reflection.reflection.postTypeName ?? 'Reflection'}
+                              {result.selected_reflection.reflection.languageName
+                                ? ` • ${result.selected_reflection.reflection.languageName}`
+                                : ''}
+                            </p>
+                          </div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">
+                            {result.selected_reflection.reflection.createdAt
+                              ? new Date(
+                                  result.selected_reflection.reflection.createdAt,
+                                ).toLocaleDateString()
+                              : 'Unknown date'}
+                          </p>
+                        </div>
+
+                        <div className="mt-5">
+                          <ReflectionBody body={result.selected_reflection.reflection.body} />
+                        </div>
+
+                        <div className="mt-5 flex gap-4 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
+                          <span>{result.selected_reflection.reflection.likesCount} likes</span>
+                          <span>
+                            {result.selected_reflection.reflection.commentsCount} comments
+                          </span>
+                        </div>
+                      </div>
+                      {getSelectedReflectionEmbeds(result.selected_reflection).map((embed) => (
+                        <div
+                          key={embed.label}
+                          className="overflow-hidden rounded-[1.6rem] border border-(--line) bg-white shadow-[0_12px_32px_rgba(24,24,27,0.06)]"
+                        >
+                          <div className="border-b border-(--line) px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
+                              {embed.label}
+                            </p>
+                          </div>
+                          <iframe
+                            allow="clipboard-write"
+                            className="block w-full bg-white"
+                            data-quran-embed="true"
+                            frameBorder="0"
+                            loading="lazy"
+                            src={buildQuranEmbedUrl(
+                              embed.reference.chapterId,
+                              embed.label.split(':')[1] ?? '',
+                            )}
+                            title={`Quran passage ${embed.label}`}
+                            width="100%"
+                          />
+                        </div>
+                      ))}
+                      {result.reflection_guide ? (
+                        <div className="border-t border-(--line) pt-6">
+                          <p className="text-base leading-8 text-(--ink-strong)">
+                            {result.reflection_guide.conclusion_text}
+                          </p>
+                        </div>
+                      ) : null}
+                    </article>
+
+                    {/* <aside className="flex flex-col gap-4">
+                      <div className="rounded-[1.6rem] border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-4">
+                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
+                          Quran Passages In This Reading
+                        </p>
+                        <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+                          These are the ayahs referenced in the reflection itself, shown here so you
+                          can sit with the source text directly.
+                        </p>
+                      </div>
+
+                      
+                    </aside> */}
+                  </div>
+                </section>
+              ) : null}
+
+              {/* {result.antidotes.map((antidote) => (
                 <article
                   key={`${antidote.surah_no}:${antidote.ayah_no}`}
                   className="chapter-card flex flex-col gap-5"
@@ -229,50 +330,127 @@ export default function AntidoteWorkbench() {
                       </h3>
                     </div>
                     <span className="rounded-full border border-(--line) px-3 py-1 text-xs font-medium text-(--ink-soft)">
-                      {antidote.verse?.translationName ?? 'Translation unavailable'}
+                      Quran.com embed
                     </span>
                   </div>
 
                   <p className="text-base leading-8 text-(--ink-strong)">{antidote.reasoning}</p>
 
-                  {antidote.verse ? (
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-                      <div className="rounded-[1.6rem] border border-(--line) bg-[rgba(255,252,247,0.72)] p-5">
-                        <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
-                          Arabic
-                        </p>
-                        <p
-                          className="mt-4 text-right text-3xl leading-[2.3] text-(--ink-strong)"
-                          dir="rtl"
-                        >
-                          {antidote.verse.arabicText}
-                        </p>
-                      </div>
-                      <div className="rounded-[1.6rem] border border-(--line) bg-[rgba(255,252,247,0.72)] p-5">
-                        <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
-                          English
-                        </p>
-                        <p className="mt-4 text-base leading-8 text-(--ink-strong)">
-                          {antidote.verse.englishTranslation}
-                        </p>
-                      </div>
+                  <iframe
+                    allow="clipboard-write"
+                    className="block w-full bg-white"
+                    data-quran-embed="true"
+                    frameBorder="0"
+                    loading="lazy"
+                    src={buildQuranEmbedUrl(antidote.surah_no, antidote.ayah_no)}
+                    title={`${antidote.surah_name} ${antidote.surah_no}:${antidote.ayah_no}`}
+                    width="100%"
+                  />
+
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
+                        Related Reflections
+                      </p>
+                      <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
+                        Latest three verified English reflection posts for this ayah from Quran
+                        Reflect.
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-sm leading-7 text-(--ink-soft)">
-                      Verse text could not be enriched automatically for this ayah selection.
-                    </p>
-                  )}
+
+                    {antidote.related_reflections.length > 0 ? (
+                      <div className="grid gap-3">
+                        {antidote.related_reflections.map((reflection) => (
+                          <div
+                            key={reflection.id}
+                            className={`rounded-[1.4rem] border p-4 ${
+                              result.selected_reflection?.selected_reflection_id === reflection.id
+                                ? 'border-[rgba(82,82,91,0.28)] bg-white'
+                                : 'border-(--line) bg-[rgba(237,237,237,0.72)]'
+                            }`}
+                          >
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-(--ink-strong)">
+                                  {reflection.authorName}
+                                </p>
+                                <p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">
+                                  {reflection.postTypeName ?? 'Reflection'}
+                                  {reflection.languageName ? ` • ${reflection.languageName}` : ''}
+                                </p>
+                              </div>
+                              <p className="text-xs text-(--ink-soft)">
+                                {reflection.createdAt
+                                  ? new Date(reflection.createdAt).toLocaleDateString()
+                                  : 'Unknown date'}
+                              </p>
+                            </div>
+
+                            {result.selected_reflection?.selected_reflection_id === reflection.id ? (
+                              <div className="mt-3 rounded-2xl border border-[rgba(82,82,91,0.16)] bg-[rgba(255,255,255,0.88)] px-4 py-3">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
+                                  Curator Pick
+                                </p>
+                                <p className="mt-2 text-sm leading-7 text-(--ink-strong)">
+                                  {result.selected_reflection.selection_reason}
+                                </p>
+                              </div>
+                            ) : null}
+
+                            <ReflectionBody body={reflection.body} />
+
+                            <div className="mt-3 flex gap-4 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
+                              <span>{reflection.likesCount} likes</span>
+                              <span>{reflection.commentsCount} comments</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-7 text-(--ink-soft)">
+                        No related reflection posts were found for this ayah.
+                      </p>
+                    )}
+                  </div>
                 </article>
-              ))}
+              ))} */}
             </div>
           ) : (
-            <div className="rounded-4xl border border-dashed border-(--line) bg-[rgba(255,249,241,0.56)] p-8 text-base leading-8 text-(--ink-soft)">
-              The selected ayahs, their Arabic text, and their English translation will appear here
-              after analysis.
+            <div className="rounded-4xl border border-dashed border-(--line) bg-[rgba(255,255,255,0.56)] p-8 text-base leading-8 text-(--ink-soft)">
+              Your guided reading will appear here after analysis, with the reflection and the Quran
+              passages it points back to.
             </div>
           )}
         </section>
       </div>
     </main>
+  );
+}
+
+function ReflectionBody({ body }: { body: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const normalizedBody = body.trim();
+  const shouldCollapse = normalizedBody.length > 420;
+
+  return (
+    <div className="mt-3">
+      <p
+        className={`whitespace-pre-line text-sm leading-7 text-(--ink-strong) ${
+          !expanded && shouldCollapse ? 'line-clamp-6' : ''
+        }`}
+      >
+        {normalizedBody}
+      </p>
+
+      {shouldCollapse ? (
+        <button
+          className="mt-3 text-sm font-medium text-(--accent-strong) underline decoration-[rgba(82,82,91,0.3)] underline-offset-4"
+          onClick={() => setExpanded((current) => !current)}
+          type="button"
+        >
+          {expanded ? 'Show less' : 'Continue reading'}
+        </button>
+      ) : null}
+    </div>
   );
 }
