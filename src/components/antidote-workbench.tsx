@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import Script from 'next/script';
 import { useState } from 'react';
+import type { QfSessionSummary } from '@/lib/qf-user';
 
 type ReflectionReference = {
   chapterId: number;
@@ -56,6 +58,13 @@ type ApiResponse = {
   error?: string;
   reflection_guide: ReflectionGuide | null;
   selected_reflection: SelectedReflection | null;
+};
+
+type BookmarkState = {
+  error: string | null;
+  savedKey: string | null;
+  savingKey: string | null;
+  success: string | null;
 };
 
 const starterEvent =
@@ -124,12 +133,23 @@ function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
   ];
 }
 
-export default function AntidoteWorkbench() {
+export default function AntidoteWorkbench({
+  initialAuth,
+}: {
+  initialAuth: QfSessionSummary;
+}) {
   const [eventContent, setEventContent] = useState(starterEvent);
   const [userFeeling, setUserFeeling] = useState(starterFeeling);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authState] = useState(initialAuth);
+  const [bookmarkState, setBookmarkState] = useState<BookmarkState>({
+    error: null,
+    savedKey: null,
+    savingKey: null,
+    success: null,
+  });
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -165,6 +185,53 @@ export default function AntidoteWorkbench() {
     }
   }
 
+  async function handleBookmark(surahNo: number, ayahNo: string, key: string) {
+    setBookmarkState({
+      error: null,
+      savedKey: null,
+      savingKey: key,
+      success: null,
+    });
+
+    try {
+      const response = await fetch('/api/qf/bookmark', {
+        body: JSON.stringify({
+          ayahNo,
+          surahNo,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      });
+      const payload = (await response.json()) as {
+        collectionName?: string;
+        error?: string;
+        savedCount?: number;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not save the ayah.');
+      }
+
+      const savedCount = payload.savedCount ?? 1;
+
+      setBookmarkState({
+        error: null,
+        savedKey: key,
+        savingKey: null,
+        success: `${savedCount === 1 ? '1 ayah saved' : `${savedCount} ayahs saved`} to ${payload.collectionName ?? authState.collectionName}.`,
+      });
+    } catch (bookmarkError) {
+      setBookmarkState({
+        error: bookmarkError instanceof Error ? bookmarkError.message : 'Could not save the ayah.',
+        savedKey: null,
+        savingKey: null,
+        success: null,
+      });
+    }
+  }
+
   return (
     <main className="min-h-screen px-5 py-10 sm:px-8 lg:px-12">
       <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
@@ -172,6 +239,35 @@ export default function AntidoteWorkbench() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
         <section className="grid gap-8]">
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-3 rounded-[1.5rem] border border-(--line) bg-[rgba(255,255,255,0.72)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-(--ink-strong)">
+                  {authState.isAuthenticated
+                    ? `Connected to Quran Foundation${authState.displayName ? ` as ${authState.displayName}` : ''}`
+                    : `Connect Quran Foundation to save ayahs to ${authState.collectionName}`}
+                </p>
+                <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
+                  {authState.isAuthenticated
+                    ? `Saved ayahs will go into your ${authState.collectionName} collection.`
+                    : 'Connect once, then save referenced ayahs directly into a personal collection created for you.'}
+                </p>
+              </div>
+              {authState.isAuthenticated ? (
+                <Link
+                  className="inline-flex items-center justify-center rounded-full border border-(--line) px-5 py-2 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
+                  href="/api/qf/auth/logout"
+                >
+                  Disconnect
+                </Link>
+              ) : (
+                <Link
+                  className="inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-[color:var(--accent)]"
+                  href="/api/qf/auth/login?next=/"
+                >
+                  Connect Account
+                </Link>
+              )}
+            </div>
             <div className="rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_44px_rgba(24,24,27,0.06)] sm:p-8">
               <div className="space-y-5">
                 <label className="flex flex-col gap-3">
@@ -264,15 +360,54 @@ export default function AntidoteWorkbench() {
                           </span>
                         </div>
                       </div>
+                      {bookmarkState.success || bookmarkState.error ? (
+                        <div className="rounded-[1.4rem] border border-(--line) bg-[rgba(255,255,255,0.72)] px-4 py-3 text-sm leading-7">
+                          {bookmarkState.success ? (
+                            <p className="text-[rgb(24,94,58)]">{bookmarkState.success}</p>
+                          ) : null}
+                          {bookmarkState.error ? (
+                            <p className="text-[rgb(146,64,14)]">{bookmarkState.error}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {getSelectedReflectionEmbeds(result.selected_reflection).map((embed) => (
                         <div
                           key={embed.label}
                           className="overflow-hidden rounded-[1.6rem] border border-(--line) bg-white shadow-[0_12px_32px_rgba(24,24,27,0.06)]"
                         >
                           <div className="border-b border-(--line) px-4 py-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
-                              {embed.label}
-                            </p>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
+                                {embed.label}
+                              </p>
+                              {authState.isAuthenticated ? (
+                                <button
+                                  className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
+                                  disabled={bookmarkState.savingKey === embed.label}
+                                  onClick={() =>
+                                    handleBookmark(
+                                      embed.reference.chapterId,
+                                      embed.label.split(':')[1] ?? '',
+                                      embed.label,
+                                    )
+                                  }
+                                  type="button"
+                                >
+                                  {bookmarkState.savingKey === embed.label
+                                    ? 'Saving...'
+                                    : bookmarkState.savedKey === embed.label
+                                      ? 'Saved'
+                                      : `Save to ${authState.collectionName}`}
+                                </button>
+                              ) : (
+                                <Link
+                                  className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
+                                  href="/api/qf/auth/login?next=/"
+                                >
+                                  Connect to Save
+                                </Link>
+                              )}
+                            </div>
                           </div>
                           <iframe
                             allow="clipboard-write"
