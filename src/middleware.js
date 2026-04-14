@@ -1,13 +1,14 @@
-const CANONICAL_HOST = "quran-re-verse.vercel.app";
+// middleware.ts
+import { NextResponse } from "next/server";
 
 export function middleware(req) {
-    const url = req.nextUrl;
     const host = req.headers.get("host");
 
-    const isAuthRoute = url.pathname.startsWith("/api/auth");
+    const isPreview = host?.includes("vercel.app") && !host.startsWith("quran-re-verse");
 
-    if (isAuthRoute && host !== CANONICAL_HOST) {
-        url.hostname = CANONICAL_HOST;
+    if (isPreview && req.nextUrl.pathname.startsWith("/api/auth")) {
+        const url = req.nextUrl.clone();
+        url.hostname = "quran-re-verse.vercel.app";
         return NextResponse.redirect(url);
     }
 
