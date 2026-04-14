@@ -7,8 +7,8 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN!,
 });
 
-const SESSION_COOKIE_NAME = 'reverse_session_id';
-const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
+export const SESSION_COOKIE_NAME = 'reverse_session_id';
+export const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 // Define the shape of your session data
 export type SessionData = {

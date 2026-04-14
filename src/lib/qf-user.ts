@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { clearSession, createSession, getSession } from '@/lib/session';
+import { clearSession, createSession, getSession, SESSION_COOKIE_NAME, SESSION_EXPIRATION_SECONDS } from '@/lib/session';
 
 const QF_PRELIVE_AUTH_BASE_URL = 'https://prelive-oauth2.quran.foundation';
 const QF_PRELIVE_API_BASE_URL = 'https://apis-prelive.quran.foundation';
@@ -659,11 +659,19 @@ export async function handleAuthCallback(
     userSub: session.user.sub ? maskIdentifier(session.user.sub) : '(missing)',
   });
 
-  await createSession({
+  const sessionId = await createSession({
     quranFoundationId: session.user.sub,
     accessToken: session.accessToken,
     refreshToken: session.refreshToken,
     expiresAt: session.expiresAt,
+  });
+
+  response.cookies.set(SESSION_COOKIE_NAME, sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: SESSION_EXPIRATION_SECONDS,
+    path: '/',
   });
 
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
@@ -676,6 +684,7 @@ export async function logoutQfUser(requestUrl: string) {
 
   await clearSession();
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
+  clearCookie(response, SESSION_COOKIE_NAME);
 
   return response;
 }
@@ -747,10 +756,18 @@ export async function bookmarkAyahsInReverseCollection(surahNo: number, ayahNo: 
 }
 
 export async function persistQfUserSession(response: NextResponse, session: QfSessionCookie) {
-  await createSession({
+  const sessionId = await createSession({
     quranFoundationId: session.user.sub,
     accessToken: session.accessToken,
     refreshToken: session.refreshToken,
     expiresAt: session.expiresAt,
+  });
+
+  response.cookies.set(SESSION_COOKIE_NAME, sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: SESSION_EXPIRATION_SECONDS,
+    path: '/',
   });
 }
