@@ -251,11 +251,34 @@ function sanitizeReturnTo(value: string | null) {
 }
 
 function getRedirectUri(requestUrl: string) {
-  if (process.env.QF_USER_REDIRECT_URI) {
-    return process.env.QF_USER_REDIRECT_URI;
+  const requestOriginRedirect = new URL('/api/qf/auth/callback', requestUrl).toString();
+  const configuredRedirect = process.env.QF_USER_REDIRECT_URI?.trim();
+
+  if (!configuredRedirect) {
+    return requestOriginRedirect;
   }
 
-  return new URL('/api/qf/auth/callback', requestUrl).toString();
+  try {
+    const configuredUrl = new URL(configuredRedirect);
+    const requestOrigin = new URL(requestUrl).origin;
+
+    if (configuredUrl.origin !== requestOrigin) {
+      qfAuthDebug('configured redirect origin mismatch; using request origin redirect', {
+        configuredOrigin: configuredUrl.origin,
+        configuredPathname: configuredUrl.pathname,
+        requestOrigin,
+      });
+
+      return requestOriginRedirect;
+    }
+
+    return configuredUrl.toString();
+  } catch {
+    qfAuthDebug('invalid configured redirect uri; using request origin redirect', {
+      configuredRedirect,
+    });
+    return requestOriginRedirect;
+  }
 }
 
 function setEncryptedCookie(
