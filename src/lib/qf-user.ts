@@ -26,12 +26,8 @@ type PendingAuthFlow = {
 type QfSessionCookie = {
   accessToken: string;
   expiresAt: number;
-  grantedScope: string;
-  idToken?: string;
   refreshToken?: string;
   user: {
-    email?: string;
-    name?: string;
     sub?: string;
   };
 };
@@ -122,9 +118,7 @@ function logCookiePayloadDiagnostics(
     const session = payload as QfSessionCookie;
     details.accessTokenBytes = getUtf8ByteLength(session.accessToken ?? '');
     details.refreshTokenBytes = getUtf8ByteLength(session.refreshToken ?? '');
-    details.idTokenBytes = getUtf8ByteLength(session.idToken ?? '');
     details.userJsonBytes = getUtf8ByteLength(JSON.stringify(session.user ?? {}));
-    details.grantedScopeBytes = getUtf8ByteLength(session.grantedScope ?? '');
   }
 
   qfAuthDebug('cookie payload diagnostics', details);
@@ -354,17 +348,8 @@ function buildSessionFromTokenResponse(
   return {
     accessToken: tokenResponse.access_token,
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
-    grantedScope: tokenResponse.scope ?? '',
-    idToken: tokenResponse.id_token,
     refreshToken: tokenResponse.refresh_token,
     user: {
-      email: typeof payload?.email === 'string' ? payload.email : undefined,
-      name:
-        typeof payload?.name === 'string'
-          ? payload.name
-          : typeof payload?.preferred_username === 'string'
-            ? payload.preferred_username
-            : undefined,
       sub: typeof payload?.sub === 'string' ? payload.sub : undefined,
     },
   };
@@ -387,8 +372,6 @@ async function refreshSession(session: QfSessionCookie) {
     ...session,
     accessToken: refreshedSession.accessToken,
     expiresAt: refreshedSession.expiresAt,
-    grantedScope: refreshedSession.grantedScope,
-    idToken: refreshedSession.idToken ?? session.idToken,
     refreshToken: refreshedSession.refreshToken ?? session.refreshToken,
     user: {
       ...session.user,
@@ -682,7 +665,7 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
 
   return {
     collectionName: QF_BOOKMARK_COLLECTION_NAME,
-    displayName: session?.user.name ?? session?.user.email ?? null,
+    displayName: null,
     isAuthenticated: Boolean(session),
   };
 }
