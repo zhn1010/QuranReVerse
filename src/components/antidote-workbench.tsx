@@ -254,19 +254,19 @@ export default function AntidoteWorkbench({
                 </p>
               </div>
               {authState.isAuthenticated ? (
-                <Link
+                <a
                   className="inline-flex items-center justify-center rounded-full border border-(--line) px-5 py-2 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
                   href="/api/qf/auth/logout"
                 >
                   Disconnect
-                </Link>
+                </a>
               ) : (
-                <Link
+                <a
                   className="inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-[color:var(--accent)]"
                   href="/api/qf/auth/login?next=/"
                 >
                   Connect Account
-                </Link>
+                </a>
               )}
             </div>
             <div className="rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_44px_rgba(24,24,27,0.06)] sm:p-8">
@@ -401,12 +401,12 @@ export default function AntidoteWorkbench({
                                       : `Save to ${authState.collectionName}`}
                                 </button>
                               ) : (
-                                <Link
+                                <a
                                   className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
                                   href="/api/qf/auth/login?next=/"
                                 >
                                   Connect to Save
-                                </Link>
+                                </a>
                               )}
                             </div>
                           </div>
