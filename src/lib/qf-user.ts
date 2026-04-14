@@ -270,9 +270,13 @@ function getRedirectUri(requestUrl: string) {
       });
 
       return requestOriginRedirect;
+    } else {
+      qfAuthDebug('configured redirect origin matches request origin; using configured redirect', {
+        configuredRedirect,
+        requestOrigin,
+      });
+      return configuredUrl.toString();
     }
-
-    return configuredUrl.toString();
   } catch {
     qfAuthDebug('invalid configured redirect uri; using request origin redirect', {
       configuredRedirect,
