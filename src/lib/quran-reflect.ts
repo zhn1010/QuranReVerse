@@ -11,6 +11,7 @@ const REFLECTION_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 type QuranReflectTokenCache = {
   expiresAt: number;
+  key: string;
   value: string;
 };
 
@@ -35,31 +36,52 @@ export type ReflectionReference = {
 
 let tokenCache: QuranReflectTokenCache | null = null;
 
-function getRequiredEnv(name: 'QURAN_CLIENT_ID' | 'QURAN_CLIENT_SECRET') {
-  const value = process.env[name];
+function getRequiredEnv(
+  primaryName: string,
+  fallbackName?: 'QURAN_CLIENT_ID' | 'QURAN_CLIENT_SECRET',
+) {
+  const primaryValue = process.env[primaryName];
 
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+  if (primaryValue) {
+    return primaryValue;
   }
 
-  return value;
+  if (fallbackName) {
+    const fallbackValue = process.env[fallbackName];
+
+    if (fallbackValue) {
+      return fallbackValue;
+    }
+  }
+
+  throw new Error(
+    fallbackName
+      ? `Missing required environment variable: ${primaryName} (or fallback ${fallbackName})`
+      : `Missing required environment variable: ${primaryName}`,
+  );
 }
 
 function getQuranReflectConfig() {
   return {
-    apiBaseUrl: process.env.QURAN_API_BASE_URL ?? QURAN_REFLECT_API_BASE_URL,
-    authBaseUrl: process.env.QURAN_ENDPOINT ?? QURAN_REFLECT_AUTH_BASE_URL,
-    clientId: getRequiredEnv('QURAN_CLIENT_ID'),
-    clientSecret: getRequiredEnv('QURAN_CLIENT_SECRET'),
+    apiBaseUrl: process.env.QURAN_REFLECT_API_BASE_URL ?? QURAN_REFLECT_API_BASE_URL,
+    authBaseUrl: process.env.QURAN_REFLECT_ENDPOINT ?? QURAN_REFLECT_AUTH_BASE_URL,
+    clientId: getRequiredEnv('QURAN_REFLECT_CLIENT_ID', 'QURAN_CLIENT_ID'),
+    clientSecret: getRequiredEnv('QURAN_REFLECT_CLIENT_SECRET', 'QURAN_CLIENT_SECRET'),
   };
 }
 
 async function getAccessToken() {
-  if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) {
+  const { authBaseUrl, clientId, clientSecret } = getQuranReflectConfig();
+  const tokenCacheKey = `${authBaseUrl}:${clientId}`;
+
+  if (
+    tokenCache &&
+    tokenCache.key === tokenCacheKey &&
+    tokenCache.expiresAt > Date.now() + 30_000
+  ) {
     return tokenCache.value;
   }
 
-  const { authBaseUrl, clientId, clientSecret } = getQuranReflectConfig();
   const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
@@ -94,6 +116,7 @@ async function getAccessToken() {
 
   tokenCache = {
     expiresAt: Date.now() + (payload.expires_in ?? 300) * 1000,
+    key: tokenCacheKey,
     value: payload.access_token,
   };
 

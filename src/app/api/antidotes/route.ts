@@ -273,14 +273,25 @@ async function enrichAntidotes(antidotes: OpenAIAntidote[]) {
   return Promise.all(
     antidotes.map(async (antidote): Promise<EnrichedAntidote> => {
       const normalizedAyahNo = normalizeAyahNo(antidote.surah_no, antidote.ayah_no);
+      let relatedReflections: RelatedReflection[] = [];
+
+      try {
+        relatedReflections = await getRelatedReflectionsForAyah(
+          antidote.surah_no,
+          normalizedAyahNo,
+        );
+      } catch (error) {
+        console.warn('[quran-reflect] failed to fetch related reflections', {
+          ayahNo: normalizedAyahNo,
+          message: error instanceof Error ? error.message : 'Unknown error',
+          surahNo: antidote.surah_no,
+        });
+      }
 
       return {
         ...antidote,
         ayah_no: normalizedAyahNo,
-        related_reflections: await getRelatedReflectionsForAyah(
-          antidote.surah_no,
-          normalizedAyahNo,
-        ),
+        related_reflections: relatedReflections,
       };
     }),
   );
