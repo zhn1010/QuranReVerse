@@ -666,6 +666,8 @@ export async function handleAuthCallback(
     expiresAt: session.expiresAt,
   });
 
+  console.log(`[qf-auth] Retrieved sessionId ${sessionId} from createSession. Proceeding to set on response.`);
+
   response.cookies.set(SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -673,6 +675,8 @@ export async function handleAuthCallback(
     maxAge: SESSION_EXPIRATION_SECONDS,
     path: '/',
   });
+
+  console.log(`[qf-auth] Set cookie on NextResponse. Headers dump:`, Array.from(response.headers.entries()));
 
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
 

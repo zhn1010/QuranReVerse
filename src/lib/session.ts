@@ -29,19 +29,30 @@ export async function createSession(data: SessionData, existingSessionId?: strin
 
   // Store the session data in Redis using the sessionId as the key.
   // We use `ex` to automatically expire the Redis key when the session expires.
-  await redis.set(`session:${sessionId}`, data, {
-    ex: SESSION_EXPIRATION_SECONDS,
-  });
+  console.log(`[session] Attempting to store session in Redis: session:${sessionId}`);
+  try {
+    await redis.set(`session:${sessionId}`, data, {
+      ex: SESSION_EXPIRATION_SECONDS,
+    });
+    console.log(`[session] Successfully stored session in Redis.`);
+  } catch (err) {
+    console.error(`[session] Failed to store session in Redis:`, err);
+  }
 
   // Set the cookie containing ONLY the session ID
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: SESSION_EXPIRATION_SECONDS,
-    path: '/',
-  });
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_EXPIRATION_SECONDS,
+      path: '/',
+    });
+    console.log(`[session] successfully called cookies() API to set ${SESSION_COOKIE_NAME}`);
+  } catch (err) {
+    console.error(`[session] Failed to use cookies().set:`, err);
+  }
 
   return sessionId;
 }
