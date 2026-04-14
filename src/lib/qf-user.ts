@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { clearSession, createSession, getSession } from '@/lib/session';
 
 const QF_PRELIVE_AUTH_BASE_URL = 'https://prelive-oauth2.quran.foundation';
 const QF_PRELIVE_API_BASE_URL = 'https://apis-prelive.quran.foundation';
@@ -658,7 +659,13 @@ export async function handleAuthCallback(
     userSub: session.user.sub ? maskIdentifier(session.user.sub) : '(missing)',
   });
 
-  setEncryptedCookie(response, USER_SESSION_COOKIE_NAME, session, USER_SESSION_MAX_AGE_SECONDS);
+  await createSession({
+    quranFoundationId: session.user.sub,
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    expiresAt: session.expiresAt,
+  });
+
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
 
   return response;
@@ -667,24 +674,33 @@ export async function handleAuthCallback(
 export async function logoutQfUser(requestUrl: string) {
   const response = NextResponse.redirect(new URL('/', requestUrl));
 
-  clearCookie(response, USER_SESSION_COOKIE_NAME);
+  await clearSession();
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
 
   return response;
 }
 
-export async function getQfUserSession() {
-  const cookieStore = await cookies();
-  const rawSessionCookie = cookieStore.get(USER_SESSION_COOKIE_NAME)?.value;
-  const session = unsealCookieValue<QfSessionCookie>(rawSessionCookie);
+export async function getQfUserSession(): Promise<QfSessionCookie | null> {
+  const redisSession = await getSession();
 
-  qfAuthDebug('reading user session', {
-    hasSessionCookie: Boolean(rawSessionCookie),
-    sessionCookieLength: rawSessionCookie?.length ?? 0,
-    sessionResolved: Boolean(session),
+  qfAuthDebug('reading user session from redis', {
+    hasSessionData: Boolean(redisSession),
+    sessionResolved: Boolean(redisSession),
   });
 
-  return session;
+  if (!redisSession) {
+    return null;
+  }
+
+  // Restore backwards-compatible shape for existing functions
+  return {
+    accessToken: redisSession.data.accessToken as string,
+    expiresAt: redisSession.data.expiresAt as number,
+    refreshToken: redisSession.data.refreshToken as string | undefined,
+    user: {
+      sub: redisSession.data.quranFoundationId as string | undefined,
+    },
+  };
 }
 
 export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
@@ -730,6 +746,11 @@ export async function bookmarkAyahsInReverseCollection(surahNo: number, ayahNo: 
   };
 }
 
-export function persistQfUserSession(response: NextResponse, session: QfSessionCookie) {
-  setEncryptedCookie(response, USER_SESSION_COOKIE_NAME, session, USER_SESSION_MAX_AGE_SECONDS);
+export async function persistQfUserSession(response: NextResponse, session: QfSessionCookie) {
+  await createSession({
+    quranFoundationId: session.user.sub,
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    expiresAt: session.expiresAt,
+  });
 }

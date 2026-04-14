@@ -4,7 +4,7 @@ import { bookmarkAyahsInReverseCollection, persistQfUserSession } from '@/lib/qf
 export async function POST(request: Request) {
   try {
     const cookieHeader = request.headers.get('cookie') ?? '';
-    const hasSessionCookie = cookieHeader.includes('qf_user_session=');
+    const hasSessionCookie = cookieHeader.includes('reverse_session_id=');
     const body = (await request.json()) as {
       ayahNo?: string;
       surahNo?: number;
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       success: true,
     });
 
-    persistQfUserSession(response, result.session);
+    await persistQfUserSession(response, result.session);
 
     return response;
   } catch (error) {
