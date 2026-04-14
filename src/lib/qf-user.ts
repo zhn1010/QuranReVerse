@@ -86,6 +86,50 @@ function qfAuthDebug(message: string, details?: Record<string, unknown>) {
   console.log('[qf-auth]', message, details ?? {});
 }
 
+function getUtf8ByteLength(value: string) {
+  return Buffer.byteLength(value, 'utf8');
+}
+
+function estimateCookieHeaderSize(name: string, value: string) {
+  // Approximation of Set-Cookie header bytes with current attributes.
+  const attributes = '; Path=/; HttpOnly; SameSite=Lax; Secure';
+  return getUtf8ByteLength(`${name}=${value}${attributes}`);
+}
+
+function logCookiePayloadDiagnostics(
+  name: string,
+  payload: PendingAuthFlow | QfSessionCookie,
+  sealedValue: string,
+) {
+  if (!isQfAuthDebugEnabled()) {
+    return;
+  }
+
+  const payloadJson = JSON.stringify(payload);
+  const payloadBytes = getUtf8ByteLength(payloadJson);
+  const sealedBytes = getUtf8ByteLength(sealedValue);
+  const decodedSealedBytes = Buffer.from(sealedValue, 'base64url').length;
+  const estimatedHeaderBytes = estimateCookieHeaderSize(name, sealedValue);
+  const details: Record<string, unknown> = {
+    cookieName: name,
+    decodedSealedBytes,
+    estimatedHeaderBytes,
+    payloadBytes,
+    sealedBytes,
+  };
+
+  if (name === USER_SESSION_COOKIE_NAME && 'accessToken' in payload) {
+    const session = payload as QfSessionCookie;
+    details.accessTokenBytes = getUtf8ByteLength(session.accessToken ?? '');
+    details.refreshTokenBytes = getUtf8ByteLength(session.refreshToken ?? '');
+    details.idTokenBytes = getUtf8ByteLength(session.idToken ?? '');
+    details.userJsonBytes = getUtf8ByteLength(JSON.stringify(session.user ?? {}));
+    details.grantedScopeBytes = getUtf8ByteLength(session.grantedScope ?? '');
+  }
+
+  qfAuthDebug('cookie payload diagnostics', details);
+}
+
 function getQfConfig() {
   const environment = process.env.QF_ENV === 'prelive' ? 'prelive' : 'production';
   const authBaseUrl =
@@ -226,6 +270,9 @@ function setEncryptedCookie(
   payload: PendingAuthFlow | QfSessionCookie,
   maxAge: number,
 ) {
+  const sealedValue = sealCookieValue(payload);
+  logCookiePayloadDiagnostics(name, payload, sealedValue);
+
   response.cookies.set({
     httpOnly: true,
     maxAge,
@@ -233,7 +280,7 @@ function setEncryptedCookie(
     path: '/',
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    value: sealCookieValue(payload),
+    value: sealedValue,
   });
 }
 
