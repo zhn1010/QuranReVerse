@@ -199,6 +199,7 @@ export default function AntidoteWorkbench({
           ayahNo,
           surahNo,
         }),
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
