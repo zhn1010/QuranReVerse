@@ -618,7 +618,16 @@ export async function logoutQfUser(requestUrl: string) {
 
 export async function getQfUserSession() {
   const cookieStore = await cookies();
-  return unsealCookieValue<QfSessionCookie>(cookieStore.get(USER_SESSION_COOKIE_NAME)?.value);
+  const rawSessionCookie = cookieStore.get(USER_SESSION_COOKIE_NAME)?.value;
+  const session = unsealCookieValue<QfSessionCookie>(rawSessionCookie);
+
+  qfAuthDebug('reading user session', {
+    hasSessionCookie: Boolean(rawSessionCookie),
+    sessionCookieLength: rawSessionCookie?.length ?? 0,
+    sessionResolved: Boolean(session),
+  });
+
+  return session;
 }
 
 export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
@@ -634,6 +643,13 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
 export async function bookmarkAyahsInReverseCollection(surahNo: number, ayahNo: string) {
   const selection = parseAyahSelection(ayahNo);
   const session = await getQfUserSession();
+
+  qfAuthDebug('bookmark request received', {
+    ayahNo,
+    hasSelection: Boolean(selection),
+    hasSession: Boolean(session),
+    surahNo,
+  });
 
   if (!session) {
     throw new Error('You need to connect your Quran Foundation account first.');

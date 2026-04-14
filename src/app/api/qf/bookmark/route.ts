@@ -3,10 +3,19 @@ import { bookmarkAyahsInReverseCollection, persistQfUserSession } from '@/lib/qf
 
 export async function POST(request: Request) {
   try {
+    const cookieHeader = request.headers.get('cookie') ?? '';
+    const hasSessionCookie = cookieHeader.includes('qf_user_session=');
     const body = (await request.json()) as {
       ayahNo?: string;
       surahNo?: number;
     };
+
+    if (process.env.QF_AUTH_DEBUG === 'true') {
+      console.log('[qf-auth]', 'bookmark route request', {
+        cookieHeaderLength: cookieHeader.length,
+        hasSessionCookie,
+      });
+    }
 
     if (!body.ayahNo || !body.surahNo || !Number.isInteger(body.surahNo) || body.surahNo < 1) {
       return NextResponse.json(
