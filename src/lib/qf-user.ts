@@ -62,6 +62,30 @@ export type QfSessionSummary = {
   isAuthenticated: boolean;
 };
 
+function isQfAuthDebugEnabled() {
+  return process.env.QF_AUTH_DEBUG === 'true';
+}
+
+function maskIdentifier(value: string | undefined) {
+  if (!value) {
+    return '(missing)';
+  }
+
+  if (value.length <= 8) {
+    return `${value.slice(0, 2)}***${value.slice(-2)}`;
+  }
+
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function qfAuthDebug(message: string, details?: Record<string, unknown>) {
+  if (!isQfAuthDebugEnabled()) {
+    return;
+  }
+
+  console.log('[qf-auth]', message, details ?? {});
+}
+
 function getQfConfig() {
   const environment = process.env.QF_ENV === 'prelive' ? 'prelive' : 'production';
   const authBaseUrl =
@@ -71,22 +95,38 @@ function getQfConfig() {
     process.env.QF_USER_API_BASE_URL ??
     process.env.QURAN_API_BASE_URL ??
     (environment === 'prelive' ? QF_PRELIVE_API_BASE_URL : QF_PRODUCTION_API_BASE_URL);
-  const clientId = process.env.QURAN_CLIENT_ID ?? process.env.QURAN_CLIENT_ID;
+  const clientId = process.env.QF_USER_CLIENT_ID ?? process.env.QURAN_CLIENT_ID;
   const clientSecret = process.env.QF_USER_CLIENT_SECRET ?? process.env.QURAN_CLIENT_SECRET;
 
   if (!clientId) {
     throw new Error(
-      'Missing required environment variable: QURAN_CLIENT_ID (or fallback QURAN_CLIENT_ID)',
+      'Missing Quran Foundation API credentials. Set QURAN_CLIENT_ID or QF_USER_CLIENT_ID.',
     );
   }
 
-  return {
+  if (!clientSecret) {
+    throw new Error(
+      'Missing Quran Foundation API credentials. Set QURAN_CLIENT_SECRET or QF_USER_CLIENT_SECRET.',
+    );
+  }
+
+  const config = {
     apiBaseUrl,
     authBaseUrl,
     clientId,
     clientSecret,
     scopes: process.env.QF_USER_SCOPES?.trim() || DEFAULT_QF_SCOPES.join(' '),
   };
+
+  qfAuthDebug('resolved config', {
+    apiBaseUrl: config.apiBaseUrl,
+    authBaseUrl: config.authBaseUrl,
+    clientId: maskIdentifier(config.clientId),
+    hasClientSecret: Boolean(config.clientSecret),
+    scopes: config.scopes,
+  });
+
+  return config;
 }
 
 function getSessionSecret() {
@@ -222,6 +262,15 @@ async function exchangeToken(params: URLSearchParams) {
     params.set('client_id', clientId);
   }
 
+  qfAuthDebug('exchanging token', {
+    authBaseUrl,
+    grantType: params.get('grant_type'),
+    hasClientSecret: Boolean(clientSecret),
+    hasCode: Boolean(params.get('code')),
+    hasCodeVerifier: Boolean(params.get('code_verifier')),
+    redirectUri: params.get('redirect_uri'),
+  });
+
   const response = await fetch(`${authBaseUrl}/oauth2/token`, {
     body: params.toString(),
     headers,
@@ -230,8 +279,17 @@ async function exchangeToken(params: URLSearchParams) {
 
   if (!response.ok) {
     const details = await response.text();
+    qfAuthDebug('token exchange failed', {
+      details,
+      status: response.status,
+      wwwAuthenticate: response.headers.get('www-authenticate'),
+    });
     throw new Error(`Quran Foundation token exchange failed: ${response.status} ${details}`);
   }
+
+  qfAuthDebug('token exchange succeeded', {
+    status: response.status,
+  });
 
   return (await response.json()) as QfTokenResponse;
 }
@@ -472,6 +530,14 @@ export async function buildLoginRedirect(requestUrl: string, returnTo: string | 
   });
   const response = NextResponse.redirect(`${authBaseUrl}/oauth2/auth?${params.toString()}`);
 
+  qfAuthDebug('starting login redirect', {
+    authBaseUrl,
+    clientId: maskIdentifier(clientId),
+    redirectUri,
+    returnTo: sanitizeReturnTo(returnTo),
+    scopes,
+  });
+
   setEncryptedCookie(
     response,
     AUTH_FLOW_COOKIE_NAME,
@@ -499,7 +565,21 @@ export async function handleAuthCallback(
     cookieStore.get(AUTH_FLOW_COOKIE_NAME)?.value,
   );
 
+  qfAuthDebug('received auth callback', {
+    hasCode: Boolean(code),
+    hasPendingFlow: Boolean(pendingFlow),
+    pendingRedirectUri: pendingFlow?.redirectUri,
+    stateMatches: Boolean(pendingFlow && state && pendingFlow.state === state),
+  });
+
   if (!pendingFlow || !code || !state || pendingFlow.state !== state) {
+    qfAuthDebug('callback validation failed', {
+      hasCode: Boolean(code),
+      hasPendingFlow: Boolean(pendingFlow),
+      hasState: Boolean(state),
+      pendingRedirectUri: pendingFlow?.redirectUri,
+      stateMatches: Boolean(pendingFlow && state && pendingFlow.state === state),
+    });
     return NextResponse.redirect(new URL('/?auth=failed', requestUrl));
   }
 
@@ -515,6 +595,11 @@ export async function handleAuthCallback(
   redirectUrl.searchParams.set('auth', 'connected');
 
   const response = NextResponse.redirect(redirectUrl);
+
+  qfAuthDebug('auth callback completed', {
+    redirectTo: redirectUrl.toString(),
+    userSub: session.user.sub ? maskIdentifier(session.user.sub) : '(missing)',
+  });
 
   setEncryptedCookie(response, USER_SESSION_COOKIE_NAME, session, USER_SESSION_MAX_AGE_SECONDS);
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
