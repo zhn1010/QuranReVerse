@@ -5,11 +5,6 @@ export const metadata: Metadata = {
   title: 'Sakinah.now',
   description:
     'Sakinah.now offers Quran-centered reflection paths that help you move from overwhelm to inner calm.',
-  icons: {
-    icon: [{ type: 'image/png', url: '/SakinahFavIcon.png' }],
-    apple: [{ url: '/SakinahFavIcon.png' }],
-    shortcut: ['/SakinahFavIcon.png'],
-  },
 };
 
 export default function RootLayout({
