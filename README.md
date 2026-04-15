@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) project configured with [`pnpm`](https://pnpm.io/) and [`@quranjs/api`](https://www.npmjs.com/package/@quranjs/api).
+This is the Sakinah.now app, built with [Next.js](https://nextjs.org), [`pnpm`](https://pnpm.io/), and Quran Foundation APIs.
 
 ## Getting Started
 
@@ -16,11 +16,4 @@ Then run the development server:
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-The home page is a server component that creates a `QuranClient`, applies
-`Language.ENGLISH`, and renders the result of:
-
-```ts
-const chapters = await client.chapters.findAll();
-```
+Open [http://localhost:3000](http://localhost:3000) to use the guided reflection experience.

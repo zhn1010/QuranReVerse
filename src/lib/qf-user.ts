@@ -7,12 +7,11 @@ const QF_PRELIVE_AUTH_BASE_URL = 'https://prelive-oauth2.quran.foundation';
 const QF_PRELIVE_API_BASE_URL = 'https://apis-prelive.quran.foundation';
 const QF_PRODUCTION_AUTH_BASE_URL = 'https://oauth2.quran.foundation';
 const QF_PRODUCTION_API_BASE_URL = 'https://apis.quran.foundation';
-const QF_BOOKMARK_COLLECTION_NAME = 'Quran ReVerse';
+const QF_BOOKMARK_COLLECTION_NAME = 'Sakinah.now Reflections';
 const QF_BOOKMARK_MUSHAF_ID = 5;
 const AUTH_FLOW_COOKIE_NAME = 'qf_oauth_flow';
 const USER_SESSION_COOKIE_NAME = 'qf_user_session';
 const AUTH_FLOW_MAX_AGE_SECONDS = 60 * 15;
-const USER_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const DEFAULT_QF_SCOPES = ['openid', 'offline_access', 'user', 'collection', 'bookmark'];
 
 type PendingAuthFlow = {
@@ -726,7 +725,7 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
   };
 }
 
-export async function bookmarkAyahsInReverseCollection(surahNo: number, ayahNo: string) {
+export async function bookmarkAyahsInSakinahCollection(surahNo: number, ayahNo: string) {
   const selection = parseAyahSelection(ayahNo);
   const session = await getQfUserSession();
 

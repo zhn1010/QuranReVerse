@@ -68,8 +68,9 @@ type BookmarkState = {
 };
 
 const starterEvent =
-  'I read a story celebrating wealth, influence, and social recognition, and it made success feel like the main proof that a person matters.';
-const starterFeeling = 'I felt restless, small, and afraid that I am falling behind in life.';
+  'I spent an hour scrolling success clips and luxury posts. By the end, I felt like my worth depended on being seen, praised, and always ahead.';
+const starterFeeling =
+  'I feel unsettled, heavy, and disconnected from gratitude. I want to return to a calmer, Allah-centered state.';
 const QURAN_COM_TRANSLATION_ID = '135';
 
 function buildQuranEmbedUrl(surahNo: number, ayahNo: string) {
@@ -239,18 +240,30 @@ export default function AntidoteWorkbench({
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
         <section className="grid gap-8]">
+          <div className="rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.76)] p-6 shadow-[0_12px_30px_rgba(24,24,27,0.05)] sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--accent-strong)">
+              Sakinah.now
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-(--ink-strong) sm:text-4xl">
+              Return to inner calm through Quranic reflection
+            </h1>
+            <p className="mt-3 max-w-3xl text-base leading-8 text-(--ink-soft)">
+              Share what shook your heart, name what you are feeling, and receive a grounded reading
+              path that helps you move from noise to sakinah.
+            </p>
+          </div>
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-3 rounded-[1.5rem] border border-(--line) bg-[rgba(255,255,255,0.72)] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-3xl border border-(--line) bg-[rgba(255,255,255,0.72)] p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-(--ink-strong)">
                   {authState.isAuthenticated
                     ? `Connected to Quran Foundation${authState.displayName ? ` as ${authState.displayName}` : ''}`
-                    : `Connect Quran Foundation to save ayahs to ${authState.collectionName}`}
+                    : `Connect Quran Foundation to save ayahs to your Sakinah collection`}
                 </p>
                 <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
                   {authState.isAuthenticated
-                    ? `Saved ayahs will go into your ${authState.collectionName} collection.`
-                    : 'Connect once, then save referenced ayahs directly into a personal collection created for you.'}
+                    ? `Saved ayahs will be stored in your ${authState.collectionName} collection.`
+                    : 'Connect once to save each guided verse into a dedicated collection for your reflection journey.'}
                 </p>
               </div>
               {authState.isAuthenticated ? (
@@ -262,7 +275,7 @@ export default function AntidoteWorkbench({
                 </a>
               ) : (
                 <a
-                  className="inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-[color:var(--accent)]"
+                  className="inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-(--accent)"
                   href="/api/qf/auth/login?next=/"
                 >
                   Connect Account
@@ -273,35 +286,35 @@ export default function AntidoteWorkbench({
               <div className="space-y-5">
                 <label className="flex flex-col gap-3">
                   <span className="text-sm font-medium uppercase tracking-[0.18em] text-(--accent-strong)">
-                    What happened or what was read?
+                    What happened today that affected your heart?
                   </span>
                   <textarea
                     className="min-h-64 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
                     onChange={(inputEvent) => setEventContent(inputEvent.target.value)}
-                    placeholder="Describe the event, article, post, video, conversation, or experience."
+                    placeholder="Describe the moment, post, conversation, or situation that pulled you off-center."
                     value={eventContent}
                   />
                 </label>
 
                 <label className="flex flex-col gap-3">
                   <span className="text-sm font-medium uppercase tracking-[0.18em] text-(--accent-strong)">
-                    How do you feel after that?
+                    What is moving inside you right now?
                   </span>
                   <textarea
                     className="min-h-32 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
                     onChange={(inputEvent) => setUserFeeling(inputEvent.target.value)}
-                    placeholder="Describe the emotional or spiritual feeling that followed."
+                    placeholder="Name the emotional and spiritual impact as honestly as you can."
                     value={userFeeling}
                   />
                 </label>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
-                    className="inline-flex items-center justify-center rounded-full bg-(--accent-strong) px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-full bg-(--accent-strong) px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isSubmitting}
                     type="submit"
                   >
-                    {isSubmitting ? 'Analyzing...' : 'Generate Quranic Antidotes'}
+                    {isSubmitting ? 'Listening and reflecting...' : 'Find Quranic grounding'}
                   </button>
                 </div>
               </div>
@@ -319,7 +332,7 @@ export default function AntidoteWorkbench({
           {result ? (
             <div className="grid gap-4">
               {result.selected_reflection?.reflection ? (
-                <section className="overflow-hidden rounded-[2rem] border border-(--line) bg-[rgba(255,255,255,0.94)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
+                <section className="overflow-hidden rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.94)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
                   <div className="grid gap-8 px-6 py-8 sm:px-8">
                     <article className="flex flex-col gap-8">
                       {result.reflection_guide ? (
@@ -553,8 +566,8 @@ export default function AntidoteWorkbench({
             </div>
           ) : (
             <div className="rounded-4xl border border-dashed border-(--line) bg-[rgba(255,255,255,0.56)] p-8 text-base leading-8 text-(--ink-soft)">
-              Your guided reading will appear here after analysis, with the reflection and the Quran
-              passages it points back to.
+              Your Sakinah reading will appear here after submission, with a selected reflection and
+              the Quran passages that anchor it.
             </div>
           )}
         </section>

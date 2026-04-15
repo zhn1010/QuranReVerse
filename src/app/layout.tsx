@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ReVerse Quran Test',
-  description: 'A Next.js test page using @quranjs/api with Quran Foundation OAuth credentials.',
+  title: 'Sakinah.now',
+  description:
+    'Sakinah.now offers Quran-centered reflection paths that help you move from overwhelm to inner calm.',
 };
 
 export default function RootLayout({

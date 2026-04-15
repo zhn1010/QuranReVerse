@@ -4,17 +4,17 @@ import { getRelatedReflectionsForAyah, type RelatedReflection } from '@/lib/qura
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-5';
 
-const antidoteSystemPrompt = `You are a specialist in Islamic Psychology (Ilm an-Nafs) and Quranic Exegesis (Tafsir). Your goal is to help a user transition from a "Materialistic/Power-centric" worldview to a "God-centric" worldview.
+const antidoteSystemPrompt = `You are a specialist in Islamic Psychology (Ilm an-Nafs) and Quranic Exegesis (Tafsir). Your goal is to help a user return to sakinah by transitioning from a "Materialistic/Power-centric" worldview to a "God-centric" worldview.
 
 The Logic:
 1. Analyze the External Event (what happened/what was read).
 2. Analyze the Internal Feeling (the spiritual symptom).
 3. Identify the Root Spiritual Drift (e.g., Fear of Poverty, Attachment to Status, Heedlessness, Social Comparison).
-4. Select 1-3 Quranic Ayahs that act as a direct Antidote—specifically verses that reframe the event through the lens of Allah's Power, Wisdom, or Provision.
+4. Select 1-3 Quranic Ayahs that act as direct grounding anchors—specifically verses that reframe the event through the lens of Allah's Power, Wisdom, or Provision.
 
 Return only JSON. Do not include any introductory or trailing text. Use the Clear Quran or Sahih International logic for verse selection. Keep each reasoning brief, concrete, and under 25 words.`;
 
-const curatorSystemPrompt = `You are an expert curator of Islamic spiritual content. Your task is to review a list of human-written reflections and select the single most effective antidote for a user's specific spiritual state.
+const curatorSystemPrompt = `You are an expert curator of Islamic spiritual content. Your task is to review a list of human-written reflections and select the single most effective grounding reflection for a user's specific spiritual state.
 
 Selection Criteria:
 1. Relevance: Does the reflection directly address the spiritual drift?
@@ -261,7 +261,7 @@ async function callStructuredOpenAI<T>({
 
 async function callAntidoteModel(eventText: string, feelingText: string) {
   return callStructuredOpenAI<AntidoteResponse>({
-    inputText: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide only the most relevant Quranic antidotes. Each suggestion must include the Surah name, Surah number, Ayah number, and a short Spiritual Reframing reasoning.`,
+    inputText: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide only the most relevant Quranic grounding passages. Each suggestion must include the Surah name, Surah number, Ayah number, and a short spiritual reframing rationale.`,
     instructions: antidoteSystemPrompt,
     maxOutputTokens: 350,
     schema: antidoteResponseSchema,
@@ -339,7 +339,7 @@ Below is a list of reflections fetched from the community. Each has an ID and th
 ${serializedCandidates}
 
 Task:
-Analyze the candidate reflections against the diagnosis. Select the one reflection that best serves as an antidote to the user's current drift.`,
+Analyze the candidate reflections against the diagnosis. Select the one reflection that best grounds the user and addresses their current drift.`,
     instructions: curatorSystemPrompt,
     maxOutputTokens: 180,
     schema: curatorResponseSchema,
@@ -405,7 +405,7 @@ Generate two pieces of text to wrap around the selected reflection.
 
 intro_text: Validate the user's feeling about the event. Gently point out how the materialistic view is affecting their heart, and segue into the reflection as a source of God-centric clarity.
 
-conclusion_text: Summarize the antidote. Provide a short, practical heart-action or a dua focus based on the God-centric reframe to help the user move forward today.
+conclusion_text: Summarize the grounding lesson. Provide a short, practical heart-action or a dua focus based on the God-centric reframe to help the user move forward today.
 
 Constraint: Do not include the reflection text itself. Only return the JSON.`,
     instructions: spiritualGuideSystemPrompt,

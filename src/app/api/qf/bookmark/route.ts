@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { bookmarkAyahsInReverseCollection, persistQfUserSession } from '@/lib/qf-user';
+import { bookmarkAyahsInSakinahCollection, persistQfUserSession } from '@/lib/qf-user';
 
 export async function POST(request: Request) {
   try {
     const cookieHeader = request.headers.get('cookie') ?? '';
-    const hasSessionCookie = cookieHeader.includes('reverse_session_id=');
+    const hasSessionCookie = cookieHeader.includes('sakinah_session_id=');
     const body = (await request.json()) as {
       ayahNo?: string;
       surahNo?: number;
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await bookmarkAyahsInReverseCollection(body.surahNo, body.ayahNo);
+    const result = await bookmarkAyahsInSakinahCollection(body.surahNo, body.ayahNo);
     const response = NextResponse.json({
       collectionId: result.collection.id,
       collectionName: result.collection.name,
