@@ -16,7 +16,7 @@ export type SessionData = {
   userId?: string;
   quranFoundationId?: string;
   role?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 /**

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import Script from 'next/script';
 import { useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
