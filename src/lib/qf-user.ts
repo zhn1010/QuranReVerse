@@ -868,6 +868,15 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
     collection.id,
   );
 
+  qfAuthDebug('bookmark status collection loaded', {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    selectionFrom: selection.from,
+    selectionTo: selection.to,
+    surahNo,
+    totalBookmarksLoaded: bookmarks.length,
+  });
+
   const idsByVerseNumber: Record<number, string> = {};
 
   for (const bookmark of bookmarks) {
@@ -889,6 +898,14 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
 
     idsByVerseNumber[bookmark.verseNumber] = bookmark.id;
   }
+
+  qfAuthDebug('bookmark status computed', {
+    collectionId: collection.id,
+    matchedCount: Object.keys(idsByVerseNumber).length,
+    selectionFrom: selection.from,
+    selectionTo: selection.to,
+    surahNo,
+  });
 
   return {
     bookmarkIdsByVerseNumber: idsByVerseNumber,

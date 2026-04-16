@@ -53,11 +53,30 @@ export async function GET(request: Request) {
     const surahNo = Number.parseInt(url.searchParams.get('surahNo') ?? '', 10);
     const ayahNo = url.searchParams.get('ayahNo') ?? '';
 
+    if (process.env.QF_AUTH_DEBUG === 'true') {
+      console.log('[qf-auth]', 'bookmark route GET request', {
+        ayahNo,
+        hasAyahNo: Boolean(ayahNo),
+        surahNo,
+        url: request.url,
+      });
+    }
+
     if (!Number.isInteger(surahNo) || surahNo < 1 || !ayahNo) {
       return NextResponse.json({ error: 'Both surahNo and ayahNo are required.' }, { status: 400 });
     }
 
     const result = await getAyahBookmarksInSakinahCollection(surahNo, ayahNo);
+
+    if (process.env.QF_AUTH_DEBUG === 'true') {
+      console.log('[qf-auth]', 'bookmark route GET result', {
+        ayahNo,
+        bookmarkCount: Object.keys(result.bookmarkIdsByVerseNumber ?? {}).length,
+        collectionId: result.collection.id,
+        surahNo,
+      });
+    }
+
     const response = NextResponse.json({
       bookmarkIdsByVerseNumber: result.bookmarkIdsByVerseNumber,
       collectionId: result.collection.id,

@@ -169,10 +169,21 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 
     async function hydrateBookmarks() {
       try {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[qf-bookmark]', 'hydrating bookmark state', {
+            embeds: selectedEmbeds.map((embed) => ({
+              ayahNo: embed.label.split(':')[1] ?? '',
+              key: embed.label,
+              surahNo: embed.reference.chapterId,
+            })),
+          });
+        }
+
         const updates: Record<string, boolean> = {};
 
         await Promise.all(
           selectedEmbeds.map(async (embed) => {
+            const requestedAyahNo = embed.label.split(':')[1] ?? '';
             const response = await fetch(
               `/api/qf/bookmark?surahNo=${encodeURIComponent(
                 embed.reference.chapterId,
@@ -186,6 +197,17 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
               bookmarkIdsByVerseNumber?: Record<number, string>;
               error?: string;
             };
+
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[qf-bookmark]', 'hydrate response', {
+                ayahNo: requestedAyahNo,
+                key: embed.label,
+                payloadKeysCount: Object.keys(payload.bookmarkIdsByVerseNumber ?? {}).length,
+                responseOk: response.ok,
+                status: response.status,
+                surahNo: embed.reference.chapterId,
+              });
+            }
 
             if (!response.ok) {
               throw new Error(payload.error || 'Could not load bookmark state.');
@@ -201,6 +223,10 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
           return;
         }
 
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[qf-bookmark]', 'hydrate updates', updates);
+        }
+
         setBookmarkState((prev) => ({
           ...prev,
           savedKeys: {
@@ -208,9 +234,13 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
             ...updates,
           },
         }));
-      } catch {
+      } catch (hydrateError) {
         if (isCancelled) {
           return;
+        }
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[qf-bookmark]', 'hydrate failed', hydrateError);
         }
       }
     }
