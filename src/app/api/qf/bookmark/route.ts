@@ -95,6 +95,14 @@ export async function GET(request: Request) {
       });
     }
 
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      message.includes('connection expired') ||
+      message.includes('connect your Quran Foundation')
+    ) {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Unexpected error',

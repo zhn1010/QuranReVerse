@@ -461,7 +461,20 @@ async function refreshSession(session: QfSessionCookie) {
     refresh_token: session.refreshToken,
   });
 
-  const tokenResponse = await exchangeToken(params);
+  let tokenResponse: QfTokenResponse;
+
+  try {
+    tokenResponse = await exchangeToken(params);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('invalid_grant')) {
+      await clearSession();
+      throw new Error('Your Quran Foundation connection expired. Please reconnect.');
+    }
+
+    throw error;
+  }
+
   const refreshedSession = buildSessionFromTokenResponse(tokenResponse);
 
   return {
