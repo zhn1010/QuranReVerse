@@ -692,6 +692,22 @@ async function listCollectionAyahBookmarks(session: QfSessionCookie, collectionI
       success?: boolean;
     };
 
+    if (isQfAuthDebugEnabled()) {
+      const dataRecord =
+        payload.data && typeof payload.data === 'object'
+          ? (payload.data as Record<string, unknown>)
+          : null;
+      const rawBookmarks = Array.isArray(dataRecord?.bookmarks)
+        ? (dataRecord?.bookmarks as unknown[])
+        : [];
+      qfAuthDebug('list collection bookmarks payload', {
+        collectionId,
+        dataKeys: dataRecord ? Object.keys(dataRecord) : null,
+        pageBookmarkCount: rawBookmarks.length,
+        sampleBookmark: rawBookmarks[0] ?? null,
+      });
+    }
+
     activeSession = updatedSession;
 
     const normalizedBookmarks = (payload.data?.bookmarks ?? [])
