@@ -71,6 +71,7 @@ const starterEvent =
 const starterFeeling =
   'I feel unsettled, heavy, and disconnected from gratitude. I want to return to a calmer, Allah-centered state.';
 const QURAN_COM_TRANSLATION_ID = '135';
+const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
 
 function buildQuranEmbedUrl(surahNo: number, ayahNo: string) {
   const verseRef = `${surahNo}:${ayahNo}`;
@@ -275,7 +276,7 @@ export default function AntidoteWorkbench({
               ) : (
                 <a
                   className="inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-(--accent)"
-                  href="/api/qf/auth/login?next=/"
+                  href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
                 >
                   Connect Account
                 </a>
@@ -415,7 +416,7 @@ export default function AntidoteWorkbench({
                               ) : (
                                 <a
                                   className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
-                                  href="/api/qf/auth/login?next=/"
+                                  href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
                                 >
                                   Connect to Save
                                 </a>
