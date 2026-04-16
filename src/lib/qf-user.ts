@@ -69,6 +69,58 @@ type QfBookmark = {
   verseNumber: number | null;
 };
 
+function normalizeCollectionBookmark(raw: unknown): QfBookmark | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const bookmarkType =
+    typeof record.type === 'string'
+      ? record.type
+      : typeof record.bookmarkType === 'string'
+        ? record.bookmarkType
+        : typeof record.bookmarkType === 'object' && record.bookmarkType
+          ? (record.bookmarkType as Record<string, unknown>).type
+          : undefined;
+  const bookmarkGroup =
+    typeof record.group === 'string'
+      ? record.group
+      : typeof record.bookmarkGroup === 'string'
+        ? record.bookmarkGroup
+        : typeof record.bookmarkGroup === 'object' && record.bookmarkGroup
+          ? (record.bookmarkGroup as Record<string, unknown>).name
+          : undefined;
+
+  if (typeof record.id !== 'string' || typeof record.createdAt !== 'string') {
+    return null;
+  }
+
+  if (typeof bookmarkType !== 'string' || typeof bookmarkGroup !== 'string') {
+    return null;
+  }
+
+  if (typeof record.key !== 'number') {
+    return null;
+  }
+
+  const verseNumber = typeof record.verseNumber === 'number' ? record.verseNumber : null;
+  const isInDefaultCollection =
+    typeof record.isInDefaultCollection === 'boolean' ? record.isInDefaultCollection : false;
+  const isReading = typeof record.isReading === 'boolean' ? record.isReading : null;
+
+  return {
+    createdAt: record.createdAt,
+    group: bookmarkGroup,
+    id: record.id,
+    isInDefaultCollection,
+    isReading,
+    key: record.key,
+    type: bookmarkType,
+    verseNumber,
+  };
+}
+
 export type QfSessionSummary = {
   collectionName: string;
   displayName: string | null;
@@ -608,14 +660,19 @@ async function listCollectionAyahBookmarks(session: QfSessionCookie, collectionI
     );
     const payload = await readApiResponse<{
       data?: {
-        bookmarks?: QfBookmark[];
+        bookmarks?: unknown[];
       };
       pagination?: QfPagination;
       success?: boolean;
     }>(response);
 
     activeSession = updatedSession;
-    allBookmarks.push(...(payload.data?.bookmarks ?? []));
+
+    const normalizedBookmarks = (payload.data?.bookmarks ?? [])
+      .map((bookmark) => normalizeCollectionBookmark(bookmark))
+      .filter((bookmark): bookmark is QfBookmark => Boolean(bookmark));
+
+    allBookmarks.push(...normalizedBookmarks);
 
     if (!payload.pagination?.hasNextPage || !payload.pagination.endCursor) {
       break;
@@ -880,6 +937,18 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
   const idsByVerseNumber: Record<number, string> = {};
 
   for (const bookmark of bookmarks) {
+    if (isQfAuthDebugEnabled()) {
+      qfAuthDebug('bookmark status evaluating', {
+        bookmarkId: bookmark.id,
+        bookmarkKey: bookmark.key,
+        bookmarkType: bookmark.type,
+        bookmarkVerseNumber: bookmark.verseNumber,
+        selectionFrom: selection.from,
+        selectionTo: selection.to,
+        surahNo,
+      });
+    }
+
     if (bookmark.type !== 'ayah') {
       continue;
     }
