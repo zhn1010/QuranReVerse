@@ -1,7 +1,13 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { clearSession, createSession, getSession, SESSION_COOKIE_NAME, SESSION_EXPIRATION_SECONDS } from '@/lib/session';
+import {
+  clearSession,
+  createSession,
+  getSession,
+  SESSION_COOKIE_NAME,
+  SESSION_EXPIRATION_SECONDS,
+} from '@/lib/session';
 
 const QF_PRELIVE_AUTH_BASE_URL = 'https://prelive-oauth2.quran.foundation';
 const QF_PRELIVE_API_BASE_URL = 'https://apis-prelive.quran.foundation';
@@ -50,6 +56,17 @@ type QfCollection = {
 type QfPagination = {
   endCursor?: string;
   hasNextPage?: boolean;
+};
+
+type QfBookmark = {
+  createdAt: string;
+  group: string;
+  id: string;
+  isInDefaultCollection: boolean;
+  isReading: boolean | null;
+  key: number;
+  type: string;
+  verseNumber: number | null;
 };
 
 export type QfSessionSummary = {
@@ -560,9 +577,72 @@ async function addAyahBookmark(
     },
   );
 
-  if (!response.ok) {
+  // Treat "already bookmarked" responses as a successful no-op so the UI
+  // can still reflect that the ayah is saved in the target collection.
+  if (!response.ok && response.status !== 409) {
     const details = await response.text();
     throw new Error(`Failed to add ayah bookmark: ${response.status} ${details}`);
+  }
+
+  return updatedSession;
+}
+
+async function listCollectionAyahBookmarks(session: QfSessionCookie, collectionId: string) {
+  const allBookmarks: QfBookmark[] = [];
+  let activeSession = session;
+  let after: string | null = null;
+
+  while (true) {
+    const searchParams = new URLSearchParams({
+      first: '20',
+      sortBy: 'verseKey',
+    });
+
+    if (after) {
+      searchParams.set('after', after);
+    }
+
+    const { response, session: updatedSession } = await qfApiFetch(
+      activeSession,
+      `/auth/v1/collections/${collectionId}?${searchParams.toString()}`,
+    );
+    const payload = await readApiResponse<{
+      data?: {
+        bookmarks?: QfBookmark[];
+      };
+      pagination?: QfPagination;
+      success?: boolean;
+    }>(response);
+
+    activeSession = updatedSession;
+    allBookmarks.push(...(payload.data?.bookmarks ?? []));
+
+    if (!payload.pagination?.hasNextPage || !payload.pagination.endCursor) {
+      break;
+    }
+
+    after = payload.pagination.endCursor;
+  }
+
+  return { bookmarks: allBookmarks, session: activeSession };
+}
+
+async function removeCollectionBookmark(
+  session: QfSessionCookie,
+  collectionId: string,
+  bookmarkId: string,
+) {
+  const { response, session: updatedSession } = await qfApiFetch(
+    session,
+    `/auth/v1/collections/${collectionId}/bookmarks/${bookmarkId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Failed to remove collection bookmark: ${response.status} ${details}`);
   }
 
   return updatedSession;
@@ -665,7 +745,9 @@ export async function handleAuthCallback(
     expiresAt: session.expiresAt,
   });
 
-  console.log(`[qf-auth] Retrieved sessionId ${sessionId} from createSession. Proceeding to set on response.`);
+  console.log(
+    `[qf-auth] Retrieved sessionId ${sessionId} from createSession. Proceeding to set on response.`,
+  );
 
   response.cookies.set(SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
@@ -675,7 +757,10 @@ export async function handleAuthCallback(
     path: '/',
   });
 
-  console.log(`[qf-auth] Set cookie on NextResponse. Headers dump:`, Array.from(response.headers.entries()));
+  console.log(
+    `[qf-auth] Set cookie on NextResponse. Headers dump:`,
+    Array.from(response.headers.entries()),
+  );
 
   clearCookie(response, AUTH_FLOW_COOKIE_NAME);
 
@@ -754,6 +839,105 @@ export async function bookmarkAyahsInSakinahCollection(surahNo: number, ayahNo: 
   return {
     collection,
     savedCount: selection.to - selection.from + 1,
+    session: activeSession,
+  };
+}
+
+export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahNo: string) {
+  const selection = parseAyahSelection(ayahNo);
+  const session = await getQfUserSession();
+
+  qfAuthDebug('bookmark status request received', {
+    ayahNo,
+    hasSelection: Boolean(selection),
+    hasSession: Boolean(session),
+    surahNo,
+  });
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  if (!selection) {
+    throw new Error('Invalid ayah selection.');
+  }
+
+  const { collection, session: collectionSession } = await ensureVerseCollection(session);
+  const { bookmarks, session: listedSession } = await listCollectionAyahBookmarks(
+    collectionSession,
+    collection.id,
+  );
+
+  const idsByVerseNumber: Record<number, string> = {};
+
+  for (const bookmark of bookmarks) {
+    if (bookmark.type !== 'ayah') {
+      continue;
+    }
+
+    if (bookmark.key !== surahNo) {
+      continue;
+    }
+
+    if (!bookmark.verseNumber) {
+      continue;
+    }
+
+    if (bookmark.verseNumber < selection.from || bookmark.verseNumber > selection.to) {
+      continue;
+    }
+
+    idsByVerseNumber[bookmark.verseNumber] = bookmark.id;
+  }
+
+  return {
+    bookmarkIdsByVerseNumber: idsByVerseNumber,
+    collection,
+    session: listedSession,
+  };
+}
+
+export async function removeAyahBookmarksFromSakinahCollection(surahNo: number, ayahNo: string) {
+  const selection = parseAyahSelection(ayahNo);
+  const session = await getQfUserSession();
+
+  qfAuthDebug('remove bookmark request received', {
+    ayahNo,
+    hasSelection: Boolean(selection),
+    hasSession: Boolean(session),
+    surahNo,
+  });
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  if (!selection) {
+    throw new Error('Invalid ayah selection.');
+  }
+
+  const {
+    bookmarkIdsByVerseNumber,
+    collection,
+    session: listedSession,
+  } = await getAyahBookmarksInSakinahCollection(surahNo, ayahNo);
+
+  let activeSession = listedSession;
+  let removedCount = 0;
+
+  for (let verseNumber = selection.from; verseNumber <= selection.to; verseNumber += 1) {
+    const bookmarkId = bookmarkIdsByVerseNumber[verseNumber];
+    if (!bookmarkId) {
+      continue;
+    }
+
+    activeSession = await removeCollectionBookmark(activeSession, collection.id, bookmarkId);
+    removedCount += 1;
+  }
+
+  return {
+    collection,
+    removedCount,
     session: activeSession,
   };
 }

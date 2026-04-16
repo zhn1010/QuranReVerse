@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
 
 type ReflectionReference = {
@@ -61,7 +61,8 @@ type ApiResponse = {
 
 type BookmarkState = {
   error: string | null;
-  savedKey: string | null;
+  savedKeys: Record<string, boolean>;
+  savingAction: 'add' | 'remove' | null;
   savingKey: string | null;
   success: string | null;
 };
@@ -134,11 +135,7 @@ function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
   ];
 }
 
-export default function AntidoteWorkbench({
-  initialAuth,
-}: {
-  initialAuth: QfSessionSummary;
-}) {
+export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSessionSummary }) {
   const [eventContent, setEventContent] = useState(starterEvent);
   const [userFeeling, setUserFeeling] = useState(starterFeeling);
   const [result, setResult] = useState<ApiResponse | null>(null);
@@ -147,10 +144,83 @@ export default function AntidoteWorkbench({
   const [authState] = useState(initialAuth);
   const [bookmarkState, setBookmarkState] = useState<BookmarkState>({
     error: null,
-    savedKey: null,
+    savedKeys: {},
+    savingAction: null,
     savingKey: null,
     success: null,
   });
+
+  const selectedEmbeds = useMemo<Array<{ label: string; reference: ReflectionReference }>>(
+    () =>
+      result?.selected_reflection ? getSelectedReflectionEmbeds(result.selected_reflection) : [],
+    [result],
+  );
+
+  useEffect(() => {
+    if (!authState.isAuthenticated) {
+      return;
+    }
+
+    if (!result) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function hydrateBookmarks() {
+      try {
+        const updates: Record<string, boolean> = {};
+
+        await Promise.all(
+          selectedEmbeds.map(async (embed) => {
+            const response = await fetch(
+              `/api/qf/bookmark?surahNo=${encodeURIComponent(
+                embed.reference.chapterId,
+              )}&ayahNo=${encodeURIComponent(embed.label.split(':')[1] ?? '')}`,
+              {
+                credentials: 'include',
+              },
+            );
+
+            const payload = (await response.json()) as {
+              bookmarkIdsByVerseNumber?: Record<number, string>;
+              error?: string;
+            };
+
+            if (!response.ok) {
+              throw new Error(payload.error || 'Could not load bookmark state.');
+            }
+
+            updates[embed.label] =
+              Boolean(payload.bookmarkIdsByVerseNumber) &&
+              Object.keys(payload.bookmarkIdsByVerseNumber ?? {}).length > 0;
+          }),
+        );
+
+        if (isCancelled) {
+          return;
+        }
+
+        setBookmarkState((prev) => ({
+          ...prev,
+          savedKeys: {
+            ...prev.savedKeys,
+            ...updates,
+          },
+        }));
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+      }
+    }
+
+    hydrateBookmarks();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authState.isAuthenticated, result, selectedEmbeds]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -186,10 +256,12 @@ export default function AntidoteWorkbench({
     }
   }
 
-  async function handleBookmark(surahNo: number, ayahNo: string, key: string) {
+  async function handleBookmarkToggle(surahNo: number, ayahNo: string, key: string) {
+    const isBookmarked = Boolean(bookmarkState.savedKeys[key]);
     setBookmarkState({
       error: null,
-      savedKey: null,
+      savedKeys: bookmarkState.savedKeys,
+      savingAction: isBookmarked ? 'remove' : 'add',
       savingKey: key,
       success: null,
     });
@@ -204,30 +276,50 @@ export default function AntidoteWorkbench({
         headers: {
           'Content-Type': 'application/json',
         },
-        method: 'POST',
+        method: isBookmarked ? 'DELETE' : 'POST',
       });
       const payload = (await response.json()) as {
         collectionName?: string;
         error?: string;
+        removedCount?: number;
         savedCount?: number;
       };
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Could not save the ayah.');
+        throw new Error(payload.error || 'Could not update the ayah bookmark.');
       }
 
-      const savedCount = payload.savedCount ?? 1;
+      setBookmarkState((prev) => {
+        const nextSavedKeys = {
+          ...prev.savedKeys,
+          [key]: !isBookmarked,
+        };
 
-      setBookmarkState({
-        error: null,
-        savedKey: key,
-        savingKey: null,
-        success: `${savedCount === 1 ? '1 ayah saved' : `${savedCount} ayahs saved`} to ${payload.collectionName ?? authState.collectionName}.`,
+        if (isBookmarked) {
+          const removedCount = payload.removedCount ?? 1;
+          return {
+            error: null,
+            savedKeys: nextSavedKeys,
+            savingAction: null,
+            savingKey: null,
+            success: `${removedCount === 1 ? '1 ayah removed' : `${removedCount} ayahs removed`} from ${payload.collectionName ?? authState.collectionName}.`,
+          };
+        }
+
+        const savedCount = payload.savedCount ?? 1;
+        return {
+          error: null,
+          savedKeys: nextSavedKeys,
+          savingAction: null,
+          savingKey: null,
+          success: `${savedCount === 1 ? '1 ayah saved' : `${savedCount} ayahs saved`} to ${payload.collectionName ?? authState.collectionName}.`,
+        };
       });
     } catch (bookmarkError) {
       setBookmarkState({
         error: bookmarkError instanceof Error ? bookmarkError.message : 'Could not save the ayah.',
-        savedKey: null,
+        savedKeys: bookmarkState.savedKeys,
+        savingAction: null,
         savingKey: null,
         success: null,
       });
@@ -384,7 +476,7 @@ export default function AntidoteWorkbench({
                           ) : null}
                         </div>
                       ) : null}
-                      {getSelectedReflectionEmbeds(result.selected_reflection).map((embed) => (
+                      {selectedEmbeds.map((embed) => (
                         <div
                           key={embed.label}
                           className="overflow-hidden rounded-[1.6rem] border border-(--line) bg-white shadow-[0_12px_32px_rgba(24,24,27,0.06)]"
@@ -399,7 +491,7 @@ export default function AntidoteWorkbench({
                                   className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
                                   disabled={bookmarkState.savingKey === embed.label}
                                   onClick={() =>
-                                    handleBookmark(
+                                    handleBookmarkToggle(
                                       embed.reference.chapterId,
                                       embed.label.split(':')[1] ?? '',
                                       embed.label,
@@ -408,10 +500,12 @@ export default function AntidoteWorkbench({
                                   type="button"
                                 >
                                   {bookmarkState.savingKey === embed.label
-                                    ? 'Saving...'
-                                    : bookmarkState.savedKey === embed.label
-                                      ? 'Saved'
-                                      : `Save to ${authState.collectionName}`}
+                                    ? bookmarkState.savingAction === 'remove'
+                                      ? 'Removing...'
+                                      : 'Bookmarking...'
+                                    : bookmarkState.savedKeys[embed.label]
+                                      ? 'Bookmarked'
+                                      : `Bookmark ${embed.label} to ${authState.collectionName}`}
                                 </button>
                               ) : (
                                 <a
