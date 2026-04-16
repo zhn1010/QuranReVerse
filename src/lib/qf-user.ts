@@ -596,11 +596,25 @@ async function createCollection(session: QfSessionCookie, name: string) {
   return { collection: payload.data, session: updatedSession };
 }
 
-async function ensureVerseCollection(session: QfSessionCookie) {
+function pickPreferredVerseCollection(collections: QfCollection[]) {
+  return collections
+    .filter((collection) => collection.name === QF_BOOKMARK_COLLECTION_NAME)
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
+}
+
+async function getExistingVerseCollection(session: QfSessionCookie) {
   const { collections, session: listedSession } = await listAyahCollections(session);
-  const existingCollection = collections.find(
-    (collection) => collection.name === QF_BOOKMARK_COLLECTION_NAME,
-  );
+  const existingCollection = pickPreferredVerseCollection(collections);
+
+  return {
+    collection: existingCollection ?? null,
+    session: listedSession,
+  };
+}
+
+async function ensureVerseCollection(session: QfSessionCookie) {
+  const { collection: existingCollection, session: listedSession } =
+    await getExistingVerseCollection(session);
 
   if (existingCollection) {
     return {
@@ -971,7 +985,16 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
     throw new Error('Invalid ayah selection.');
   }
 
-  const { collection, session: collectionSession } = await ensureVerseCollection(session);
+  const { collection, session: collectionSession } = await getExistingVerseCollection(session);
+
+  if (!collection) {
+    return {
+      bookmarkIdsByVerseNumber: {},
+      collection: null,
+      session: collectionSession,
+    };
+  }
+
   const { bookmarks, session: listedSession } = await listCollectionAyahBookmarks(
     collectionSession,
     collection.id,
@@ -1062,6 +1085,14 @@ export async function removeAyahBookmarksFromSakinahCollection(surahNo: number, 
 
   let activeSession = listedSession;
   let removedCount = 0;
+
+  if (!collection) {
+    return {
+      collection: null,
+      removedCount: 0,
+      session: activeSession,
+    };
+  }
 
   for (let verseNumber = selection.from; verseNumber <= selection.to; verseNumber += 1) {
     const bookmarkId = bookmarkIdsByVerseNumber[verseNumber];

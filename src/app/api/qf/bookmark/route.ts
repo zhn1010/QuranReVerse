@@ -72,15 +72,15 @@ export async function GET(request: Request) {
       console.log('[qf-auth]', 'bookmark route GET result', {
         ayahNo,
         bookmarkCount: Object.keys(result.bookmarkIdsByVerseNumber ?? {}).length,
-        collectionId: result.collection.id,
+        collectionId: result.collection?.id ?? null,
         surahNo,
       });
     }
 
     const response = NextResponse.json({
       bookmarkIdsByVerseNumber: result.bookmarkIdsByVerseNumber,
-      collectionId: result.collection.id,
-      collectionName: result.collection.name,
+      collectionId: result.collection?.id ?? null,
+      collectionName: result.collection?.name ?? null,
       success: true,
     });
 
@@ -125,8 +125,8 @@ export async function DELETE(request: Request) {
 
     const result = await removeAyahBookmarksFromSakinahCollection(body.surahNo, body.ayahNo);
     const response = NextResponse.json({
-      collectionId: result.collection.id,
-      collectionName: result.collection.name,
+      collectionId: result.collection?.id ?? null,
+      collectionName: result.collection?.name ?? null,
       removedCount: result.removedCount,
       success: true,
     });
