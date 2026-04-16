@@ -500,7 +500,7 @@ async function qfApiFetch(
 
   let response = await execute(activeSession.accessToken);
 
-  if (response.status === 401 && activeSession.refreshToken) {
+  if ((response.status === 401 || response.status === 403) && activeSession.refreshToken) {
     activeSession = await refreshSession(activeSession);
     response = await execute(activeSession.accessToken);
   }
