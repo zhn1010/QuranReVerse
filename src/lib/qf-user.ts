@@ -658,13 +658,26 @@ async function listCollectionAyahBookmarks(session: QfSessionCookie, collectionI
       activeSession,
       `/auth/v1/collections/${collectionId}?${searchParams.toString()}`,
     );
-    const payload = await readApiResponse<{
+
+    if (!response.ok) {
+      const details = await response.text();
+      qfAuthDebug('list collection bookmarks failed', {
+        collectionId,
+        details: details.slice(0, 700),
+        hasAfter: Boolean(after),
+        sortBy: searchParams.get('sortBy'),
+        status: response.status,
+      });
+      throw new Error(`Quran Foundation API request failed: ${response.status} ${details}`);
+    }
+
+    const payload = (await response.json()) as {
       data?: {
         bookmarks?: unknown[];
       };
       pagination?: QfPagination;
       success?: boolean;
-    }>(response);
+    };
 
     activeSession = updatedSession;
 

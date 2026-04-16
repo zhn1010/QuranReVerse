@@ -88,6 +88,13 @@ export async function GET(request: Request) {
 
     return response;
   } catch (error) {
+    if (process.env.QF_AUTH_DEBUG === 'true') {
+      console.log('[qf-auth]', 'bookmark route GET failed', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
+    }
+
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Unexpected error',
