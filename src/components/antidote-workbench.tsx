@@ -361,48 +361,115 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-        <section className="grid gap-8]">
-          <div className="rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.76)] p-6 shadow-[0_12px_30px_rgba(24,24,27,0.05)] sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--accent-strong)">
-              Sakinah.now
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-(--ink-strong) sm:text-4xl">
-              Return to inner calm through Quranic reflection
-            </h1>
-            <p className="mt-3 max-w-3xl text-base leading-8 text-(--ink-soft)">
-              Share what shook your heart, name what you are feeling, and receive a grounded reading
-              path that helps you move from noise to sakinah.
-            </p>
+        <section className="grid gap-8">
+          <div className="hero-panel overflow-hidden rounded-4xl px-6 py-8 shadow-[0_24px_80px_rgba(24,24,27,0.1)] sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:items-end">
+              <div className="relative z-10 flex flex-col gap-6">
+                <div className="space-y-4">
+                  <p className="eyebrow">Sakinah.now</p>
+                  <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.045em] text-(--ink-strong) sm:text-5xl lg:text-6xl">
+                    Return to inner calm through Quranic reflection
+                  </h1>
+                  <p className="max-w-2xl text-base leading-8 text-(--ink-soft) sm:text-lg">
+                    Share what shook your heart, name what you are feeling, and receive a grounded
+                    reading path that helps you move from noise to sakinah.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3 text-sm text-(--ink-soft)">
+                  <span className="rounded-full border border-[rgba(82,82,91,0.14)] bg-white/72 px-4 py-2 font-medium text-(--ink-strong)">
+                    Reflect on what unsettled you
+                  </span>
+                  <span className="rounded-full border border-[rgba(82,82,91,0.14)] bg-white/72 px-4 py-2 font-medium text-(--ink-strong)">
+                    Receive Quranic grounding
+                  </span>
+                  <span className="rounded-full border border-[rgba(82,82,91,0.14)] bg-white/72 px-4 py-2 font-medium text-(--ink-strong)">
+                    Save ayahs to revisit later
+                  </span>
+                </div>
+              </div>
+
+              <div className="relative z-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+                    Step 1
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-(--ink-strong)">
+                    Describe the moment
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+                    Write honestly about the post, conversation, or event that disrupted your peace.
+                  </p>
+                </div>
+                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+                    Step 2
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-(--ink-strong)">
+                    Name what you feel
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+                    Capture the emotional and spiritual weight so the reading can meet you there.
+                  </p>
+                </div>
+                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[linear-gradient(180deg,rgba(39,39,42,0.96),rgba(63,63,70,0.94))] p-5 text-white shadow-[0_16px_34px_rgba(24,24,27,0.18)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
+                    Step 3
+                  </p>
+                  <p className="mt-3 text-lg font-semibold">Sit with a guided verse</p>
+                  <p className="mt-2 text-sm leading-7 text-white/78">
+                    Read a selected reflection and return to a steadier, Allah-centered view.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-3 rounded-3xl border border-(--line) bg-[rgba(255,255,255,0.72)] p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-(--ink-strong)">
-                  {authState.isAuthenticated
-                    ? `Connected to Quran Foundation${authState.displayName ? ` as ${authState.displayName}` : ''}`
-                    : `Connect Quran Foundation to save ayahs to your Sakinah collection`}
-                </p>
-                <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
-                  {authState.isAuthenticated
-                    ? `Saved ayahs will be stored in your ${authState.collectionName} collection.`
-                    : 'Connect once to save each guided verse into a dedicated collection for your reflection journey.'}
-                </p>
+            <div className="rounded-[1.9rem] border border-[rgba(82,82,91,0.14)] bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(244,244,245,0.86))] p-5 shadow-[0_16px_40px_rgba(24,24,27,0.06)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-3">
+                  <span className="inline-flex w-fit items-center rounded-full border border-[rgba(82,82,91,0.12)] bg-white/70 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-(--accent-strong)">
+                    Quran Foundation Sync
+                  </span>
+                  <div>
+                    <p className="text-base font-semibold text-(--ink-strong)">
+                      {authState.isAuthenticated
+                        ? `Connected to Quran Foundation${authState.displayName ? ` as ${authState.displayName}` : ''}`
+                        : `Connect Quran Foundation to save ayahs to your Sakinah collection`}
+                    </p>
+                    <p className="mt-1 max-w-2xl text-sm leading-7 text-(--ink-soft)">
+                      {authState.isAuthenticated
+                        ? `Saved ayahs will be stored in your ${authState.collectionName} collection.`
+                        : 'Connect once to save each guided verse into a dedicated collection for your reflection journey.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="rounded-2xl border border-[rgba(82,82,91,0.1)] bg-white/70 px-4 py-3 text-sm text-(--ink-soft)">
+                    <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-(--ink-soft)">
+                      Status
+                    </span>
+                    <span className="mt-1 block font-semibold text-(--ink-strong)">
+                      {authState.isAuthenticated ? 'Ready to save ayahs' : 'Not connected yet'}
+                    </span>
+                  </div>
+                  {authState.isAuthenticated ? (
+                    <a
+                      className="inline-flex min-h-12 items-center justify-center rounded-full border border-(--line) bg-white/72 px-5 py-2 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
+                      href="/api/qf/auth/logout"
+                    >
+                      Disconnect
+                    </a>
+                  ) : (
+                    <a
+                      className="inline-flex min-h-12 items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-(--accent)"
+                      href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                    >
+                      Connect Account
+                    </a>
+                  )}
+                </div>
               </div>
-              {authState.isAuthenticated ? (
-                <a
-                  className="inline-flex items-center justify-center rounded-full border border-(--line) px-5 py-2 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
-                  href="/api/qf/auth/logout"
-                >
-                  Disconnect
-                </a>
-              ) : (
-                <a
-                  className="inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-(--accent)"
-                  href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
-                >
-                  Connect Account
-                </a>
-              )}
             </div>
             <div className="rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_44px_rgba(24,24,27,0.06)] sm:p-8">
               <div className="space-y-5">
