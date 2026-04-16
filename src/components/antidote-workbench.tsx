@@ -535,7 +535,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                                       : 'Bookmarking...'
                                     : bookmarkState.savedKeys[embed.label]
                                       ? 'Bookmarked'
-                                      : `Bookmark ${embed.label} to ${authState.collectionName}`}
+                                      : `Bookmark ${embed.label} to '${authState.collectionName}' collection`}
                                 </button>
                               ) : (
                                 <a
