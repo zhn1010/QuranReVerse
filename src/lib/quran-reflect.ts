@@ -63,10 +63,10 @@ function getRequiredEnv(
 
 function getQuranReflectConfig() {
   return {
-    apiBaseUrl: process.env.QURAN_REFLECT_API_BASE_URL ?? QURAN_REFLECT_API_BASE_URL,
-    authBaseUrl: process.env.QURAN_REFLECT_ENDPOINT ?? QURAN_REFLECT_AUTH_BASE_URL,
-    clientId: getRequiredEnv('QURAN_REFLECT_CLIENT_ID', 'QURAN_CLIENT_ID'),
-    clientSecret: getRequiredEnv('QURAN_REFLECT_CLIENT_SECRET', 'QURAN_CLIENT_SECRET'),
+    apiBaseUrl: process.env.QURAN_API_BASE_URL ?? QURAN_REFLECT_API_BASE_URL,
+    authBaseUrl: process.env.QURAN_ENDPOINT ?? QURAN_REFLECT_AUTH_BASE_URL,
+    clientId: getRequiredEnv('QURAN_CLIENT_ID'),
+    clientSecret: getRequiredEnv('QURAN_CLIENT_SECRET'),
   };
 }
 
