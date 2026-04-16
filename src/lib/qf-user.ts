@@ -75,28 +75,39 @@ function normalizeCollectionBookmark(raw: unknown): QfBookmark | null {
   }
 
   const record = raw as Record<string, unknown>;
+  const verseNumber = typeof record.verseNumber === 'number' ? record.verseNumber : null;
+  const nestedBookmarkType =
+    typeof record.bookmarkType === 'object' && record.bookmarkType
+      ? (record.bookmarkType as Record<string, unknown>).type
+      : undefined;
+  const nestedBookmarkGroup =
+    typeof record.bookmarkGroup === 'object' && record.bookmarkGroup
+      ? (record.bookmarkGroup as Record<string, unknown>).name
+      : undefined;
   const bookmarkType =
     typeof record.type === 'string'
       ? record.type
       : typeof record.bookmarkType === 'string'
         ? record.bookmarkType
-        : typeof record.bookmarkType === 'object' && record.bookmarkType
-          ? (record.bookmarkType as Record<string, unknown>).type
-          : undefined;
+        : typeof nestedBookmarkType === 'string'
+          ? nestedBookmarkType
+          : verseNumber !== null
+            ? 'ayah'
+            : undefined;
   const bookmarkGroup =
     typeof record.group === 'string'
       ? record.group
       : typeof record.bookmarkGroup === 'string'
         ? record.bookmarkGroup
-        : typeof record.bookmarkGroup === 'object' && record.bookmarkGroup
-          ? (record.bookmarkGroup as Record<string, unknown>).name
-          : undefined;
+        : typeof nestedBookmarkGroup === 'string'
+          ? nestedBookmarkGroup
+          : '';
 
   if (typeof record.id !== 'string' || typeof record.createdAt !== 'string') {
     return null;
   }
 
-  if (typeof bookmarkType !== 'string' || typeof bookmarkGroup !== 'string') {
+  if (typeof bookmarkType !== 'string') {
     return null;
   }
 
@@ -104,7 +115,6 @@ function normalizeCollectionBookmark(raw: unknown): QfBookmark | null {
     return null;
   }
 
-  const verseNumber = typeof record.verseNumber === 'number' ? record.verseNumber : null;
   const isInDefaultCollection =
     typeof record.isInDefaultCollection === 'boolean' ? record.isInDefaultCollection : false;
   const isReading = typeof record.isReading === 'boolean' ? record.isReading : null;
