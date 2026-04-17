@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
 
 type ReflectionReference = {
@@ -159,6 +159,25 @@ const TRANSLATION_BY_LANG: Record<string, number> = {
 const DEFAULT_TRANSLATION_ID = 20; // Saheeh International (English)
 const PENDING_SESSION_KEY = 'sakinah:pending-session';
 
+type PendingSession = {
+  eventContent: string;
+  result: ApiResponse;
+  scrollY?: number;
+  userFeeling: string;
+};
+
+function consumePendingSession(): PendingSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(PENDING_SESSION_KEY);
+    return JSON.parse(raw) as PendingSession;
+  } catch {
+    return null;
+  }
+}
+
 function getPreferredTranslationId(): number {
   if (typeof navigator === 'undefined') return DEFAULT_TRANSLATION_ID;
 
@@ -237,9 +256,11 @@ function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
 }
 
 export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSessionSummary }) {
-  const [eventContent, setEventContent] = useState(starterEvent);
-  const [userFeeling, setUserFeeling] = useState(starterFeeling);
-  const [result, setResult] = useState<ApiResponse | null>(null);
+  const [pendingSession] = useState(consumePendingSession);
+  const [eventContent, setEventContent] = useState(pendingSession?.eventContent ?? starterEvent);
+  const [userFeeling, setUserFeeling] = useState(pendingSession?.userFeeling ?? starterFeeling);
+  const [result, setResult] = useState<ApiResponse | null>(pendingSession?.result ?? null);
+  const restoredScrollRef = useRef(pendingSession?.scrollY ?? null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authState] = useState(initialAuth);
@@ -264,27 +285,10 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     setTranslationId(getPreferredTranslationId());
   }, []);
 
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
-      if (!raw) return;
-      sessionStorage.removeItem(PENDING_SESSION_KEY);
-      const session = JSON.parse(raw) as {
-        eventContent: string;
-        result: ApiResponse;
-        scrollY?: number;
-        userFeeling: string;
-      };
-      setEventContent(session.eventContent);
-      setUserFeeling(session.userFeeling);
-      setResult(session.result);
-      if (typeof session.scrollY === 'number') {
-        requestAnimationFrame(() => {
-          window.scrollTo(0, session.scrollY as number);
-        });
-      }
-    } catch {
-      // ignore malformed data
+  useLayoutEffect(() => {
+    if (typeof restoredScrollRef.current === 'number') {
+      window.scrollTo(0, restoredScrollRef.current);
+      restoredScrollRef.current = null;
     }
   }, []);
 
