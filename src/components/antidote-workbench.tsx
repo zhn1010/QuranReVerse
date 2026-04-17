@@ -331,7 +331,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   }
 
   async function handleNoteDraftGenerate() {
-    setNoteState((prev) => ({ ...prev, error: null, isGenerating: true }));
+    setNoteState((prev) => ({ ...prev, body: '', error: null, isGenerating: true }));
 
     try {
       const response = await fetch('/api/qf/note/draft', {
@@ -356,17 +356,36 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
         method: 'POST',
       });
 
-      const payload = (await response.json()) as { draft?: string; error?: string };
-
       if (!response.ok) {
-        throw new Error(payload.error || 'Could not generate draft.');
+        let errorMessage = 'Could not generate draft.';
+        try {
+          const payload = (await response.json()) as { error?: string };
+          errorMessage = payload.error || errorMessage;
+        } catch {
+          // response may not be JSON
+        }
+        throw new Error(errorMessage);
       }
 
-      setNoteState((prev) => ({
-        ...prev,
-        body: payload.draft ?? prev.body,
-        isGenerating: false,
-      }));
+      if (!response.body) {
+        throw new Error('No stream received from server.');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        setNoteState((prev) => ({ ...prev, body: prev.body + chunk }));
+      }
+
+      setNoteState((prev) => ({ ...prev, isGenerating: false }));
     } catch (draftError) {
       setNoteState((prev) => ({
         ...prev,

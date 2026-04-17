@@ -72,47 +72,12 @@ function buildPromptInput(body: DraftRequestBody): string {
   return sections.join('\n\n');
 }
 
-function extractResponseText(payload: Record<string, unknown>): string | null {
-  if (typeof payload.output_text === 'string' && payload.output_text.trim().length > 0) {
-    return payload.output_text;
-  }
-
-  const output = Array.isArray(payload.output) ? payload.output : [];
-
-  for (const item of output) {
-    if (!item || typeof item !== 'object') {
-      continue;
-    }
-
-    const content = Array.isArray((item as { content?: unknown[] }).content)
-      ? (item as { content: unknown[] }).content
-      : [];
-
-    for (const block of content) {
-      if (!block || typeof block !== 'object') {
-        continue;
-      }
-
-      const maybeText = (block as { text?: unknown }).text;
-
-      if (typeof maybeText === 'string' && maybeText.trim().length > 0) {
-        return maybeText;
-      }
-    }
-  }
-
-  return null;
-}
-
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'OpenAI API key is not configured.' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 });
     }
 
     const body = (await request.json()) as DraftRequestBody;
@@ -126,7 +91,7 @@ export async function POST(request: Request) {
 
     const inputText = buildPromptInput(body);
 
-    const response = await fetch(OPENAI_API_URL, {
+    const upstreamResponse = await fetch(OPENAI_API_URL, {
       body: JSON.stringify({
         input: [
           {
@@ -145,6 +110,7 @@ export async function POST(request: Request) {
         reasoning: {
           effort: 'minimal',
         },
+        stream: true,
       }),
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -153,26 +119,87 @@ export async function POST(request: Request) {
       method: 'POST',
     });
 
-    if (!response.ok) {
-      const details = await response.text();
-      console.error('[note-draft] OpenAI request failed', { details, status: response.status });
+    if (!upstreamResponse.ok) {
+      const details = await upstreamResponse.text();
+      console.error('[note-draft] OpenAI request failed', {
+        details,
+        status: upstreamResponse.status,
+      });
+      return NextResponse.json({ error: 'Could not generate the note draft.' }, { status: 502 });
+    }
+
+    if (!upstreamResponse.body) {
       return NextResponse.json(
-        { error: 'Could not generate the note draft.' },
+        { error: 'OpenAI did not return a readable stream.' },
         { status: 502 },
       );
     }
 
-    const payload = (await response.json()) as Record<string, unknown>;
-    const draft = extractResponseText(payload);
+    const reader = upstreamResponse.body.getReader();
+    const decoder = new TextDecoder();
 
-    if (!draft) {
-      return NextResponse.json(
-        { error: 'The model did not return a usable draft.' },
-        { status: 502 },
-      );
-    }
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        let buffer = '';
 
-    return NextResponse.json({ draft, success: true });
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              break;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+
+              if (!trimmed || !trimmed.startsWith('data:')) {
+                continue;
+              }
+
+              const jsonStr = trimmed.slice(5).trim();
+
+              if (jsonStr === '[DONE]') {
+                continue;
+              }
+
+              try {
+                const event = JSON.parse(jsonStr) as Record<string, unknown>;
+                const eventType = event.type as string | undefined;
+
+                if (eventType === 'response.output_text.delta') {
+                  const delta = (event as { delta?: string }).delta;
+
+                  if (typeof delta === 'string') {
+                    controller.enqueue(encoder.encode(delta));
+                  }
+                }
+              } catch {
+                // skip malformed SSE lines
+              }
+            }
+          }
+        } catch (streamError) {
+          console.error('[note-draft] stream error', streamError);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
   } catch (error) {
     console.error('[note-draft] unexpected error', error);
     return NextResponse.json(
