@@ -157,6 +157,7 @@ const TRANSLATION_BY_LANG: Record<string, number> = {
 };
 
 const DEFAULT_TRANSLATION_ID = 20; // Saheeh International (English)
+const PENDING_SESSION_KEY = 'sakinah:pending-session';
 
 function getPreferredTranslationId(): number {
   if (typeof navigator === 'undefined') return DEFAULT_TRANSLATION_ID;
@@ -262,6 +263,37 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   useEffect(() => {
     setTranslationId(getPreferredTranslationId());
   }, []);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(PENDING_SESSION_KEY);
+      const session = JSON.parse(raw) as {
+        eventContent: string;
+        result: ApiResponse;
+        userFeeling: string;
+      };
+      setEventContent(session.eventContent);
+      setUserFeeling(session.userFeeling);
+      setResult(session.result);
+    } catch {
+      // ignore malformed data
+    }
+  }, []);
+
+  function saveSessionBeforeNav() {
+    try {
+      if (result) {
+        sessionStorage.setItem(
+          PENDING_SESSION_KEY,
+          JSON.stringify({ eventContent, result, userFeeling }),
+        );
+      }
+    } catch {
+      // storage may be unavailable
+    }
+  }
 
   const selectedEmbeds = useMemo<Array<{ label: string; reference: ReflectionReference }>>(
     () =>
@@ -730,6 +762,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                     <a
                       className="inline-flex min-h-12 items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-(--accent)"
                       href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                      onClick={saveSessionBeforeNav}
                     >
                       Connect Account
                     </a>
@@ -850,8 +883,9 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                                 <a
                                   className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
                                   href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                                  onClick={saveSessionBeforeNav}
                                 >
-                                  Connect to Save
+                                  Connect to Bookmark
                                 </a>
                               )}
                             </div>
