@@ -272,11 +272,17 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       const session = JSON.parse(raw) as {
         eventContent: string;
         result: ApiResponse;
+        scrollY?: number;
         userFeeling: string;
       };
       setEventContent(session.eventContent);
       setUserFeeling(session.userFeeling);
       setResult(session.result);
+      if (typeof session.scrollY === 'number') {
+        requestAnimationFrame(() => {
+          window.scrollTo(0, session.scrollY as number);
+        });
+      }
     } catch {
       // ignore malformed data
     }
@@ -287,7 +293,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       if (result) {
         sessionStorage.setItem(
           PENDING_SESSION_KEY,
-          JSON.stringify({ eventContent, result, userFeeling }),
+          JSON.stringify({ eventContent, result, scrollY: window.scrollY, userFeeling }),
         );
       }
     } catch {
