@@ -1140,11 +1140,7 @@ export async function createNoteInQfAccount(
   };
 
   if (attachedEntity) {
-    payload.entityId = attachedEntity.entityId;
-    payload.entityType = attachedEntity.entityType;
-    if (attachedEntity.entityMetadata) {
-      payload.entityMetadata = attachedEntity.entityMetadata;
-    }
+    payload.attachedEntity = attachedEntity;
   }
 
   if (ranges.length > 0) {

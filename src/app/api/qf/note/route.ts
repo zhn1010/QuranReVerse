@@ -7,8 +7,6 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       attachedEntities?: QfNoteAttachedEntity[];
       body?: string;
-      entityId?: string;
-      entityType?: 'reflection';
       ranges?: string[];
     };
 
@@ -33,8 +31,6 @@ export async function POST(request: Request) {
       if (first.entityId && first.entityType === 'reflection') {
         attachedEntity = first;
       }
-    } else if (body.entityId && body.entityType === 'reflection') {
-      attachedEntity = { entityId: body.entityId, entityType: body.entityType };
     }
 
     const result = await createNoteInQfAccount(body.body, ranges, attachedEntity);
