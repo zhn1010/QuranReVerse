@@ -80,10 +80,101 @@ const starterEvent =
   'I spent an hour scrolling success clips and luxury posts. By the end, I felt like my worth depended on being seen, praised, and always ahead.';
 const starterFeeling =
   'I feel unsettled, heavy, and disconnected from gratitude. I want to return to a calmer, Allah-centered state.';
-const QURAN_COM_TRANSLATION_ID = '135';
+/** ISO 639-1 language code → first Quran.com translation resource ID */
+const TRANSLATION_BY_LANG: Record<string, number> = {
+  aa: 854, // Afar
+  am: 87, // Amharic
+  ar: 1014, // Arabic
+  as: 120, // Assamese
+  az: 75, // Azeri
+  bg: 237, // Bulgarian
+  bm: 795, // Bambara
+  bn: 161, // Bengali
+  bs: 214, // Bosnian
+  ce: 106, // Chechen
+  cs: 26, // Czech
+  de: 208, // German
+  dv: 86, // Divehi
+  en: 85, // English (Abdel Haleem)
+  es: 83, // Spanish
+  fa: 135, // Persian
+  fi: 30, // Finnish
+  fr: 136, // French
+  gu: 225, // Gujarati
+  ha: 32, // Hausa
+  he: 233, // Hebrew
+  hi: 122, // Hindi
+  hr: 997, // Croatian
+  id: 134, // Indonesian
+  it: 153, // Italian
+  ja: 35, // Japanese
+  kk: 222, // Kazakh
+  km: 128, // Khmer
+  kn: 771, // Kannada
+  ko: 36, // Korean
+  ku: 81, // Kurdish
+  ky: 858, // Kyrgyz
+  lg: 232, // Ganda
+  ln: 855, // Lingala
+  lt: 904, // Lithuanian
+  mk: 788, // Macedonian
+  ml: 80, // Malayalam
+  mr: 226, // Marathi
+  ms: 39, // Malay
+  ne: 108, // Nepali
+  nl: 235, // Dutch
+  no: 41, // Norwegian
+  om: 111, // Oromo
+  pa: 857, // Punjabi
+  pl: 42, // Polish
+  ps: 118, // Pashto
+  pt: 103, // Portuguese
+  rn: 921, // Rundi
+  ro: 782, // Romanian
+  ru: 79, // Russian
+  rw: 774, // Kinyarwanda
+  sd: 238, // Sindhi
+  si: 228, // Sinhala
+  so: 46, // Somali
+  sq: 88, // Albanian
+  sr: 215, // Serbian
+  sv: 48, // Swedish
+  sw: 793, // Swahili
+  ta: 229, // Tamil
+  te: 227, // Telugu
+  tg: 139, // Tajik
+  th: 230, // Thai
+  tl: 211, // Tagalog
+  tr: 210, // Turkish
+  tt: 53, // Tatar
+  ug: 76, // Uyghur
+  uk: 217, // Ukrainian
+  ur: 234, // Urdu
+  uz: 55, // Uzbek
+  vi: 220, // Vietnamese
+  yo: 125, // Yoruba
+  zh: 56, // Chinese
+};
+
+const DEFAULT_TRANSLATION_ID = 20; // Saheeh International (English)
+
+function getPreferredTranslationId(): number {
+  if (typeof navigator === 'undefined') return DEFAULT_TRANSLATION_ID;
+
+  const languages = navigator.languages ?? [navigator.language];
+  for (const lang of languages) {
+    const code = lang.split('-')[0]?.toLowerCase();
+    if (code && TRANSLATION_BY_LANG[code]) {
+      return TRANSLATION_BY_LANG[code];
+    }
+  }
+
+  return DEFAULT_TRANSLATION_ID;
+}
+
 const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
 
-function buildQuranEmbedUrl(surahNo: number, ayahNo: string) {
+function buildQuranEmbedUrl(surahNo: number, ayahNo: string, translationId: number) {
   const verseRef = `${surahNo}:${ayahNo}`;
   const params = new URLSearchParams({
     answers: 'false',
@@ -92,7 +183,7 @@ function buildQuranEmbedUrl(surahNo: number, ayahNo: string) {
     mushaf: 'kfgqpc_v2',
     reflections: 'false',
     tafsir: 'false',
-    translations: QURAN_COM_TRANSLATION_ID,
+    translations: String(translationId),
     verses: verseRef,
   });
 
@@ -166,6 +257,11 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     open: false,
     success: null,
   });
+  const [translationId, setTranslationId] = useState(DEFAULT_TRANSLATION_ID);
+
+  useEffect(() => {
+    setTranslationId(getPreferredTranslationId());
+  }, []);
 
   const selectedEmbeds = useMemo<Array<{ label: string; reference: ReflectionReference }>>(
     () =>
@@ -700,37 +796,13 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                         </p>
                       ) : null}
 
-                      <div className="rounded-[1.7rem] border border-[rgba(82,82,91,0.14)] bg-[linear-gradient(180deg,rgba(244,244,245,0.82),rgba(255,255,255,0.96))] px-5 py-6 sm:px-6">
-                        <div className="flex flex-col gap-3 border-b border-[rgba(82,82,91,0.12)] pb-4 sm:flex-row sm:items-end sm:justify-between">
-                          <div>
-                            <p className="text-base font-semibold text-(--ink-strong)">
-                              {result.selected_reflection.reflection.authorName}
-                            </p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
-                              {result.selected_reflection.reflection.postTypeName ?? 'Reflection'}
-                              {result.selected_reflection.reflection.languageName
-                                ? ` • ${result.selected_reflection.reflection.languageName}`
-                                : ''}
-                            </p>
-                          </div>
-                          <p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">
-                            {result.selected_reflection.reflection.createdAt
-                              ? new Date(
-                                  result.selected_reflection.reflection.createdAt,
-                                ).toLocaleDateString()
-                              : 'Unknown date'}
-                          </p>
-                        </div>
-
+                      <div className="border-t border-(--line) pt-2">
                         <div className="mt-5">
-                          <ReflectionBody body={result.selected_reflection.reflection.body} />
-                        </div>
-
-                        <div className="mt-5 flex gap-4 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
-                          <span>{result.selected_reflection.reflection.likesCount} likes</span>
-                          <span>
-                            {result.selected_reflection.reflection.commentsCount} comments
-                          </span>
+                          <ReflectionBody
+                            body={result.selected_reflection.reflection.body}
+                            alwaysExpand
+                            postId={result.selected_reflection.reflection.id}
+                          />
                         </div>
                       </div>
                       {bookmarkState.success || bookmarkState.error ? (
@@ -793,6 +865,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                             src={buildQuranEmbedUrl(
                               embed.reference.chapterId,
                               embed.label.split(':')[1] ?? '',
+                              translationId,
                             )}
                             title={`Quran passage ${embed.label}`}
                             width="100%"
@@ -932,7 +1005,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                               </div>
                             ) : null}
 
-                            <ReflectionBody body={reflection.body} />
+                            <ReflectionBody body={reflection.body} postId={reflection.id} />
 
                             <div className="mt-3 flex gap-4 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
                               <span>{reflection.likesCount} likes</span>
@@ -1051,10 +1124,18 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   );
 }
 
-function ReflectionBody({ body }: { body: string }) {
+function ReflectionBody({
+  body,
+  alwaysExpand,
+  postId,
+}: {
+  body: string;
+  alwaysExpand?: boolean;
+  postId?: number;
+}) {
   const [expanded, setExpanded] = useState(false);
   const normalizedBody = body.trim();
-  const shouldCollapse = normalizedBody.length > 420;
+  const shouldCollapse = normalizedBody.length > 420 && !alwaysExpand;
 
   return (
     <div className="mt-3">
@@ -1074,6 +1155,17 @@ function ReflectionBody({ body }: { body: string }) {
         >
           {expanded ? 'Show less' : 'Continue reading'}
         </button>
+      ) : null}
+
+      {postId ? (
+        <a
+          className="mt-3 inline-block text-xs text-(--ink-soft) underline decoration-[rgba(82,82,91,0.25)] underline-offset-4 transition hover:text-(--ink-strong)"
+          href={`https://quranreflect.com/posts/${postId}`}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Read on QuranReflect.com
+        </a>
       ) : null}
     </div>
   );
