@@ -166,18 +166,6 @@ type PendingSession = {
   userFeeling: string;
 };
 
-function consumePendingSession(): PendingSession | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
-    if (!raw) return null;
-    sessionStorage.removeItem(PENDING_SESSION_KEY);
-    return JSON.parse(raw) as PendingSession;
-  } catch {
-    return null;
-  }
-}
-
 function getPreferredTranslationId(): number {
   if (typeof navigator === 'undefined') return DEFAULT_TRANSLATION_ID;
 
@@ -256,11 +244,10 @@ function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
 }
 
 export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSessionSummary }) {
-  const [pendingSession] = useState(consumePendingSession);
-  const [eventContent, setEventContent] = useState(pendingSession?.eventContent ?? starterEvent);
-  const [userFeeling, setUserFeeling] = useState(pendingSession?.userFeeling ?? starterFeeling);
-  const [result, setResult] = useState<ApiResponse | null>(pendingSession?.result ?? null);
-  const restoredScrollRef = useRef(pendingSession?.scrollY ?? null);
+  const [eventContent, setEventContent] = useState(starterEvent);
+  const [userFeeling, setUserFeeling] = useState(starterFeeling);
+  const [result, setResult] = useState<ApiResponse | null>(null);
+  const pendingScrollRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authState] = useState(initialAuth);
@@ -286,11 +273,28 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   }, []);
 
   useLayoutEffect(() => {
-    if (typeof restoredScrollRef.current === 'number') {
-      window.scrollTo(0, restoredScrollRef.current);
-      restoredScrollRef.current = null;
+    try {
+      const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(PENDING_SESSION_KEY);
+      const session = JSON.parse(raw) as PendingSession;
+      setEventContent(session.eventContent);
+      setUserFeeling(session.userFeeling);
+      setResult(session.result);
+      if (typeof session.scrollY === 'number') {
+        pendingScrollRef.current = session.scrollY;
+      }
+    } catch {
+      // ignore malformed data
     }
   }, []);
+
+  useLayoutEffect(() => {
+    if (pendingScrollRef.current !== null && result) {
+      window.scrollTo(0, pendingScrollRef.current);
+      pendingScrollRef.current = null;
+    }
+  }, [result]);
 
   function saveSessionBeforeNav() {
     try {
