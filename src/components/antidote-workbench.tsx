@@ -67,6 +67,14 @@ type BookmarkState = {
   success: string | null;
 };
 
+type NoteState = {
+  body: string;
+  error: string | null;
+  isSaving: boolean;
+  open: boolean;
+  success: string | null;
+};
+
 const starterEvent =
   'I spent an hour scrolling success clips and luxury posts. By the end, I felt like my worth depended on being seen, praised, and always ahead.';
 const starterFeeling =
@@ -147,6 +155,13 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     savedKeys: {},
     savingAction: null,
     savingKey: null,
+    success: null,
+  });
+  const [noteState, setNoteState] = useState<NoteState>({
+    body: '',
+    error: null,
+    isSaving: false,
+    open: false,
     success: null,
   });
 
@@ -283,6 +298,93 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function buildNoteRangesFromReflection() {
+    if (!result?.selected_reflection?.reflection) {
+      return [];
+    }
+
+    const references = result.selected_reflection.reflection.references;
+
+    if (references.length > 0) {
+      return references
+        .filter((ref) => ref.from >= 1 && ref.to >= 1)
+        .map((ref) => `${ref.chapterId}:${ref.from}-${ref.chapterId}:${ref.to}`)
+        .filter((range, index, items) => items.indexOf(range) === index);
+    }
+
+    const surahNo = result.selected_reflection.surah_no;
+    const ayahNo = result.selected_reflection.ayah_no;
+    const parts = ayahNo.split('-');
+    const from = Number.parseInt(parts[0] ?? '0', 10);
+    const to = Number.parseInt(parts[1] ?? parts[0] ?? '0', 10);
+
+    if (from >= 1 && to >= 1) {
+      return [`${surahNo}:${from}-${surahNo}:${to}`];
+    }
+
+    return [];
+  }
+
+  async function handleNoteSave() {
+    if (!noteState.body.trim() || noteState.body.trim().length < 6) {
+      setNoteState((prev) => ({
+        ...prev,
+        error: 'Note must be at least 6 characters long.',
+      }));
+      return;
+    }
+
+    setNoteState((prev) => ({ ...prev, error: null, isSaving: true, success: null }));
+
+    try {
+      const ranges = buildNoteRangesFromReflection();
+      const attachedEntities: Array<{
+        entityId: string;
+        entityType: 'reflection';
+      }> = [];
+
+      if (result?.selected_reflection?.reflection) {
+        attachedEntities.push({
+          entityId: String(result.selected_reflection.reflection.id),
+          entityType: 'reflection',
+        });
+      }
+
+      const response = await fetch('/api/qf/note', {
+        body: JSON.stringify({
+          attachedEntities,
+          body: noteState.body.trim(),
+          ranges,
+        }),
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      });
+
+      const payload = (await response.json()) as { error?: string; success?: boolean };
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not save the note.');
+      }
+
+      setNoteState({
+        body: '',
+        error: null,
+        isSaving: false,
+        open: false,
+        success: 'Note saved to your Quran Foundation account.',
+      });
+    } catch (noteError) {
+      setNoteState((prev) => ({
+        ...prev,
+        error: noteError instanceof Error ? noteError.message : 'Could not save the note.',
+        isSaving: false,
+      }));
     }
   }
 
@@ -636,6 +738,30 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                           </p>
                         </div>
                       ) : null}
+                      {noteState.success ? (
+                        <div className="rounded-[1.4rem] border border-(--line) bg-[rgba(255,255,255,0.72)] px-4 py-3 text-sm leading-7">
+                          <p className="text-[rgb(24,94,58)]">{noteState.success}</p>
+                        </div>
+                      ) : null}
+                      {authState.isAuthenticated ? (
+                        <div className="flex">
+                          <button
+                            className="inline-flex items-center justify-center rounded-full border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
+                            onClick={() =>
+                              setNoteState({
+                                body: '',
+                                error: null,
+                                isSaving: false,
+                                open: true,
+                                success: null,
+                              })
+                            }
+                            type="button"
+                          >
+                            Save as Note
+                          </button>
+                        </div>
+                      ) : null}
                     </article>
 
                     {/* <aside className="flex flex-col gap-4">
@@ -763,6 +889,61 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
           )}
         </section>
       </div>
+      {noteState.open ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.4)] p-4"
+          onClick={(overlayEvent) => {
+            if (overlayEvent.target === overlayEvent.currentTarget && !noteState.isSaving) {
+              setNoteState((prev) => ({ ...prev, open: false }));
+            }
+          }}
+        >
+          <div className="w-full max-w-lg rounded-[1.8rem] border border-(--line) bg-white p-6 shadow-[0_24px_80px_rgba(24,24,27,0.16)] sm:p-8">
+            <h2 className="text-lg font-semibold text-(--ink-strong)">Save a Note</h2>
+            <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
+              This note will be saved to your Quran Foundation account
+              {selectedEmbeds.length > 0
+                ? ` and linked to ${selectedEmbeds.map((e) => e.label).join(', ')}`
+                : ''}
+              .
+            </p>
+            <textarea
+              className="mt-4 min-h-40 w-full rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.5)] px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
+              disabled={noteState.isSaving}
+              onChange={(inputEvent) =>
+                setNoteState((prev) => ({
+                  ...prev,
+                  body: inputEvent.target.value,
+                  error: null,
+                }))
+              }
+              placeholder="Write your personal reflection or note here (min 6 characters)..."
+              value={noteState.body}
+            />
+            {noteState.error ? (
+              <p className="mt-2 text-sm text-[rgb(146,64,14)]">{noteState.error}</p>
+            ) : null}
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                className="inline-flex items-center justify-center rounded-full border border-(--line) px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={noteState.isSaving}
+                onClick={() => setNoteState((prev) => ({ ...prev, open: false }))}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="inline-flex items-center justify-center rounded-full bg-(--accent-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={noteState.isSaving || noteState.body.trim().length < 6}
+                onClick={handleNoteSave}
+                type="button"
+              >
+                {noteState.isSaving ? 'Saving...' : 'Save Note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

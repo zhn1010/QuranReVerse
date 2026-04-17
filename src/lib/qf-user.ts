@@ -18,7 +18,7 @@ const QF_BOOKMARK_MUSHAF_ID = 5;
 const AUTH_FLOW_COOKIE_NAME = 'qf_oauth_flow';
 const USER_SESSION_COOKIE_NAME = 'qf_user_session';
 const AUTH_FLOW_MAX_AGE_SECONDS = 60 * 15;
-const DEFAULT_QF_SCOPES = ['openid', 'offline_access', 'user', 'collection', 'bookmark'];
+const DEFAULT_QF_SCOPES = ['openid', 'offline_access', 'user', 'collection', 'bookmark', 'note'];
 
 type PendingAuthFlow = {
   codeVerifier: string;
@@ -1108,6 +1108,65 @@ export async function removeAyahBookmarksFromSakinahCollection(surahNo: number, 
     collection,
     removedCount,
     session: activeSession,
+  };
+}
+
+export type QfNoteAttachedEntity = {
+  entityId: string;
+  entityMetadata?: Record<string, unknown>;
+  entityType: 'reflection';
+};
+
+export async function createNoteInQfAccount(
+  body: string,
+  ranges: string[],
+  attachedEntities: QfNoteAttachedEntity[],
+) {
+  const session = await getQfUserSession();
+
+  qfAuthDebug('note creation request received', {
+    attachedEntitiesCount: attachedEntities.length,
+    bodyLength: body.length,
+    rangesCount: ranges.length,
+  });
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  const payload: Record<string, unknown> = {
+    body,
+    saveToQR: false,
+  };
+
+  if (attachedEntities.length > 0) {
+    payload.attachedEntities = attachedEntities;
+  }
+
+  if (ranges.length > 0) {
+    payload.ranges = ranges;
+  }
+
+  const { response, session: updatedSession } = await qfApiFetch(session, '/auth/v1/notes', {
+    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+
+  const result = await readApiResponse<{
+    data?: {
+      body?: string;
+      createdAt?: string;
+      id?: string;
+    };
+    success?: boolean;
+  }>(response);
+
+  return {
+    note: result.data ?? null,
+    session: updatedSession,
   };
 }
 
