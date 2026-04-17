@@ -70,6 +70,7 @@ type BookmarkState = {
 type NoteState = {
   body: string;
   error: string | null;
+  isGenerating: boolean;
   isSaving: boolean;
   open: boolean;
   success: string | null;
@@ -160,6 +161,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   const [noteState, setNoteState] = useState<NoteState>({
     body: '',
     error: null,
+    isGenerating: false,
     isSaving: false,
     open: false,
     success: null,
@@ -328,6 +330,52 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     return [];
   }
 
+  async function handleNoteDraftGenerate() {
+    setNoteState((prev) => ({ ...prev, error: null, isGenerating: true }));
+
+    try {
+      const response = await fetch('/api/qf/note/draft', {
+        body: JSON.stringify({
+          diagnosis: result?.diagnosis ?? null,
+          eventContent,
+          reflectionBody: result?.selected_reflection?.reflection?.body ?? null,
+          reflectionGuide: result?.reflection_guide ?? null,
+          selectedReflection: result?.selected_reflection
+            ? {
+                authorName: result.selected_reflection.reflection?.authorName ?? null,
+                ayahNo: result.selected_reflection.ayah_no,
+                selectionReason: result.selected_reflection.selection_reason,
+                surahName: result.selected_reflection.surah_name,
+                surahNo: result.selected_reflection.surah_no,
+              }
+            : null,
+          userFeeling,
+        }),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
+
+      const payload = (await response.json()) as { draft?: string; error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not generate draft.');
+      }
+
+      setNoteState((prev) => ({
+        ...prev,
+        body: payload.draft ?? prev.body,
+        isGenerating: false,
+      }));
+    } catch (draftError) {
+      setNoteState((prev) => ({
+        ...prev,
+        error: draftError instanceof Error ? draftError.message : 'Could not generate draft.',
+        isGenerating: false,
+      }));
+    }
+  }
+
   async function handleNoteSave() {
     if (!noteState.body.trim() || noteState.body.trim().length < 6) {
       setNoteState((prev) => ({
@@ -375,6 +423,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       setNoteState({
         body: '',
         error: null,
+        isGenerating: false,
         isSaving: false,
         open: false,
         success: 'Note saved to your Quran Foundation account.',
@@ -751,6 +800,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                               setNoteState({
                                 body: '',
                                 error: null,
+                                isGenerating: false,
                                 isSaving: false,
                                 open: true,
                                 success: null,
@@ -898,7 +948,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
             }
           }}
         >
-          <div className="w-full max-w-lg rounded-[1.8rem] border border-(--line) bg-white p-6 shadow-[0_24px_80px_rgba(24,24,27,0.16)] sm:p-8">
+          <div className="flex w-full max-w-2xl flex-col rounded-[1.8rem] border border-(--line) bg-white p-6 shadow-[0_24px_80px_rgba(24,24,27,0.16)] sm:p-8">
             <h2 className="text-lg font-semibold text-(--ink-strong)">Save a Note</h2>
             <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
               This note will be saved to your Quran Foundation account
@@ -907,26 +957,58 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                 : ''}
               .
             </p>
-            <textarea
-              className="mt-4 min-h-40 w-full rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.5)] px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
-              disabled={noteState.isSaving}
-              onChange={(inputEvent) =>
-                setNoteState((prev) => ({
-                  ...prev,
-                  body: inputEvent.target.value,
-                  error: null,
-                }))
-              }
-              placeholder="Write your personal reflection or note here (min 6 characters)..."
-              value={noteState.body}
-            />
+            <div className="relative mt-4">
+              <textarea
+                className="min-h-64 w-full rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.5)] px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] sm:min-h-80"
+                disabled={noteState.isSaving || noteState.isGenerating}
+                onChange={(inputEvent) =>
+                  setNoteState((prev) => ({
+                    ...prev,
+                    body: inputEvent.target.value,
+                    error: null,
+                  }))
+                }
+                placeholder="Write your personal reflection or note here (min 6 characters)..."
+                value={noteState.body}
+              />
+              <div className="absolute bottom-3 left-3">
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-full border border-(--line) bg-white/90 px-3.5 py-1.5 text-xs font-medium text-(--ink-soft) shadow-sm transition hover:bg-white hover:text-(--ink-strong) disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={noteState.isSaving || noteState.isGenerating || !result}
+                  onClick={handleNoteDraftGenerate}
+                  type="button"
+                >
+                  {noteState.isGenerating ? (
+                    <>
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-(--line) border-t-(--accent-strong)" />
+                      Drafting...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      Generate Draft
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
             {noteState.error ? (
               <p className="mt-2 text-sm text-[rgb(146,64,14)]">{noteState.error}</p>
             ) : null}
             <div className="mt-4 flex justify-end gap-3">
               <button
                 className="inline-flex items-center justify-center rounded-full border border-(--line) px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={noteState.isSaving}
+                disabled={noteState.isSaving || noteState.isGenerating}
                 onClick={() => setNoteState((prev) => ({ ...prev, open: false }))}
                 type="button"
               >
@@ -934,7 +1016,9 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
               </button>
               <button
                 className="inline-flex items-center justify-center rounded-full bg-(--accent-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={noteState.isSaving || noteState.body.trim().length < 6}
+                disabled={
+                  noteState.isSaving || noteState.isGenerating || noteState.body.trim().length < 6
+                }
                 onClick={handleNoteSave}
                 type="button"
               >
