@@ -1120,13 +1120,13 @@ export type QfNoteAttachedEntity = {
 export async function createNoteInQfAccount(
   body: string,
   ranges: string[],
-  attachedEntities: QfNoteAttachedEntity[],
+  attachedEntity: QfNoteAttachedEntity | null,
 ) {
   const session = await getQfUserSession();
 
   qfAuthDebug('note creation request received', {
-    attachedEntitiesCount: attachedEntities.length,
     bodyLength: body.length,
+    hasAttachedEntity: Boolean(attachedEntity),
     rangesCount: ranges.length,
   });
 
@@ -1139,8 +1139,12 @@ export async function createNoteInQfAccount(
     saveToQR: false,
   };
 
-  if (attachedEntities.length > 0) {
-    payload.attachedEntities = attachedEntities;
+  if (attachedEntity) {
+    payload.entityId = attachedEntity.entityId;
+    payload.entityType = attachedEntity.entityType;
+    if (attachedEntity.entityMetadata) {
+      payload.entityMetadata = attachedEntity.entityMetadata;
+    }
   }
 
   if (ranges.length > 0) {

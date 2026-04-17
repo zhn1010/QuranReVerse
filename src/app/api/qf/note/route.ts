@@ -7,6 +7,8 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       attachedEntities?: QfNoteAttachedEntity[];
       body?: string;
+      entityId?: string;
+      entityType?: 'reflection';
       ranges?: string[];
     };
 
@@ -24,11 +26,18 @@ export async function POST(request: Request) {
     const rangePattern = /^(\d+):(\d+)-(\d+):(\d+)$/;
     const ranges = (body.ranges ?? []).filter((range) => rangePattern.test(range));
 
-    const attachedEntities = (body.attachedEntities ?? []).filter(
-      (entity) => entity.entityId && entity.entityType === 'reflection',
-    );
+    let attachedEntity: QfNoteAttachedEntity | null = null;
 
-    const result = await createNoteInQfAccount(body.body, ranges, attachedEntities);
+    if (body.attachedEntities && body.attachedEntities.length > 0) {
+      const first = body.attachedEntities[0];
+      if (first.entityId && first.entityType === 'reflection') {
+        attachedEntity = first;
+      }
+    } else if (body.entityId && body.entityType === 'reflection') {
+      attachedEntity = { entityId: body.entityId, entityType: body.entityType };
+    }
+
+    const result = await createNoteInQfAccount(body.body, ranges, attachedEntity);
     const response = NextResponse.json({
       note: result.note,
       success: true,
