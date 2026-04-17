@@ -3,6 +3,7 @@
 import Script from 'next/script';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { useToast } from '@/components/toast';
 
 type ReflectionReference = {
   chapterId: number;
@@ -248,6 +249,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   const [userFeeling, setUserFeeling] = useState(starterFeeling);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const pendingScrollRef = useRef<number | null>(null);
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authState] = useState(initialAuth);
@@ -587,14 +589,17 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
         isGenerating: false,
         isSaving: false,
         open: false,
-        success: 'Note saved to your Quran Foundation account.',
+        success: null,
       });
+      toast.success('Note saved to your Quran Foundation account.');
     } catch (noteError) {
+      const message = noteError instanceof Error ? noteError.message : 'Could not save the note.';
       setNoteState((prev) => ({
         ...prev,
-        error: noteError instanceof Error ? noteError.message : 'Could not save the note.',
+        error: message,
         isSaving: false,
       }));
+      toast.error(message);
     }
   }
 
@@ -639,27 +644,36 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 
         if (isBookmarked) {
           const removedCount = payload.removedCount ?? 1;
+          toast.success(
+            `${removedCount === 1 ? '1 ayah removed' : `${removedCount} ayahs removed`} from ${payload.collectionName ?? authState.collectionName}.`,
+          );
           return {
             error: null,
             savedKeys: nextSavedKeys,
             savingAction: null,
             savingKey: null,
-            success: `${removedCount === 1 ? '1 ayah removed' : `${removedCount} ayahs removed`} from ${payload.collectionName ?? authState.collectionName}.`,
+            success: null,
           };
         }
 
         const savedCount = payload.savedCount ?? 1;
+        toast.success(
+          `${savedCount === 1 ? '1 ayah saved' : `${savedCount} ayahs saved`} to ${payload.collectionName ?? authState.collectionName}.`,
+        );
         return {
           error: null,
           savedKeys: nextSavedKeys,
           savingAction: null,
           savingKey: null,
-          success: `${savedCount === 1 ? '1 ayah saved' : `${savedCount} ayahs saved`} to ${payload.collectionName ?? authState.collectionName}.`,
+          success: null,
         };
       });
     } catch (bookmarkError) {
+      const message =
+        bookmarkError instanceof Error ? bookmarkError.message : 'Could not save the ayah.';
+      toast.error(message);
       setBookmarkState({
-        error: bookmarkError instanceof Error ? bookmarkError.message : 'Could not save the ayah.',
+        error: null,
         savedKeys: bookmarkState.savedKeys,
         savingAction: null,
         savingKey: null,
@@ -852,16 +866,6 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                           />
                         </div>
                       </div>
-                      {bookmarkState.success || bookmarkState.error ? (
-                        <div className="rounded-[1.4rem] border border-(--line) bg-[rgba(255,255,255,0.72)] px-4 py-3 text-sm leading-7">
-                          {bookmarkState.success ? (
-                            <p className="text-[rgb(24,94,58)]">{bookmarkState.success}</p>
-                          ) : null}
-                          {bookmarkState.error ? (
-                            <p className="text-[rgb(146,64,14)]">{bookmarkState.error}</p>
-                          ) : null}
-                        </div>
-                      ) : null}
                       {selectedEmbeds.map((embed) => (
                         <div
                           key={embed.label}
@@ -925,11 +929,6 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                           <p className="text-base leading-8 text-(--ink-strong)">
                             {result.reflection_guide.conclusion_text}
                           </p>
-                        </div>
-                      ) : null}
-                      {noteState.success ? (
-                        <div className="rounded-[1.4rem] border border-(--line) bg-[rgba(255,255,255,0.72)] px-4 py-3 text-sm leading-7">
-                          <p className="text-[rgb(24,94,58)]">{noteState.success}</p>
                         </div>
                       ) : null}
                       <div className="flex">
