@@ -932,8 +932,8 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                           <p className="text-[rgb(24,94,58)]">{noteState.success}</p>
                         </div>
                       ) : null}
-                      {authState.isAuthenticated ? (
-                        <div className="flex">
+                      <div className="flex">
+                        {authState.isAuthenticated ? (
                           <button
                             className="inline-flex items-center justify-center rounded-full border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
                             onClick={() =>
@@ -950,8 +950,16 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                           >
                             Save as Note
                           </button>
-                        </div>
-                      ) : null}
+                        ) : (
+                          <a
+                            className="inline-flex items-center justify-center rounded-full border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
+                            href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                            onClick={saveSessionBeforeNav}
+                          >
+                            Connect to Save as Note
+                          </a>
+                        )}
+                      </div>
                     </article>
 
                     {/* <aside className="flex flex-col gap-4">
