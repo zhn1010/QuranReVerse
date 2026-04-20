@@ -11,6 +11,7 @@ import {
 import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
 import type { ApiResponse } from '@/lib/antidote-types';
+import { getBrowserFingerprint } from '@/lib/browser-fingerprint';
 import {
   completeChatThread,
   failChatThread,
@@ -68,6 +69,9 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
 
     async function run() {
       try {
+        // Generate browser fingerprint for anonymous rate limiting
+        const fingerprint = await getBrowserFingerprint();
+
         const response = await fetch('/api/antidotes', {
           body: JSON.stringify({
             eventContent: activeThread.eventContent,
@@ -75,6 +79,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
           }),
           headers: {
             'Content-Type': 'application/json',
+            'X-Browser-Fingerprint': fingerprint,
           },
           method: 'POST',
           signal: controller.signal,
@@ -174,7 +179,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
 
   return (
     <ChatShell activeChatId={chatId} auth={auth}>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-16">
         {!thread ? (
           <div className="flex justify-start">
             <div className="rounded-2xl bg-[rgba(244,244,245,0.7)] px-5 py-4 text-sm leading-7 text-(--ink-soft)">

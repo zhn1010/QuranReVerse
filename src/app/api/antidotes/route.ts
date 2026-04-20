@@ -1,5 +1,69 @@
 import { NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
 import { getRelatedReflectionsForAyah, type RelatedReflection } from '@/lib/quran-reflect';
+import { getSession } from '@/lib/session';
+
+// Initialize Redis client for rate limiting (uses same KV env vars)
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
+
+const ANONYMOUS_DAILY_LIMIT = 2;
+const AUTHENTICATED_DAILY_LIMIT = 10;
+
+async function checkRateLimit(
+  request: Request,
+): Promise<{ allowed: true } | { allowed: false; reason: string; limit: number }> {
+  const session = await getSession();
+  const isAuthenticated = Boolean(session?.data?.quranFoundationId);
+  const userId = session?.data?.quranFoundationId;
+
+  // Get today's date string for the key
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  if (isAuthenticated && userId) {
+    const key = `rate_limit:user:${userId}:${today}`;
+    const current = await redis.incr(key);
+
+    // Set expiry on first request of the day
+    if (current === 1) {
+      await redis.expire(key, 60 * 60 * 24); // 24 hours
+    }
+
+    if (current > AUTHENTICATED_DAILY_LIMIT) {
+      return {
+        allowed: false,
+        limit: AUTHENTICATED_DAILY_LIMIT,
+        reason: `You have reached your daily limit of ${AUTHENTICATED_DAILY_LIMIT} reflections. Please try again tomorrow.`,
+      };
+    }
+  } else {
+    // Anonymous user - use browser fingerprint for more reliable tracking
+    const fingerprint =
+      request.headers.get('x-browser-fingerprint') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    const key = `rate_limit:fingerprint:${fingerprint}:${today}`;
+    const current = await redis.incr(key);
+
+    // Set expiry on first request of the day
+    if (current === 1) {
+      await redis.expire(key, 60 * 60 * 24); // 24 hours
+    }
+
+    if (current > ANONYMOUS_DAILY_LIMIT) {
+      return {
+        allowed: false,
+        limit: ANONYMOUS_DAILY_LIMIT,
+        reason: `You have reached your daily limit of ${ANONYMOUS_DAILY_LIMIT} reflections. Sign in with Quran Foundation for ${AUTHENTICATED_DAILY_LIMIT} reflections per day.`,
+      };
+    }
+  }
+
+  return { allowed: true };
+}
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-5';
@@ -838,6 +902,12 @@ function toJsonLine(event: PipelineEvent) {
 }
 
 export async function POST(request: Request) {
+  // Check rate limit first
+  const rateLimitCheck = await checkRateLimit(request);
+  if (!rateLimitCheck.allowed) {
+    return NextResponse.json({ error: rateLimitCheck.reason }, { status: 429 });
+  }
+
   let body: {
     eventContent?: string;
     userFeeling?: string;

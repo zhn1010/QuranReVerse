@@ -347,7 +347,7 @@ export function ChatResultView({
       <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
 
       {/* AI response bubble */}
-      <div className="rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-5 sm:px-6">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-5 sm:max-w-[75%] sm:px-6">
         <div className="space-y-6">
           {result.reflection_guide ? (
             <p
@@ -533,7 +533,7 @@ export function ChatResultView({
 
       {/* Note saved success message */}
       {noteSaved ? (
-        <div className="rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-4">
+        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-4 sm:max-w-[75%]">
           <p className="text-sm leading-7 text-(--ink-strong)">
             Your note has been saved to your Quran Foundation account.
           </p>
