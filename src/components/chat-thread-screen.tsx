@@ -12,6 +12,7 @@ import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
 import type { ApiResponse } from '@/lib/antidote-types';
 import { getBrowserFingerprint } from '@/lib/browser-fingerprint';
+import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 import {
   completeChatThread,
   failChatThread,
@@ -195,9 +196,21 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
             {/* User message — right aligned */}
             <div className="flex justify-end">
               <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[rgba(63,63,70,0.08)] px-5 py-4 sm:max-w-[75%]">
-                <p className="text-sm leading-7 text-(--ink-strong)">{thread.eventContent}</p>
+                <p
+                  className={`text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
+                    detectTextDirection(thread.eventContent),
+                  )}`}
+                  dir={detectTextDirection(thread.eventContent)}
+                >
+                  {thread.eventContent}
+                </p>
                 {thread.userFeeling ? (
-                  <p className="mt-2 border-t border-[rgba(63,63,70,0.08)] pt-2 text-sm leading-7 text-(--ink-soft)">
+                  <p
+                    className={`mt-2 border-t border-[rgba(63,63,70,0.08)] pt-2 text-sm leading-7 text-(--ink-soft) ${getDirectionStyles(
+                      detectTextDirection(thread.userFeeling),
+                    )}`}
+                    dir={detectTextDirection(thread.userFeeling)}
+                  >
                     {thread.userFeeling}
                   </p>
                 ) : null}

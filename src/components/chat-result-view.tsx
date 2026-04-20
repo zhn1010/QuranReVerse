@@ -347,7 +347,7 @@ export function ChatResultView({
       <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
 
       {/* AI response bubble */}
-      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-5 sm:max-w-[75%] sm:px-6">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-[rgba(63,63,70,0.15)] bg-[rgba(244,244,245,0.7)] px-5 py-5 sm:max-w-[75%] sm:px-6">
         <div className="space-y-6">
           {result.reflection_guide ? (
             <p
