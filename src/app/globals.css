@@ -193,6 +193,15 @@ code {
   animation: subtle-pulse 1.6s ease-in-out infinite;
 }
 
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .chapter-card {
     padding: 1.2rem;

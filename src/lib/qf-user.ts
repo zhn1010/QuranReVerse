@@ -132,9 +132,21 @@ function normalizeCollectionBookmark(raw: unknown): QfBookmark | null {
 }
 
 export type QfSessionSummary = {
+  avatarUrl: string | null;
   collectionName: string;
   displayName: string | null;
   isAuthenticated: boolean;
+};
+
+type QfProfile = {
+  avatarUrls?: {
+    large?: string;
+    medium?: string;
+    small?: string;
+  };
+  firstName?: string;
+  lastName?: string;
+  username?: string;
 };
 
 function isQfAuthDebugEnabled() {
@@ -926,11 +938,48 @@ export async function getQfUserSession(): Promise<QfSessionCookie | null> {
 export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
   const session = await getQfUserSession();
 
-  return {
-    collectionName: QF_BOOKMARK_COLLECTION_NAME,
-    displayName: null,
-    isAuthenticated: Boolean(session),
-  };
+  if (!session) {
+    return {
+      avatarUrl: null,
+      collectionName: QF_BOOKMARK_COLLECTION_NAME,
+      displayName: null,
+      isAuthenticated: false,
+    };
+  }
+
+  try {
+    const { response } = await qfApiFetch(session, '/auth/v1/profile');
+    const payload = await readApiResponse<Record<string, unknown>>(response);
+    const profileRecord =
+      payload.data && typeof payload.data === 'object'
+        ? (payload.data as Record<string, unknown>)
+        : payload;
+    const profile = profileRecord as QfProfile;
+    const displayName = [profile.firstName, profile.lastName]
+      .filter((value) => typeof value === 'string' && value.trim().length > 0)
+      .join(' ')
+      .trim();
+    const avatarUrl =
+      profile.avatarUrls?.medium ?? profile.avatarUrls?.small ?? profile.avatarUrls?.large ?? null;
+
+    return {
+      avatarUrl,
+      collectionName: QF_BOOKMARK_COLLECTION_NAME,
+      displayName: displayName || profile.username || null,
+      isAuthenticated: true,
+    };
+  } catch (error) {
+    qfAuthDebug('failed to load user profile summary', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      avatarUrl: null,
+      collectionName: QF_BOOKMARK_COLLECTION_NAME,
+      displayName: null,
+      isAuthenticated: true,
+    };
+  }
 }
 
 export async function bookmarkAyahsInSakinahCollection(surahNo: number, ayahNo: string) {

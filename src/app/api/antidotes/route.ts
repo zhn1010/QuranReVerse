@@ -31,8 +31,9 @@ Your voice:
 2. Insightful: Connect the spiritual drift to the current experience.
 3. Action-oriented: End with a small, practical heart-action or dua focus.
 4. Grounded: Use a modern tone that is warm and clear without sounding preachy.
+5. Integrative: The intro must naturally lead into the chosen reflection and the conclusion must naturally follow from it, so the reader experiences one seamless narrative—not three separate paragraphs.
 
-Return only JSON. Do not include the reflection text itself. The intro should be 3-4 sentences. The conclusion should be 2-3 sentences.`;
+Return only JSON. Do not reproduce the reflection text itself. The intro should be 3-4 sentences. The conclusion should be 2-3 sentences.`;
 
 const languageDetectionSystemPrompt = `Detect the primary language used in the user's input. Return a normalized ISO-639-1 language code when possible.
 
@@ -49,6 +50,15 @@ Rules:
 2. Keep hashtags, references, and links unchanged when possible.
 3. Keep tone and meaning faithful; do not summarize.
 4. Return only JSON.`;
+
+const chatTitleSystemPrompt = `Write a very short title for this reflection session.
+
+Rules:
+1. Use the same language as the user input.
+2. Keep it concrete, calm, and natural.
+3. Prefer 3 to 6 words.
+4. Do not use quotation marks.
+5. Return only JSON.`;
 
 const antidoteResponseSchema = {
   additionalProperties: false,
@@ -122,6 +132,15 @@ const reflectionTranslationResponseSchema = {
   type: 'object',
 } as const;
 
+const chatTitleResponseSchema = {
+  additionalProperties: false,
+  properties: {
+    title: { type: 'string' },
+  },
+  required: ['title'],
+  type: 'object',
+} as const;
+
 type OpenAIAntidote = {
   ayah_no: string;
   reasoning: string;
@@ -156,6 +175,10 @@ type LanguageDetectionResponse = {
 
 type ReflectionTranslationResponse = {
   translated_text: string;
+};
+
+type ChatTitleResponse = {
+  title: string;
 };
 
 type EnrichedAntidote = OpenAIAntidote & {
@@ -203,6 +226,7 @@ type PipelineStepEvent = {
 type PipelineResultEvent = {
   data: {
     antidotes: EnrichedAntidote[];
+    chat_title: string;
     detected_language_code: string;
     diagnosis: Diagnosis;
     reflection_guide: ReflectionGuide | null;
@@ -733,11 +757,11 @@ The Chosen Reflection (for context only): ${selectedReflection.reflection.body}
 Task:
 Generate two pieces of text to wrap around the selected reflection.
 
-intro_text: Validate the user's feeling about the event. Gently point out how the materialistic view is affecting their heart, and segue into the reflection as a source of God-centric clarity.
+intro_text: Validate the user's feeling about the event. Gently point out how the materialistic view is affecting their heart. Then naturally bridge into the chosen reflection by mentioning its core theme, the author's name (if available in the reflection), or the insight it carries—so the reader feels the reflection is a continuation of your words, not a separate block.
 
-conclusion_text: Summarize the grounding lesson. Provide a short, practical heart-action or a dua focus based on the God-centric reframe to help the user move forward today.
+conclusion_text: Pick up where the reflection leaves off. Echo a specific phrase, image, or idea from the reflection to create continuity. Then distill the grounding lesson into a short, practical heart-action or dua focus based on the God-centric reframe.
 
-Constraint: Do not include the reflection text itself. Only return the JSON.`;
+Constraint: Do not reproduce the reflection text itself—only reference its themes. The intro should flow into the reflection and the conclusion should flow out of it, as one integrated reading experience. Only return the JSON.`;
   const requestParams = {
     inputText,
     instructions: spiritualGuideSystemPrompt,
@@ -770,6 +794,30 @@ Constraint: Do not include the reflection text itself. Only return the JSON.`;
       maxOutputTokens: 1400,
     });
   }
+}
+
+async function generateChatTitle({
+  detectedLanguageCode,
+  eventContent,
+  userFeeling,
+}: {
+  detectedLanguageCode: string;
+  eventContent: string;
+  userFeeling: string;
+}) {
+  const response = await callStructuredOpenAI<ChatTitleResponse>({
+    inputText: `Output language: ${detectedLanguageCode}
+
+Event/Content: ${eventContent}
+
+User Feeling: ${userFeeling}`,
+    instructions: chatTitleSystemPrompt,
+    maxOutputTokens: 40,
+    schema: chatTitleResponseSchema,
+    schemaName: 'chat_title',
+  });
+
+  return response.title.trim() || 'Reflection';
 }
 
 function createPipelineStep(
@@ -827,27 +875,43 @@ export async function POST(request: Request) {
       };
 
       try {
-        send(createPipelineStep('language_detection', 'Detecting your input language', 'in_progress'));
+        send(
+          createPipelineStep('language_detection', 'Detecting your input language', 'in_progress'),
+        );
         const detectedLanguageCode = await detectInputLanguage(eventContent, userFeeling);
-        send(createPipelineStep('language_detection', 'Detecting your input language', 'completed'));
+        send(
+          createPipelineStep('language_detection', 'Detecting your input language', 'completed'),
+        );
 
         send(createPipelineStep('ayah_selection', 'Selecting grounding ayahs', 'in_progress'));
         const response = await callAntidoteModel(eventContent, userFeeling);
         send(createPipelineStep('ayah_selection', 'Selecting grounding ayahs', 'completed'));
 
-        send(createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'in_progress'));
+        send(
+          createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'in_progress'),
+        );
         const enrichedAntidotes = await enrichAntidotes(response.antidotes);
-        send(createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'completed'));
+        send(
+          createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'completed'),
+        );
 
-        send(createPipelineStep('reflection_curation', 'Curating the strongest match', 'in_progress'));
+        send(
+          createPipelineStep('reflection_curation', 'Curating the strongest match', 'in_progress'),
+        );
         const selectedReflection = await curateReflection(
           response.diagnosis,
           buildReflectionCandidates(enrichedAntidotes),
         );
-        send(createPipelineStep('reflection_curation', 'Curating the strongest match', 'completed'));
+        send(
+          createPipelineStep('reflection_curation', 'Curating the strongest match', 'completed'),
+        );
 
         send(
-          createPipelineStep('reflection_translation', 'Aligning reflection language with your input', 'in_progress'),
+          createPipelineStep(
+            'reflection_translation',
+            'Aligning reflection language with your input',
+            'in_progress',
+          ),
         );
         let localizedSelectedReflection = selectedReflection;
         try {
@@ -862,22 +926,36 @@ export async function POST(request: Request) {
           });
         }
         send(
-          createPipelineStep('reflection_translation', 'Aligning reflection language with your input', 'completed'),
+          createPipelineStep(
+            'reflection_translation',
+            'Aligning reflection language with your input',
+            'completed',
+          ),
         );
 
-        send(createPipelineStep('guide_generation', 'Preparing your guided reading', 'in_progress'));
-        const reflectionGuide = await buildReflectionGuide({
-          detectedLanguageCode,
-          diagnosis: response.diagnosis,
-          eventContent,
-          selectedReflection: localizedSelectedReflection,
-          userFeeling,
-        });
+        send(
+          createPipelineStep('guide_generation', 'Preparing your guided reading', 'in_progress'),
+        );
+        const [reflectionGuide, chatTitle] = await Promise.all([
+          buildReflectionGuide({
+            detectedLanguageCode,
+            diagnosis: response.diagnosis,
+            eventContent,
+            selectedReflection: localizedSelectedReflection,
+            userFeeling,
+          }),
+          generateChatTitle({
+            detectedLanguageCode,
+            eventContent,
+            userFeeling,
+          }),
+        ]);
         send(createPipelineStep('guide_generation', 'Preparing your guided reading', 'completed'));
 
         const resultEvent: PipelineResultEvent = {
           data: {
             antidotes: enrichedAntidotes,
+            chat_title: chatTitle,
             detected_language_code: detectedLanguageCode,
             diagnosis: response.diagnosis,
             reflection_guide: reflectionGuide,

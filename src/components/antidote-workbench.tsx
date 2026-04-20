@@ -1406,7 +1406,7 @@ function LoadingReadingState({
       </div>
 
       <div className="grid gap-6 px-6 py-6 sm:px-8">
-        <div className="rounded-3xl border border-(--line) bg-[rgba(250,250,250,0.8)] p-4">
+        <div className="rounded-3xl p-4">
           <div className="space-y-3">
             {LOADING_STEPS.map((step, index) => {
               const status = stepStatus[step.key];
