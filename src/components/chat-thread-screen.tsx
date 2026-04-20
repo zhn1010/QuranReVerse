@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChatLoadingState, createInitialLoadingStepStatus, type PipelineStepKey, type PipelineStepStatus } from '@/components/chat-loading-state';
+import {
+  ChatLoadingState,
+  createInitialLoadingStepStatus,
+  type PipelineStepKey,
+  type PipelineStepStatus,
+} from '@/components/chat-loading-state';
 import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
-import { PromptSummaryCard } from '@/components/prompt-summary-card';
 import type { ApiResponse } from '@/lib/antidote-types';
 import {
   completeChatThread,
@@ -35,13 +39,7 @@ type PipelineErrorEvent = {
 
 type PipelineStreamEvent = PipelineErrorEvent | PipelineResultEvent | PipelineStepEvent;
 
-export function ChatThreadScreen({
-  auth,
-  chatId,
-}: {
-  auth: QfSessionSummary;
-  chatId: string;
-}) {
+export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; chatId: string }) {
   const [thread, setThread] = useState<LocalChatThread | null>(null);
   const [loadingStepStatus, setLoadingStepStatus] = useState<
     Record<PipelineStepKey, PipelineStepStatus>
@@ -176,42 +174,69 @@ export function ChatThreadScreen({
 
   return (
     <ChatShell activeChatId={chatId} auth={auth}>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
         {!thread ? (
-          <section className="rounded-[2rem] border border-dashed border-(--line) bg-white/70 p-8 text-sm leading-7 text-(--ink-soft)">
-            This local reflection thread could not be found. <Link className="underline" href="/">Start a new one</Link>.
-          </section>
+          <div className="flex justify-start">
+            <div className="rounded-2xl bg-[rgba(244,244,245,0.7)] px-5 py-4 text-sm leading-7 text-(--ink-soft)">
+              This local reflection thread could not be found.{' '}
+              <Link className="underline" href="/">
+                Start a new one
+              </Link>
+              .
+            </div>
+          </div>
         ) : (
           <>
-            <PromptSummaryCard eventContent={thread.eventContent} userFeeling={thread.userFeeling} />
+            {/* User message — right aligned */}
+            <div className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[rgba(63,63,70,0.08)] px-5 py-4 sm:max-w-[75%]">
+                <p className="text-sm leading-7 text-(--ink-strong)">{thread.eventContent}</p>
+                {thread.userFeeling ? (
+                  <p className="mt-2 border-t border-[rgba(63,63,70,0.08)] pt-2 text-sm leading-7 text-(--ink-soft)">
+                    {thread.userFeeling}
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
+            {/* AI response — left aligned */}
             {thread.status === 'pending' ? (
-              <ChatLoadingState stepStatus={loadingStepStatus} />
+              <div className="flex justify-start">
+                <div className="max-w-[90%] sm:max-w-[80%]">
+                  <ChatLoadingState stepStatus={loadingStepStatus} />
+                </div>
+              </div>
             ) : thread.status === 'error' ? (
-              <section className="rounded-[2rem] border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.06)] p-6">
-                <p className="text-base font-semibold text-[rgb(110,28,28)]">Could not prepare this reading.</p>
-                <p className="mt-2 text-sm leading-7 text-[rgb(110,28,28)]">{thread.error}</p>
-                <button
-                  className="mt-4 inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--accent)"
-                  onClick={() => {
-                    const nextThread = resetChatThreadToPending(chatId);
-                    startedRef.current = null;
-                    setThread(nextThread);
-                    setLoadingStepStatus(createInitialLoadingStepStatus());
-                  }}
-                  type="button"
-                >
-                  Retry
-                </button>
-              </section>
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.06)] px-5 py-4 sm:max-w-[75%]">
+                  <p className="text-sm font-semibold text-[rgb(110,28,28)]">
+                    Could not prepare this reading.
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-[rgb(110,28,28)]">{thread.error}</p>
+                  <button
+                    className="mt-4 inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--accent)"
+                    onClick={() => {
+                      const nextThread = resetChatThreadToPending(chatId);
+                      startedRef.current = null;
+                      setThread(nextThread);
+                      setLoadingStepStatus(createInitialLoadingStepStatus());
+                    }}
+                    type="button"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
             ) : thread.result ? (
-              <ChatResultView
-                auth={auth}
-                chatPath={`/chat/${chatId}`}
-                eventContent={thread.eventContent}
-                result={thread.result}
-                userFeeling={thread.userFeeling}
-              />
+              <div className="flex flex-col gap-4">
+                <ChatResultView
+                  auth={auth}
+                  chatPath={`/chat/${chatId}`}
+                  eventContent={thread.eventContent}
+                  result={thread.result}
+                  userFeeling={thread.userFeeling}
+                />
+              </div>
             ) : null}
           </>
         )}

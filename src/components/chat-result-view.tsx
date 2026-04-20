@@ -57,6 +57,7 @@ export function ChatResultView({
     isSaving: false,
     open: false,
   });
+  const [noteSaved, setNoteSaved] = useState(false);
 
   const selectedEmbeds = useMemo(
     () =>
@@ -320,6 +321,7 @@ export function ChatResultView({
         isSaving: false,
         open: false,
       });
+      setNoteSaved(true);
       toast.success('Note saved to your Quran Foundation account.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save the note.';
@@ -343,11 +345,13 @@ export function ChatResultView({
   return (
     <>
       <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
-      <section className="overflow-hidden rounded-[2rem] border border-(--line) bg-[rgba(255,255,255,0.96)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
-        <div className="grid gap-8 px-6 py-8 sm:px-8">
+
+      {/* AI response bubble */}
+      <div className="rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-5 sm:px-6">
+        <div className="space-y-6">
           {result.reflection_guide ? (
             <p
-              className={`text-lg leading-9 text-(--ink-strong) ${getDirectionStyles(
+              className={`text-base leading-8 text-(--ink-strong) ${getDirectionStyles(
                 detectTextDirection(result.reflection_guide.intro_text, outputFallbackDirection),
               )}`}
               dir={detectTextDirection(result.reflection_guide.intro_text, outputFallbackDirection)}
@@ -356,7 +360,7 @@ export function ChatResultView({
             </p>
           ) : null}
 
-          <div className="border-t border-(--line) pt-2">
+          <div className="border-t border-[rgba(63,63,70,0.08)] pt-4">
             {result.selected_reflection.reflection_is_translated ? (
               <p className="text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
                 Reflection translated from{' '}
@@ -364,7 +368,7 @@ export function ChatResultView({
                   'source language'}
               </p>
             ) : null}
-            <div className="mt-5">
+            <div className="mt-3">
               <ReflectionBody
                 body={result.selected_reflection.reflection.body}
                 fallbackDirection={outputFallbackDirection}
@@ -373,7 +377,7 @@ export function ChatResultView({
             </div>
             {result.selected_reflection.reflection_is_translated &&
             result.selected_reflection.reflection_original_body ? (
-              <details className="mt-4 rounded-2xl border border-(--line) bg-[rgba(255,255,255,0.7)] p-3 text-sm text-(--ink-soft)">
+              <details className="mt-4 rounded-xl border border-[rgba(63,63,70,0.08)] bg-white/70 p-3 text-sm text-(--ink-soft)">
                 <summary className="cursor-pointer font-medium text-(--ink-strong)">
                   Show original reflection text
                 </summary>
@@ -397,20 +401,20 @@ export function ChatResultView({
 
           {selectedEmbeds.map((embed) => (
             <div
-              className="overflow-hidden rounded-[1.6rem] border border-(--line) bg-white shadow-[0_12px_32px_rgba(24,24,27,0.06)]"
+              className="overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white shadow-[0_2px_8px_rgba(24,24,27,0.04)]"
               key={embed.label}
             >
-              <div className="border-b border-(--line) px-4 py-3">
+              <div className="border-b border-[rgba(63,63,70,0.08)] px-4 py-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
                       {embed.label}
                     </p>
-                    <p className="mt-1 text-sm text-(--ink-soft)">Embedded from Quran.com</p>
+                    <p className="mt-1 text-xs text-(--ink-soft)">Embedded from Quran.com</p>
                   </div>
                   {auth.isAuthenticated ? (
                     <button
-                      className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={bookmarkState.savingKey === embed.label}
                       onClick={() =>
                         handleBookmarkToggle(
@@ -431,7 +435,7 @@ export function ChatResultView({
                     </button>
                   ) : (
                     <a
-                      className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
+                      className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white"
                       href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`}
                     >
                       Connect to bookmark
@@ -457,7 +461,7 @@ export function ChatResultView({
           ))}
 
           {result.reflection_guide ? (
-            <div className="border-t border-(--line) pt-6">
+            <div className="border-t border-[rgba(63,63,70,0.08)] pt-4">
               <p
                 className={`text-base leading-8 text-(--ink-strong) ${getDirectionStyles(
                   detectTextDirection(
@@ -474,35 +478,67 @@ export function ChatResultView({
               </p>
             </div>
           ) : null}
-
-          <div className="flex">
-            {auth.isAuthenticated ? (
-              <button
-                className="inline-flex items-center justify-center rounded-full border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
-                onClick={() =>
-                  setNoteState({
-                    body: '',
-                    error: null,
-                    isGenerating: false,
-                    isSaving: false,
-                    open: true,
-                  })
-                }
-                type="button"
-              >
-                Save as note
-              </button>
-            ) : (
-              <a
-                className="inline-flex items-center justify-center rounded-full border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
-                href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`}
-              >
-                Connect to save note
-              </a>
-            )}
-          </div>
         </div>
-      </section>
+      </div>
+
+      {/* Action buttons — outside the bubble */}
+      <div className="flex gap-3 pl-2">
+        {auth.isAuthenticated ? (
+          <button
+            className="inline-flex items-center gap-2 rounded-full border border-[rgba(63,63,70,0.1)] bg-white/80 px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
+            onClick={() =>
+              setNoteState({
+                body: '',
+                error: null,
+                isGenerating: false,
+                isSaving: false,
+                open: true,
+              })
+            }
+            type="button"
+          >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Save as note
+          </button>
+        ) : (
+          <a
+            className="inline-flex items-center gap-2 rounded-full border border-[rgba(63,63,70,0.1)] bg-white/80 px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
+            href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`}
+          >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Connect to save note
+          </a>
+        )}
+      </div>
+
+      {/* Note saved success message */}
+      {noteSaved ? (
+        <div className="rounded-2xl rounded-bl-md bg-[rgba(244,244,245,0.7)] px-5 py-4">
+          <p className="text-sm leading-7 text-(--ink-strong)">
+            Your note has been saved to your Quran Foundation account.
+          </p>
+        </div>
+      ) : null}
 
       {noteState.open ? (
         <div
