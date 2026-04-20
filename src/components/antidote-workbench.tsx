@@ -83,8 +83,7 @@ type NoteState = {
 
 const starterEvent =
   'I spent an hour scrolling success clips and luxury posts. By the end, I felt like my worth depended on being seen, praised, and always ahead.';
-const starterFeeling =
-  'I feel unsettled, heavy, and disconnected from gratitude. I want to return to a calmer, Allah-centered state.';
+const starterFeeling = 'I feel unsettled, heavy, and disconnected from gratitude.';
 /** ISO 639-1 language code → first Quran.com translation resource ID */
 const TRANSLATION_BY_LANG: Record<string, number> = {
   aa: 854, // Afar
@@ -215,7 +214,8 @@ function createInitialLoadingStepStatus(): Record<PipelineStepKey, PipelineStepS
 
 type TextDirection = 'ltr' | 'rtl';
 
-const RTL_CHAR_REGEX = /[\u0590-\u08FF]/u;
+const RTL_SCRIPT_CHAR_REGEX = /[\u0590-\u08FF]/gu;
+const LATIN_SCRIPT_CHAR_REGEX = /[A-Za-z]/g;
 const RTL_LANG_CODES = new Set(['ar', 'fa', 'he', 'ps', 'sd', 'ug', 'ur']);
 
 function getTranslationIdForLanguageCode(languageCode: string | null | undefined): number {
@@ -246,7 +246,22 @@ function detectTextDirection(
     return fallbackDirection;
   }
 
-  return RTL_CHAR_REGEX.test(text) ? 'rtl' : 'ltr';
+  const rtlMatches = text.match(RTL_SCRIPT_CHAR_REGEX);
+  const latinMatches = text.match(LATIN_SCRIPT_CHAR_REGEX);
+  const rtlCount = rtlMatches?.length ?? 0;
+  const latinCount = latinMatches?.length ?? 0;
+
+  if (rtlCount === 0) {
+    return fallbackDirection;
+  }
+
+  if (latinCount === 0) {
+    return 'rtl';
+  }
+
+  const rtlShare = rtlCount / (rtlCount + latinCount);
+
+  return rtlShare >= 0.3 ? 'rtl' : 'ltr';
 }
 
 function getDirectionStyles(direction: TextDirection) {
@@ -324,10 +339,9 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadingStepStatus, setLoadingStepStatus] = useState<Record<
-    PipelineStepKey,
-    PipelineStepStatus
-  >>(() => createInitialLoadingStepStatus());
+  const [loadingStepStatus, setLoadingStepStatus] = useState<
+    Record<PipelineStepKey, PipelineStepStatus>
+  >(() => createInitialLoadingStepStatus());
   const [authState] = useState(initialAuth);
   const [bookmarkState, setBookmarkState] = useState<BookmarkState>({
     error: null,
