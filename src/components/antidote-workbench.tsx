@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Script from 'next/script';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
@@ -162,6 +163,7 @@ const TRANSLATION_BY_LANG: Record<string, number> = {
 
 const DEFAULT_TRANSLATION_ID = 20; // Saheeh International (English)
 const PENDING_SESSION_KEY = 'sakinah:pending-session';
+const HERO_HIDDEN_KEY = 'sakinah:hero-hidden';
 
 type PendingSession = {
   eventContent: string;
@@ -339,6 +341,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
   const [loadingStepStatus, setLoadingStepStatus] = useState<
     Record<PipelineStepKey, PipelineStepStatus>
   >(() => createInitialLoadingStepStatus());
@@ -381,6 +384,16 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       pendingScrollRef.current = null;
     }
   }, [result]);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(HERO_HIDDEN_KEY) === 'true') {
+        setIsHeroVisible(false);
+      }
+    } catch {
+      // ignore localStorage failures
+    }
+  }, []);
 
   function saveSessionBeforeNav() {
     try {
@@ -863,68 +876,6 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
         <section className="grid gap-8">
-          <div className="hero-panel overflow-hidden rounded-4xl px-6 py-8 shadow-[0_24px_80px_rgba(24,24,27,0.1)] sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:items-end">
-              <div className="relative z-10 flex flex-col gap-6">
-                <div className="space-y-4">
-                  <p className="eyebrow">Sakinah.now</p>
-                  <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.045em] text-(--ink-strong) sm:text-5xl lg:text-6xl">
-                    Return to inner calm through Quranic reflection
-                  </h1>
-                  <p className="max-w-2xl text-base leading-8 text-(--ink-soft) sm:text-lg">
-                    Share what shook your heart, name what you are feeling, and receive a grounded
-                    reading path that helps you move from noise to sakinah.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3 text-sm text-(--ink-soft)">
-                  <span className="rounded-full border border-[rgba(82,82,91,0.14)] bg-white/72 px-4 py-2 font-medium text-(--ink-strong)">
-                    Reflect on what unsettled you
-                  </span>
-                  <span className="rounded-full border border-[rgba(82,82,91,0.14)] bg-white/72 px-4 py-2 font-medium text-(--ink-strong)">
-                    Receive Quranic grounding
-                  </span>
-                  <span className="rounded-full border border-[rgba(82,82,91,0.14)] bg-white/72 px-4 py-2 font-medium text-(--ink-strong)">
-                    Save ayahs to revisit later
-                  </span>
-                </div>
-              </div>
-
-              <div className="relative z-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
-                    Step 1
-                  </p>
-                  <p className="mt-3 text-lg font-semibold text-(--ink-strong)">
-                    Describe the moment
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
-                    Write honestly about the post, conversation, or event that disrupted your peace.
-                  </p>
-                </div>
-                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
-                    Step 2
-                  </p>
-                  <p className="mt-3 text-lg font-semibold text-(--ink-strong)">
-                    Name what you feel
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
-                    Capture the emotional and spiritual weight so the reading can meet you there.
-                  </p>
-                </div>
-                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[linear-gradient(180deg,rgba(39,39,42,0.96),rgba(63,63,70,0.94))] p-5 text-white shadow-[0_16px_34px_rgba(24,24,27,0.18)]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
-                    Step 3
-                  </p>
-                  <p className="mt-3 text-lg font-semibold">Sit with a guided verse</p>
-                  <p className="mt-2 text-sm leading-7 text-white/78">
-                    Read a selected reflection and return to a steadier, Allah-centered view.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
             <div className="rounded-[1.9rem] border border-[rgba(82,82,91,0.14)] bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(244,244,245,0.86))] p-5 shadow-[0_16px_40px_rgba(24,24,27,0.06)]">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1203,6 +1154,93 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
           )}
         </section>
       </div>
+      {isHeroVisible ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(18,18,20,0.36)] p-4 sm:p-6">
+          <div className="hero-panel relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-4xl px-6 py-8 shadow-[0_24px_80px_rgba(24,24,27,0.2)] sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+            <button
+              aria-label="Close intro"
+              className="absolute right-4 top-4 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(82,82,91,0.14)] bg-white/80 text-xl leading-none text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
+              onClick={() => {
+                setIsHeroVisible(false);
+                try {
+                  localStorage.setItem(HERO_HIDDEN_KEY, 'true');
+                } catch {
+                  // ignore localStorage failures
+                }
+              }}
+              type="button"
+            >
+              ×
+            </button>
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:items-center">
+              <div className="relative z-10 flex flex-col gap-6">
+                <div className="space-y-4">
+                  <div className="inline-flex w-fit items-center">
+                    <div className="relative h-17 w-17 overflow-hidden rounded-full">
+                      <Image
+                        alt="Sakinah.now logo"
+                        className="object-contain p-1.5"
+                        fill
+                        sizes="(max-width: 640px) 40px, 48px"
+                        src="/LogoSakinah.now.png"
+                      />
+                    </div>
+                    <div className="relative h-10 w-[170px] sm:h-10 sm:w-[230px] lg:w-[280px]">
+                      <Image
+                        alt="Sakinah.now"
+                        className="object-contain object-left"
+                        fill
+                        sizes="(max-width: 640px) 170px, (max-width: 1024px) 230px, 280px"
+                        src="/LogoTypeSakinah.now.png"
+                      />
+                    </div>
+                  </div>
+                  <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.045em] text-(--ink-strong) sm:text-5xl lg:text-6xl">
+                    Return to inner calm through Quranic reflection
+                  </h1>
+                  <p className="max-w-2xl text-base leading-8 text-(--ink-soft) sm:text-lg">
+                    Share what shook your heart, name what you are feeling, and receive a grounded
+                    reading path that helps you move from noise to sakinah.
+                  </p>
+                </div>
+              </div>
+              <div className="relative z-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+                    Step 1
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-(--ink-strong)">
+                    Describe the moment
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+                    Write honestly about the post, conversation, or event that disrupted your peace.
+                  </p>
+                </div>
+                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+                    Step 2
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-(--ink-strong)">
+                    Name what you feel
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+                    Capture the emotional and spiritual weight so the reading can meet you there.
+                  </p>
+                </div>
+                <div className="rounded-[1.8rem] border border-[rgba(82,82,91,0.12)] bg-[rgba(255,255,255,0.82)] p-5 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+                    Step 3
+                  </p>
+                  <p className="mt-3 text-lg font-semibold">Sit with a guided verse</p>
+                  <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+                    Read a selected reflection and return to a steadier, Allah-centered view.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {noteState.open ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.4)] p-4"
@@ -1357,7 +1395,7 @@ function LoadingReadingState({
   return (
     <section className="overflow-hidden rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.94)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
       <div className="border-b border-(--line) bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,244,245,0.9))] px-6 py-6 sm:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
           Preparing Your Reading
         </p>
         <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
@@ -1374,21 +1412,40 @@ function LoadingReadingState({
               const status = stepStatus[step.key];
               return (
                 <div className="flex items-center gap-3" key={step.key}>
-                  <div
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      status === 'completed'
-                        ? 'bg-[rgba(39,39,42,0.75)]'
-                        : status === 'in_progress'
-                          ? 'shimmer-bar'
-                          : 'bg-[rgba(161,161,170,0.45)]'
-                    }`}
-                  />
+                  {status === 'completed' ? (
+                    <div className="relative h-4 w-4 overflow-hidden">
+                      <Image
+                        alt=""
+                        aria-hidden
+                        className="object-contain"
+                        fill
+                        sizes="16px"
+                        src="/LogoSakinah.now.png"
+                      />
+                    </div>
+                  ) : status === 'in_progress' ? (
+                    <div className="relative h-4 w-4">
+                      <span className="subtle-pulse absolute inset-0 rounded-full bg-[rgba(82,82,91,0.24)]" />
+                      <div className="relative h-4 w-4 overflow-hidden">
+                        <Image
+                          alt=""
+                          aria-hidden
+                          className="object-contain"
+                          fill
+                          sizes="16px"
+                          src="/LogoSakinah.now.png"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-2.5 w-2.5 rounded-full bg-[rgba(161,161,170,0.45)]" />
+                  )}
                   <p
                     className={`text-sm ${
                       status === 'completed' || status === 'in_progress'
                         ? 'text-(--ink-strong)'
                         : 'text-(--ink-soft)'
-                    }`}
+                    } ${status === 'in_progress' ? 'shimmer-text' : ''}`}
                   >
                     {index + 1}. {step.label}
                     {status === 'in_progress' ? '...' : ''}
