@@ -954,13 +954,23 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
       payload.data && typeof payload.data === 'object'
         ? (payload.data as Record<string, unknown>)
         : payload;
+    
+    // Add inspection logs for the avatar fix
+    console.log('[qf-avatar-debug] profile record received:', JSON.stringify(profileRecord, null, 2));
+    
     const profile = profileRecord as QfProfile;
     const displayName = [profile.firstName, profile.lastName]
       .filter((value) => typeof value === 'string' && value.trim().length > 0)
       .join(' ')
       .trim();
+
+    // Check for different potential snake_case or camelCase properties based on standard Quran Foundation returns
+    const rawRecord = profileRecord as any;
     const avatarUrl =
-      profile.avatarUrls?.medium ?? profile.avatarUrls?.small ?? profile.avatarUrls?.large ?? null;
+      profile.avatarUrls?.medium ?? profile.avatarUrls?.small ?? profile.avatarUrls?.large ??
+      rawRecord.avatar_url ?? rawRecord.avatarUrl ?? null;
+      
+    console.log('[qf-avatar-debug] extracted avatarUrl:', avatarUrl);
 
     return {
       avatarUrl,
