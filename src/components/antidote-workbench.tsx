@@ -26,6 +26,9 @@ type RelatedReflection = {
 
 type SelectedReflection = {
   ayah_no: string;
+  reflection_is_translated: boolean;
+  reflection_original_body: string | null;
+  reflection_source_language_code: string | null;
   reflection: RelatedReflection | null;
   selected_reflection_id: number;
   selection_reason: string;
@@ -54,6 +57,7 @@ type Diagnosis = {
 
 type ApiResponse = {
   antidotes: Antidote[];
+  detected_language_code: string;
   diagnosis: Diagnosis;
   error?: string;
   reflection_guide: ReflectionGuide | null;
@@ -167,18 +171,86 @@ type PendingSession = {
   userFeeling: string;
 };
 
-function getPreferredTranslationId(): number {
-  if (typeof navigator === 'undefined') return DEFAULT_TRANSLATION_ID;
+const LOADING_STEPS = [
+  { key: 'language_detection', label: 'Detecting your input language' },
+  { key: 'ayah_selection', label: 'Selecting grounding ayahs' },
+  { key: 'reflection_fetch', label: 'Collecting relevant reflections' },
+  { key: 'reflection_curation', label: 'Curating the strongest match' },
+  { key: 'reflection_translation', label: 'Aligning reflection language' },
+  { key: 'guide_generation', label: 'Preparing your guided reading' },
+] as const;
 
-  const languages = navigator.languages ?? [navigator.language];
-  for (const lang of languages) {
-    const code = lang.split('-')[0]?.toLowerCase();
-    if (code && TRANSLATION_BY_LANG[code]) {
-      return TRANSLATION_BY_LANG[code];
-    }
+type PipelineStepKey = (typeof LOADING_STEPS)[number]['key'];
+type PipelineStepStatus = 'completed' | 'in_progress' | 'pending';
+
+type PipelineStepEvent = {
+  label: string;
+  status: Exclude<PipelineStepStatus, 'pending'>;
+  step: PipelineStepKey;
+  type: 'step';
+};
+
+type PipelineResultEvent = {
+  data: ApiResponse;
+  type: 'result';
+};
+
+type PipelineErrorEvent = {
+  error: string;
+  type: 'error';
+};
+
+type PipelineStreamEvent = PipelineErrorEvent | PipelineResultEvent | PipelineStepEvent;
+
+function createInitialLoadingStepStatus(): Record<PipelineStepKey, PipelineStepStatus> {
+  return {
+    ayah_selection: 'pending',
+    guide_generation: 'pending',
+    language_detection: 'pending',
+    reflection_curation: 'pending',
+    reflection_fetch: 'pending',
+    reflection_translation: 'pending',
+  };
+}
+
+type TextDirection = 'ltr' | 'rtl';
+
+const RTL_CHAR_REGEX = /[\u0590-\u08FF]/u;
+const RTL_LANG_CODES = new Set(['ar', 'fa', 'he', 'ps', 'sd', 'ug', 'ur']);
+
+function getTranslationIdForLanguageCode(languageCode: string | null | undefined): number {
+  const normalizedCode = languageCode?.trim().toLowerCase();
+
+  if (normalizedCode && TRANSLATION_BY_LANG[normalizedCode]) {
+    return TRANSLATION_BY_LANG[normalizedCode];
   }
 
   return DEFAULT_TRANSLATION_ID;
+}
+
+function getDirectionFromLanguageCode(languageCode: string | null | undefined): TextDirection {
+  const code = languageCode?.trim().toLowerCase();
+
+  if (code && RTL_LANG_CODES.has(code)) {
+    return 'rtl';
+  }
+
+  return 'ltr';
+}
+
+function detectTextDirection(
+  text: string | null | undefined,
+  fallbackDirection: TextDirection = 'ltr',
+): TextDirection {
+  if (!text || text.trim().length === 0) {
+    return fallbackDirection;
+  }
+
+  return RTL_CHAR_REGEX.test(text) ? 'rtl' : 'ltr';
+}
+
+function getDirectionStyles(direction: TextDirection) {
+  return direction === 'rtl' ? 'text-right' : 'text-left';
 }
 
 const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
@@ -252,6 +324,10 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingStepStatus, setLoadingStepStatus] = useState<Record<
+    PipelineStepKey,
+    PipelineStepStatus
+  >>(() => createInitialLoadingStepStatus());
   const [authState] = useState(initialAuth);
   const [bookmarkState, setBookmarkState] = useState<BookmarkState>({
     error: null,
@@ -268,12 +344,6 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     open: false,
     success: null,
   });
-  const [translationId, setTranslationId] = useState(DEFAULT_TRANSLATION_ID);
-
-  useEffect(() => {
-    setTranslationId(getPreferredTranslationId());
-  }, []);
-
   useLayoutEffect(() => {
     try {
       const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
@@ -315,6 +385,23 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     () =>
       result?.selected_reflection ? getSelectedReflectionEmbeds(result.selected_reflection) : [],
     [result],
+  );
+
+  const translationId = useMemo(
+    () => getTranslationIdForLanguageCode(result?.detected_language_code),
+    [result?.detected_language_code],
+  );
+  const outputFallbackDirection = useMemo<TextDirection>(
+    () => getDirectionFromLanguageCode(result?.detected_language_code),
+    [result?.detected_language_code],
+  );
+  const eventDirection = useMemo<TextDirection>(
+    () => detectTextDirection(eventContent, 'ltr'),
+    [eventContent],
+  );
+  const feelingDirection = useMemo<TextDirection>(
+    () => detectTextDirection(userFeeling, 'ltr'),
+    [userFeeling],
   );
 
   useEffect(() => {
@@ -417,6 +504,8 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setLoadingStepStatus(createInitialLoadingStepStatus());
+    setResult(null);
 
     try {
       const response = await fetch('/api/antidotes', {
@@ -430,13 +519,85 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
         }),
       });
 
-      const payload = (await response.json()) as ApiResponse;
-
       if (!response.ok) {
+        const payload = (await response.json()) as ApiResponse;
         throw new Error(payload.error || 'Request failed.');
       }
 
-      setResult(payload);
+      if (!response.body) {
+        throw new Error('No stream received from server.');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalResult: ApiResponse | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          if (!line) {
+            continue;
+          }
+
+          const event = JSON.parse(line) as PipelineStreamEvent;
+
+          if (event.type === 'step') {
+            setLoadingStepStatus((prev) => ({
+              ...prev,
+              [event.step]: event.status,
+            }));
+            continue;
+          }
+
+          if (event.type === 'result') {
+            finalResult = event.data;
+            setLoadingStepStatus(() => ({
+              ayah_selection: 'completed',
+              guide_generation: 'completed',
+              language_detection: 'completed',
+              reflection_curation: 'completed',
+              reflection_fetch: 'completed',
+              reflection_translation: 'completed',
+            }));
+            continue;
+          }
+
+          if (event.type === 'error') {
+            throw new Error(event.error || 'Request failed.');
+          }
+        }
+      }
+
+      if (!finalResult && buffer.trim().length > 0) {
+        const tailEvent = JSON.parse(buffer.trim()) as PipelineStreamEvent;
+
+        if (tailEvent.type === 'result') {
+          finalResult = tailEvent.data;
+        } else if (tailEvent.type === 'step') {
+          setLoadingStepStatus((prev) => ({
+            ...prev,
+            [tailEvent.step]: tailEvent.status,
+          }));
+        } else if (tailEvent.type === 'error') {
+          throw new Error(tailEvent.error || 'Request failed.');
+        }
+      }
+
+      if (!finalResult) {
+        throw new Error('No result returned from server.');
+      }
+
+      setResult(finalResult);
     } catch (submissionError) {
       setResult(null);
       setError(
@@ -805,7 +966,8 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                     What happened today that affected your heart?
                   </span>
                   <textarea
-                    className="min-h-64 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
+                    className={`min-h-64 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] ${getDirectionStyles(eventDirection)}`}
+                    dir={eventDirection}
                     onChange={(inputEvent) => setEventContent(inputEvent.target.value)}
                     placeholder="Describe the moment, post, conversation, or situation that pulled you off-center."
                     value={eventContent}
@@ -817,7 +979,8 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                     What is moving inside you right now?
                   </span>
                   <textarea
-                    className="min-h-32 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)]"
+                    className={`min-h-32 rounded-[1.6rem] border border-(--line) bg-white/80 px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] ${getDirectionStyles(feelingDirection)}`}
+                    dir={feelingDirection}
                     onChange={(inputEvent) => setUserFeeling(inputEvent.target.value)}
                     placeholder="Name the emotional and spiritual impact as honestly as you can."
                     value={userFeeling}
@@ -845,26 +1008,69 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
         </section>
 
         <section className="flex flex-col gap-5">
-          {result ? (
+          {isSubmitting ? (
+            <LoadingReadingState stepStatus={loadingStepStatus} />
+          ) : result ? (
             <div className="grid gap-4">
               {result.selected_reflection?.reflection ? (
                 <section className="overflow-hidden rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.94)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
                   <div className="grid gap-8 px-6 py-8 sm:px-8">
                     <article className="flex flex-col gap-8">
                       {result.reflection_guide ? (
-                        <p className="text-lg leading-9 text-(--ink-strong)">
+                        <p
+                          className={`text-lg leading-9 text-(--ink-strong) ${getDirectionStyles(
+                            detectTextDirection(
+                              result.reflection_guide.intro_text,
+                              outputFallbackDirection,
+                            ),
+                          )}`}
+                          dir={detectTextDirection(
+                            result.reflection_guide.intro_text,
+                            outputFallbackDirection,
+                          )}
+                        >
                           {result.reflection_guide.intro_text}
                         </p>
                       ) : null}
 
                       <div className="border-t border-(--line) pt-2">
+                        {result.selected_reflection.reflection_is_translated ? (
+                          <p className="text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
+                            Reflection translated from{' '}
+                            {result.selected_reflection.reflection_source_language_code?.toUpperCase() ??
+                              'source language'}
+                          </p>
+                        ) : null}
                         <div className="mt-5">
                           <ReflectionBody
                             body={result.selected_reflection.reflection.body}
                             alwaysExpand
+                            fallbackDirection={outputFallbackDirection}
                             postId={result.selected_reflection.reflection.id}
                           />
                         </div>
+                        {result.selected_reflection.reflection_is_translated &&
+                        result.selected_reflection.reflection_original_body ? (
+                          <details className="mt-4 rounded-2xl border border-(--line) bg-[rgba(255,255,255,0.7)] p-3 text-sm text-(--ink-soft)">
+                            <summary className="cursor-pointer font-medium text-(--ink-strong)">
+                              Show original reflection text
+                            </summary>
+                            <p
+                              className={`mt-3 whitespace-pre-line leading-7 ${getDirectionStyles(
+                                detectTextDirection(
+                                  result.selected_reflection.reflection_original_body,
+                                  outputFallbackDirection,
+                                ),
+                              )}`}
+                              dir={detectTextDirection(
+                                result.selected_reflection.reflection_original_body,
+                                outputFallbackDirection,
+                              )}
+                            >
+                              {result.selected_reflection.reflection_original_body}
+                            </p>
+                          </details>
+                        ) : null}
                       </div>
                       {selectedEmbeds.map((embed) => (
                         <div
@@ -926,7 +1132,18 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                       ))}
                       {result.reflection_guide ? (
                         <div className="border-t border-(--line) pt-6">
-                          <p className="text-base leading-8 text-(--ink-strong)">
+                          <p
+                            className={`text-base leading-8 text-(--ink-strong) ${getDirectionStyles(
+                              detectTextDirection(
+                                result.reflection_guide.conclusion_text,
+                                outputFallbackDirection,
+                              ),
+                            )}`}
+                            dir={detectTextDirection(
+                              result.reflection_guide.conclusion_text,
+                              outputFallbackDirection,
+                            )}
+                          >
                             {result.reflection_guide.conclusion_text}
                           </p>
                         </div>
@@ -960,123 +1177,9 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                         )}
                       </div>
                     </article>
-
-                    {/* <aside className="flex flex-col gap-4">
-                      <div className="rounded-[1.6rem] border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-4">
-                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
-                          Quran Passages In This Reading
-                        </p>
-                        <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
-                          These are the ayahs referenced in the reflection itself, shown here so you
-                          can sit with the source text directly.
-                        </p>
-                      </div>
-
-                      
-                    </aside> */}
                   </div>
                 </section>
               ) : null}
-
-              {/* {result.antidotes.map((antidote) => (
-                <article
-                  key={`${antidote.surah_no}:${antidote.ayah_no}`}
-                  className="chapter-card flex flex-col gap-5"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.24em] text-(--accent-strong)">
-                        {antidote.surah_name} {antidote.surah_no}:{antidote.ayah_no}
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold text-(--ink-strong)">
-                        Spiritual Reframing
-                      </h3>
-                    </div>
-                    <span className="rounded-full border border-(--line) px-3 py-1 text-xs font-medium text-(--ink-soft)">
-                      Quran.com embed
-                    </span>
-                  </div>
-
-                  <p className="text-base leading-8 text-(--ink-strong)">{antidote.reasoning}</p>
-
-                  <iframe
-                    allow="clipboard-write"
-                    className="block w-full bg-white"
-                    data-quran-embed="true"
-                    frameBorder="0"
-                    loading="lazy"
-                    src={buildQuranEmbedUrl(antidote.surah_no, antidote.ayah_no)}
-                    title={`${antidote.surah_name} ${antidote.surah_no}:${antidote.ayah_no}`}
-                    width="100%"
-                  />
-
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.18em] text-(--accent-strong)">
-                        Related Reflections
-                      </p>
-                      <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
-                        Latest three verified English reflection posts for this ayah from Quran
-                        Reflect.
-                      </p>
-                    </div>
-
-                    {antidote.related_reflections.length > 0 ? (
-                      <div className="grid gap-3">
-                        {antidote.related_reflections.map((reflection) => (
-                          <div
-                            key={reflection.id}
-                            className={`rounded-[1.4rem] border p-4 ${
-                              result.selected_reflection?.selected_reflection_id === reflection.id
-                                ? 'border-[rgba(82,82,91,0.28)] bg-white'
-                                : 'border-(--line) bg-[rgba(237,237,237,0.72)]'
-                            }`}
-                          >
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <p className="text-sm font-semibold text-(--ink-strong)">
-                                  {reflection.authorName}
-                                </p>
-                                <p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">
-                                  {reflection.postTypeName ?? 'Reflection'}
-                                  {reflection.languageName ? ` • ${reflection.languageName}` : ''}
-                                </p>
-                              </div>
-                              <p className="text-xs text-(--ink-soft)">
-                                {reflection.createdAt
-                                  ? new Date(reflection.createdAt).toLocaleDateString()
-                                  : 'Unknown date'}
-                              </p>
-                            </div>
-
-                            {result.selected_reflection?.selected_reflection_id === reflection.id ? (
-                              <div className="mt-3 rounded-2xl border border-[rgba(82,82,91,0.16)] bg-[rgba(255,255,255,0.88)] px-4 py-3">
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
-                                  Curator Pick
-                                </p>
-                                <p className="mt-2 text-sm leading-7 text-(--ink-strong)">
-                                  {result.selected_reflection.selection_reason}
-                                </p>
-                              </div>
-                            ) : null}
-
-                            <ReflectionBody body={reflection.body} postId={reflection.id} />
-
-                            <div className="mt-3 flex gap-4 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
-                              <span>{reflection.likesCount} likes</span>
-                              <span>{reflection.commentsCount} comments</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm leading-7 text-(--ink-soft)">
-                        No related reflection posts were found for this ayah.
-                      </p>
-                    )}
-                  </div>
-                </article>
-              ))} */}
             </div>
           ) : (
             <div className="rounded-4xl border border-dashed border-(--line) bg-[rgba(255,255,255,0.56)] p-8 text-base leading-8 text-(--ink-soft)">
@@ -1182,22 +1285,26 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 function ReflectionBody({
   body,
   alwaysExpand,
+  fallbackDirection,
   postId,
 }: {
   body: string;
   alwaysExpand?: boolean;
+  fallbackDirection?: TextDirection;
   postId?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const normalizedBody = body.trim();
   const shouldCollapse = normalizedBody.length > 420 && !alwaysExpand;
+  const direction = detectTextDirection(normalizedBody, fallbackDirection ?? 'ltr');
 
   return (
     <div className="mt-3">
       <p
-        className={`whitespace-pre-line text-sm leading-7 text-(--ink-strong) ${
+        className={`whitespace-pre-line text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(direction)} ${
           !expanded && shouldCollapse ? 'line-clamp-6' : ''
         }`}
+        dir={direction}
       >
         {normalizedBody}
       </p>
@@ -1223,5 +1330,77 @@ function ReflectionBody({
         </a>
       ) : null}
     </div>
+  );
+}
+
+function LoadingReadingState({
+  stepStatus,
+}: {
+  stepStatus: Record<PipelineStepKey, PipelineStepStatus>;
+}) {
+  const currentStep = LOADING_STEPS.find((step) => stepStatus[step.key] === 'in_progress');
+
+  return (
+    <section className="overflow-hidden rounded-4xl border border-(--line) bg-[rgba(255,255,255,0.94)] shadow-[0_20px_64px_rgba(24,24,27,0.08)]">
+      <div className="border-b border-(--line) bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,244,245,0.9))] px-6 py-6 sm:px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
+          Preparing Your Reading
+        </p>
+        <p className="mt-2 text-sm leading-7 text-(--ink-soft)">
+          {currentStep
+            ? `Working on: ${currentStep.label.toLowerCase()}.`
+            : 'Finalizing your result.'}
+        </p>
+      </div>
+
+      <div className="grid gap-6 px-6 py-6 sm:px-8">
+        <div className="rounded-3xl border border-(--line) bg-[rgba(250,250,250,0.8)] p-4">
+          <div className="space-y-3">
+            {LOADING_STEPS.map((step, index) => {
+              const status = stepStatus[step.key];
+              return (
+                <div className="flex items-center gap-3" key={step.key}>
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      status === 'completed'
+                        ? 'bg-[rgba(39,39,42,0.75)]'
+                        : status === 'in_progress'
+                          ? 'shimmer-bar'
+                          : 'bg-[rgba(161,161,170,0.45)]'
+                    }`}
+                  />
+                  <p
+                    className={`text-sm ${
+                      status === 'completed' || status === 'in_progress'
+                        ? 'text-(--ink-strong)'
+                        : 'text-(--ink-soft)'
+                    }`}
+                  >
+                    {index + 1}. {step.label}
+                    {status === 'in_progress' ? '...' : ''}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="shimmer-bar h-5 w-4/5 rounded-full" />
+          <div className="shimmer-bar h-4 w-full rounded-full" />
+          <div className="shimmer-bar h-4 w-11/12 rounded-full" />
+          <div className="shimmer-bar h-4 w-4/6 rounded-full" />
+        </div>
+
+        <div className="rounded-[1.4rem] border border-(--line) bg-white p-4">
+          <div className="shimmer-bar h-4 w-28 rounded-full" />
+          <div className="mt-4 space-y-3">
+            <div className="shimmer-bar h-3.5 w-full rounded-full" />
+            <div className="shimmer-bar h-3.5 w-10/12 rounded-full" />
+            <div className="shimmer-bar h-3.5 w-8/12 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

@@ -34,6 +34,22 @@ Your voice:
 
 Return only JSON. Do not include the reflection text itself. The intro should be 3-4 sentences. The conclusion should be 2-3 sentences.`;
 
+const languageDetectionSystemPrompt = `Detect the primary language used in the user's input. Return a normalized ISO-639-1 language code when possible.
+
+Rules:
+1. Return a lowercase language code such as en, ar, tr, ur, fa, fr, de, es.
+2. If mixed language is used, choose the language that dominates the meaning.
+3. If uncertain, return en.
+4. Return only JSON.`;
+
+const reflectionTranslationSystemPrompt = `Translate the provided reflection text into the target language.
+
+Rules:
+1. Preserve line breaks and paragraph structure.
+2. Keep hashtags, references, and links unchanged when possible.
+3. Keep tone and meaning faithful; do not summarize.
+4. Return only JSON.`;
+
 const antidoteResponseSchema = {
   additionalProperties: false,
   properties: {
@@ -88,6 +104,24 @@ const spiritualGuideResponseSchema = {
   type: 'object',
 } as const;
 
+const languageDetectionResponseSchema = {
+  additionalProperties: false,
+  properties: {
+    language_code: { type: 'string' },
+  },
+  required: ['language_code'],
+  type: 'object',
+} as const;
+
+const reflectionTranslationResponseSchema = {
+  additionalProperties: false,
+  properties: {
+    translated_text: { type: 'string' },
+  },
+  required: ['translated_text'],
+  type: 'object',
+} as const;
+
 type OpenAIAntidote = {
   ayah_no: string;
   reasoning: string;
@@ -116,6 +150,14 @@ type SpiritualGuideResponse = {
   intro_text: string;
 };
 
+type LanguageDetectionResponse = {
+  language_code: string;
+};
+
+type ReflectionTranslationResponse = {
+  translated_text: string;
+};
+
 type EnrichedAntidote = OpenAIAntidote & {
   related_reflections: RelatedReflection[];
 };
@@ -128,6 +170,9 @@ type CuratedReflectionCandidate = RelatedReflection & {
 
 type SelectedReflection = {
   ayah_no: string;
+  reflection_is_translated: boolean;
+  reflection_original_body: string | null;
+  reflection_source_language_code: string | null;
   reflection: RelatedReflection | null;
   selected_reflection_id: number;
   selection_reason: string;
@@ -140,6 +185,163 @@ type ReflectionGuide = {
   intro_text: string;
 };
 
+type PipelineStepKey =
+  | 'language_detection'
+  | 'ayah_selection'
+  | 'reflection_fetch'
+  | 'reflection_curation'
+  | 'reflection_translation'
+  | 'guide_generation';
+
+type PipelineStepEvent = {
+  label: string;
+  status: 'completed' | 'in_progress';
+  step: PipelineStepKey;
+  type: 'step';
+};
+
+type PipelineResultEvent = {
+  data: {
+    antidotes: EnrichedAntidote[];
+    detected_language_code: string;
+    diagnosis: Diagnosis;
+    reflection_guide: ReflectionGuide | null;
+    selected_reflection: SelectedReflection | null;
+  };
+  type: 'result';
+};
+
+type PipelineErrorEvent = {
+  error: string;
+  type: 'error';
+};
+
+type PipelineEvent = PipelineStepEvent | PipelineResultEvent | PipelineErrorEvent;
+
+const SUPPORTED_LANGUAGE_CODES = new Set([
+  'aa',
+  'am',
+  'ar',
+  'as',
+  'az',
+  'bg',
+  'bm',
+  'bn',
+  'bs',
+  'ce',
+  'cs',
+  'de',
+  'dv',
+  'en',
+  'es',
+  'fa',
+  'fi',
+  'fr',
+  'gu',
+  'ha',
+  'he',
+  'hi',
+  'hr',
+  'id',
+  'it',
+  'ja',
+  'kk',
+  'km',
+  'kn',
+  'ko',
+  'ku',
+  'ky',
+  'lg',
+  'ln',
+  'lt',
+  'mk',
+  'ml',
+  'mr',
+  'ms',
+  'ne',
+  'nl',
+  'no',
+  'om',
+  'pa',
+  'pl',
+  'ps',
+  'pt',
+  'rn',
+  'ro',
+  'ru',
+  'rw',
+  'sd',
+  'si',
+  'so',
+  'sq',
+  'sr',
+  'sv',
+  'sw',
+  'ta',
+  'te',
+  'tg',
+  'th',
+  'tl',
+  'tr',
+  'tt',
+  'ug',
+  'uk',
+  'ur',
+  'uz',
+  'vi',
+  'yo',
+  'zh',
+]);
+
+const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
+  arabic: 'ar',
+  azeri: 'az',
+  bengali: 'bn',
+  bosnian: 'bs',
+  chechen: 'ce',
+  chinese: 'zh',
+  croatian: 'hr',
+  czech: 'cs',
+  divehi: 'dv',
+  dutch: 'nl',
+  english: 'en',
+  finnish: 'fi',
+  french: 'fr',
+  german: 'de',
+  hebrew: 'he',
+  hindi: 'hi',
+  indonesian: 'id',
+  italian: 'it',
+  japanese: 'ja',
+  korean: 'ko',
+  kurdish: 'ku',
+  malay: 'ms',
+  malayalam: 'ml',
+  nepali: 'ne',
+  norwegian: 'no',
+  pashto: 'ps',
+  persian: 'fa',
+  polish: 'pl',
+  portuguese: 'pt',
+  romanian: 'ro',
+  russian: 'ru',
+  sinhala: 'si',
+  somali: 'so',
+  spanish: 'es',
+  swahili: 'sw',
+  swedish: 'sv',
+  tagalog: 'tl',
+  tajik: 'tg',
+  tamil: 'ta',
+  telugu: 'te',
+  thai: 'th',
+  turkish: 'tr',
+  ukrainian: 'uk',
+  urdu: 'ur',
+  uzbek: 'uz',
+  vietnamese: 'vi',
+};
+
 function normalizeAyahNo(surahNo: number, ayahNo: string) {
   const normalized = ayahNo.trim();
   const exactMatch = new RegExp(`^${surahNo}:(\\d+(?:-\\d+)?)$`, 'u').exec(normalized);
@@ -149,6 +351,32 @@ function normalizeAyahNo(surahNo: number, ayahNo: string) {
   }
 
   return normalized;
+}
+
+function normalizeLanguageCode(rawCode: string) {
+  const normalized = rawCode.trim().toLowerCase();
+
+  if (!normalized) {
+    return 'en';
+  }
+
+  const base = normalized.split('-')[0] ?? normalized;
+
+  if (SUPPORTED_LANGUAGE_CODES.has(base)) {
+    return base;
+  }
+
+  return 'en';
+}
+
+function getLanguageCodeFromReflectionLanguageName(languageName: string | null) {
+  if (!languageName) {
+    return null;
+  }
+
+  const key = languageName.trim().toLowerCase();
+
+  return LANGUAGE_NAME_TO_CODE[key] ?? null;
 }
 
 function extractResponseText(payload: Record<string, unknown>) {
@@ -181,6 +409,18 @@ function extractResponseText(payload: Record<string, unknown>) {
   }
 
   return null;
+}
+
+function isLlmDebugEnabled() {
+  return process.env.LLM_DEBUG === 'true';
+}
+
+function logLlmDebug(message: string, details: Record<string, unknown>) {
+  if (!isLlmDebugEnabled()) {
+    return;
+  }
+
+  console.log('[llm-debug]', message, details);
 }
 
 async function callStructuredOpenAI<T>({
@@ -244,6 +484,12 @@ async function callStructuredOpenAI<T>({
   }
 
   const payload = (await response.json()) as Record<string, unknown>;
+  logLlmDebug('received openai payload', {
+    hasOutputText: typeof payload.output_text === 'string',
+    schemaName,
+    status: payload.status,
+  });
+
   const refusal = payload.refusal;
 
   if (typeof refusal === 'string' && refusal.trim().length > 0) {
@@ -253,10 +499,31 @@ async function callStructuredOpenAI<T>({
   const text = extractResponseText(payload);
 
   if (!text) {
+    logLlmDebug('missing structured json text', {
+      schemaName,
+    });
     throw new Error('OpenAI did not return structured JSON text.');
   }
 
-  return JSON.parse(text) as T;
+  logLlmDebug('raw structured text extracted', {
+    preview: text.slice(0, 500),
+    schemaName,
+    textEndsWithBrace: text.trim().endsWith('}'),
+    textLength: text.length,
+    textStartsWithBrace: text.trim().startsWith('{'),
+  });
+
+  try {
+    return JSON.parse(text) as T;
+  } catch (error) {
+    logLlmDebug('failed to parse structured json', {
+      parseError: error instanceof Error ? error.message : String(error),
+      preview: text.slice(0, 1000),
+      schemaName,
+      textLength: text.length,
+    });
+    throw error;
+  }
 }
 
 async function callAntidoteModel(eventText: string, feelingText: string) {
@@ -267,6 +534,18 @@ async function callAntidoteModel(eventText: string, feelingText: string) {
     schema: antidoteResponseSchema,
     schemaName: 'quranic_antidotes',
   });
+}
+
+async function detectInputLanguage(eventText: string, feelingText: string) {
+  const response = await callStructuredOpenAI<LanguageDetectionResponse>({
+    inputText: `Event/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"`,
+    instructions: languageDetectionSystemPrompt,
+    maxOutputTokens: 40,
+    schema: languageDetectionResponseSchema,
+    schemaName: 'input_language_detection',
+  });
+
+  return normalizeLanguageCode(response.language_code);
 }
 
 async function enrichAntidotes(antidotes: OpenAIAntidote[]) {
@@ -351,6 +630,11 @@ Analyze the candidate reflections against the diagnosis. Select the one reflecti
 
   return {
     ayah_no: selectedCandidate?.ayah_no ?? '',
+    reflection_is_translated: false,
+    reflection_original_body: selectedCandidate?.body ?? null,
+    reflection_source_language_code: getLanguageCodeFromReflectionLanguageName(
+      selectedCandidate?.languageName ?? null,
+    ),
     reflection: selectedCandidate
       ? {
           authorName: selectedCandidate.authorName,
@@ -371,12 +655,57 @@ Analyze the candidate reflections against the diagnosis. Select the one reflecti
   };
 }
 
+async function translateSelectedReflectionIfNeeded(
+  selectedReflection: SelectedReflection | null,
+  targetLanguageCode: string,
+) {
+  if (!selectedReflection?.reflection) {
+    return selectedReflection;
+  }
+
+  const sourceLanguageCode =
+    selectedReflection.reflection_source_language_code ??
+    getLanguageCodeFromReflectionLanguageName(selectedReflection.reflection.languageName);
+
+  if (!sourceLanguageCode || sourceLanguageCode === targetLanguageCode) {
+    return {
+      ...selectedReflection,
+      reflection_source_language_code: sourceLanguageCode ?? null,
+    };
+  }
+
+  const translation = await callStructuredOpenAI<ReflectionTranslationResponse>({
+    inputText: `Target language code: ${targetLanguageCode}
+
+Source language code: ${sourceLanguageCode}
+
+Reflection text:
+${selectedReflection.reflection.body}`,
+    instructions: reflectionTranslationSystemPrompt,
+    maxOutputTokens: 1200,
+    schema: reflectionTranslationResponseSchema,
+    schemaName: 'selected_reflection_translation',
+  });
+
+  return {
+    ...selectedReflection,
+    reflection_is_translated: true,
+    reflection_source_language_code: sourceLanguageCode,
+    reflection: {
+      ...selectedReflection.reflection,
+      body: translation.translated_text.trim() || selectedReflection.reflection.body,
+    },
+  };
+}
+
 async function buildReflectionGuide({
+  detectedLanguageCode,
   diagnosis,
   eventContent,
   selectedReflection,
   userFeeling,
 }: {
+  detectedLanguageCode: string;
   diagnosis: Diagnosis;
   eventContent: string;
   selectedReflection: SelectedReflection | null;
@@ -386,8 +715,7 @@ async function buildReflectionGuide({
     return null;
   }
 
-  return callStructuredOpenAI<SpiritualGuideResponse>({
-    inputText: `Context for Synthesis:
+  const inputText = `Context for Synthesis:
 
 The Event: ${eventContent}
 
@@ -398,6 +726,8 @@ Diagnosis:
 - Materialistic View: ${diagnosis.materialistic_narrative}
 - God-centric Reframe: ${diagnosis.god_centric_reframe}
 
+Output language: ${detectedLanguageCode}
+
 The Chosen Reflection (for context only): ${selectedReflection.reflection.body}
 
 Task:
@@ -407,56 +737,174 @@ intro_text: Validate the user's feeling about the event. Gently point out how th
 
 conclusion_text: Summarize the grounding lesson. Provide a short, practical heart-action or a dua focus based on the God-centric reframe to help the user move forward today.
 
-Constraint: Do not include the reflection text itself. Only return the JSON.`,
+Constraint: Do not include the reflection text itself. Only return the JSON.`;
+  const requestParams = {
+    inputText,
     instructions: spiritualGuideSystemPrompt,
-    maxOutputTokens: 260,
     schema: spiritualGuideResponseSchema,
     schemaName: 'spiritual_guide_wrapper',
-  });
+  } as const;
+
+  try {
+    return await callStructuredOpenAI<SpiritualGuideResponse>({
+      ...requestParams,
+      maxOutputTokens: 900,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const looksLikeTruncatedJson =
+      message.includes('Unterminated string in JSON') ||
+      message.includes('Unexpected end of JSON input');
+
+    if (!looksLikeTruncatedJson) {
+      throw error;
+    }
+
+    console.warn('[spiritual-guide] retrying after likely truncated JSON', {
+      detectedLanguageCode,
+      message,
+    });
+
+    return callStructuredOpenAI<SpiritualGuideResponse>({
+      ...requestParams,
+      maxOutputTokens: 1400,
+    });
+  }
+}
+
+function createPipelineStep(
+  step: PipelineStepKey,
+  label: string,
+  status: PipelineStepEvent['status'],
+): PipelineStepEvent {
+  return {
+    label,
+    status,
+    step,
+    type: 'step',
+  };
+}
+
+function toJsonLine(event: PipelineEvent) {
+  return `${JSON.stringify(event)}\n`;
 }
 
 export async function POST(request: Request) {
+  let body: {
+    eventContent?: string;
+    userFeeling?: string;
+  };
+
   try {
-    const body = (await request.json()) as {
+    body = (await request.json()) as {
       eventContent?: string;
       userFeeling?: string;
     };
-
-    const eventContent = body.eventContent?.trim();
-    const userFeeling = body.userFeeling?.trim();
-
-    if (!eventContent || !userFeeling) {
-      return NextResponse.json(
-        { error: 'Both eventContent and userFeeling are required.' },
-        { status: 400 },
-      );
-    }
-
-    const response = await callAntidoteModel(eventContent, userFeeling);
-    const enrichedAntidotes = await enrichAntidotes(response.antidotes);
-    const selectedReflection = await curateReflection(
-      response.diagnosis,
-      buildReflectionCandidates(enrichedAntidotes),
-    );
-    const reflectionGuide = await buildReflectionGuide({
-      diagnosis: response.diagnosis,
-      eventContent,
-      selectedReflection,
-      userFeeling,
-    });
-
-    return NextResponse.json({
-      antidotes: enrichedAntidotes,
-      diagnosis: response.diagnosis,
-      reflection_guide: reflectionGuide,
-      selected_reflection: selectedReflection,
-    });
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Unexpected error',
+        error: error instanceof Error ? error.message : 'Invalid JSON body.',
       },
-      { status: 500 },
+      { status: 400 },
     );
   }
+
+  const eventContent = body.eventContent?.trim();
+  const userFeeling = body.userFeeling?.trim();
+
+  if (!eventContent || !userFeeling) {
+    return NextResponse.json(
+      { error: 'Both eventContent and userFeeling are required.' },
+      { status: 400 },
+    );
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: PipelineEvent) => {
+        controller.enqueue(encoder.encode(toJsonLine(event)));
+      };
+
+      try {
+        send(createPipelineStep('language_detection', 'Detecting your input language', 'in_progress'));
+        const detectedLanguageCode = await detectInputLanguage(eventContent, userFeeling);
+        send(createPipelineStep('language_detection', 'Detecting your input language', 'completed'));
+
+        send(createPipelineStep('ayah_selection', 'Selecting grounding ayahs', 'in_progress'));
+        const response = await callAntidoteModel(eventContent, userFeeling);
+        send(createPipelineStep('ayah_selection', 'Selecting grounding ayahs', 'completed'));
+
+        send(createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'in_progress'));
+        const enrichedAntidotes = await enrichAntidotes(response.antidotes);
+        send(createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'completed'));
+
+        send(createPipelineStep('reflection_curation', 'Curating the strongest match', 'in_progress'));
+        const selectedReflection = await curateReflection(
+          response.diagnosis,
+          buildReflectionCandidates(enrichedAntidotes),
+        );
+        send(createPipelineStep('reflection_curation', 'Curating the strongest match', 'completed'));
+
+        send(
+          createPipelineStep('reflection_translation', 'Aligning reflection language with your input', 'in_progress'),
+        );
+        let localizedSelectedReflection = selectedReflection;
+        try {
+          localizedSelectedReflection = await translateSelectedReflectionIfNeeded(
+            selectedReflection,
+            detectedLanguageCode,
+          );
+        } catch (error) {
+          console.warn('[reflection-translation] failed to translate selected reflection', {
+            detectedLanguageCode,
+            message: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+        send(
+          createPipelineStep('reflection_translation', 'Aligning reflection language with your input', 'completed'),
+        );
+
+        send(createPipelineStep('guide_generation', 'Preparing your guided reading', 'in_progress'));
+        const reflectionGuide = await buildReflectionGuide({
+          detectedLanguageCode,
+          diagnosis: response.diagnosis,
+          eventContent,
+          selectedReflection: localizedSelectedReflection,
+          userFeeling,
+        });
+        send(createPipelineStep('guide_generation', 'Preparing your guided reading', 'completed'));
+
+        const resultEvent: PipelineResultEvent = {
+          data: {
+            antidotes: enrichedAntidotes,
+            detected_language_code: detectedLanguageCode,
+            diagnosis: response.diagnosis,
+            reflection_guide: reflectionGuide,
+            selected_reflection: localizedSelectedReflection,
+          },
+          type: 'result',
+        };
+
+        send(resultEvent);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unexpected error';
+        send({
+          error: message,
+          type: 'error',
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
