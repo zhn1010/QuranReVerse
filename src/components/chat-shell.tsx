@@ -179,8 +179,21 @@ export function ChatShell({
                       sizes="44px"
                       src={auth.avatarUrl}
                     />
-                  ) : (
+                  ) : auth.isAuthenticated ? (
                     <span className="text-sm font-semibold text-(--ink-strong)">{avatarLabel}</span>
+                  ) : (
+                    <svg
+                      className="h-5 w-5 text-(--ink-soft)"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
                   )}
                 </button>
 
