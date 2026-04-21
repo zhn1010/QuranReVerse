@@ -59,6 +59,33 @@ export function ChatResultView({
   });
   const [noteSaved, setNoteSaved] = useState(false);
 
+  const loginHref = `${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`;
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    const rawScrollTo = url.searchParams.get('scrollTo');
+
+    if (!rawScrollTo) {
+      return;
+    }
+
+    const scrollTo = Number.parseInt(rawScrollTo, 10);
+    if (Number.isFinite(scrollTo)) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({
+          top: scrollTo,
+        });
+      });
+    }
+
+    url.searchParams.delete('scrollTo');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [auth.isAuthenticated]);
+
   const selectedEmbeds = useMemo(
     () =>
       result.selected_reflection ? getSelectedReflectionEmbeds(result.selected_reflection) : [],
@@ -129,6 +156,18 @@ export function ChatResultView({
       isCancelled = true;
     };
   }, [auth.isAuthenticated, selectedEmbeds]);
+
+  function handleConnectClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+
+    const nextUrl = new URL(chatPath, window.location.origin);
+    nextUrl.searchParams.set('scrollTo', String(Math.round(window.scrollY)));
+
+    const next = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    window.location.assign(
+      `${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(next)}`,
+    );
+  }
 
   async function handleBookmarkToggle(surahNo: number, ayahNo: string, key: string) {
     const isBookmarked = Boolean(bookmarkState.savedKeys[key]);
@@ -414,7 +453,7 @@ export function ChatResultView({
                   </div>
                   {auth.isAuthenticated ? (
                     <button
-                      className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={bookmarkState.savingKey === embed.label}
                       onClick={() =>
                         handleBookmarkToggle(
@@ -431,12 +470,13 @@ export function ChatResultView({
                           : 'Bookmarking...'
                         : bookmarkState.savedKeys[embed.label]
                           ? 'Bookmarked'
-                          : `Bookmark to ${auth.collectionName}`}
+                          : `Bookmark to Quran.com`}
                     </button>
                   ) : (
                     <a
                       className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white"
-                      href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`}
+                      href={loginHref}
+                      onClick={handleConnectClick}
                     >
                       Connect to bookmark
                     </a>
@@ -508,12 +548,13 @@ export function ChatResultView({
             >
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
-            Save as note
+            Save as note to Quran.com
           </button>
         ) : (
           <a
             className="inline-flex items-center gap-2 rounded-full border border-[rgba(63,63,70,0.1)] bg-white/80 px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
-            href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`}
+            href={loginHref}
+            onClick={handleConnectClick}
           >
             <svg
               className="h-3.5 w-3.5"
@@ -526,7 +567,7 @@ export function ChatResultView({
             >
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
-            Connect to save note
+            Connect to save as a note
           </a>
         )}
       </div>
