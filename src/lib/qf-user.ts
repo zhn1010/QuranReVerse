@@ -47,6 +47,11 @@ type QfTokenResponse = {
   token_type: string;
 };
 
+type JwtScopePayload = {
+  scope?: string;
+  scp?: string | string[];
+};
+
 type QfCollection = {
   id: string;
   name: string;
@@ -343,6 +348,21 @@ function unsealCookieValue<T>(value: string | undefined): T | null {
   }
 }
 
+function extractTokenScopes(tokenResponse: QfTokenResponse) {
+  const accessTokenPayload = parseJwtPayload(tokenResponse.access_token) as JwtScopePayload | null;
+  const rawClaim = accessTokenPayload?.scope ?? accessTokenPayload?.scp;
+  const accessTokenScope = Array.isArray(rawClaim)
+    ? rawClaim.join(' ')
+    : typeof rawClaim === 'string'
+      ? rawClaim
+      : null;
+
+  return {
+    accessTokenScope,
+    responseScope: tokenResponse.scope ?? null,
+  };
+}
+
 function randomBase64Url(bytes = 32) {
   return randomBytes(bytes).toString('base64url');
 }
@@ -486,6 +506,7 @@ async function exchangeToken(params: URLSearchParams) {
   }
 
   qfAuthDebug('token exchange succeeded', {
+    ...extractTokenScopes(await response.clone().json()),
     status: response.status,
   });
 
@@ -593,7 +614,32 @@ async function qfApiFetch(
     url: response.url,
   });
 
+  const shouldInspect403Body = response.status === 403 && activeSession.refreshToken;
+  const firstResponseBodyPreview = shouldInspect403Body
+    ? await response
+        .clone()
+        .text()
+        .then((text) => text.slice(0, 700))
+        .catch(() => '')
+    : '';
+  const isInsufficientScope = firstResponseBodyPreview.includes('insufficient_scope');
+
+  if (shouldInspect403Body) {
+    qfAuthDebug('qf api 403 diagnostic', {
+      bodyPreview: firstResponseBodyPreview,
+      isInsufficientScope,
+      path,
+    });
+  }
+
   if ((response.status === 401 || response.status === 403) && activeSession.refreshToken) {
+    if (response.status === 403 && isInsufficientScope) {
+      qfAuthDebug('qf api request forbidden due to scope; skipping refresh retry', {
+        path,
+      });
+      return { response, session: activeSession };
+    }
+
     qfAuthDebug('qf api request unauthorized; retrying with refreshed token', {
       path,
       status: response.status,
