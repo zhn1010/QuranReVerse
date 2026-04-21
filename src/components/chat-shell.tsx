@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { listChatThreads, getServerSnapshot, subscribeToChatHistory } from '@/lib/chat-store';
 
@@ -23,6 +23,7 @@ export function ChatShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarHasOpened, setSidebarHasOpened] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
 
   const avatarLabel = useMemo(() => {
     if (auth.displayName?.trim()) {
@@ -36,6 +37,39 @@ export function ChatShell({
 
     return 'S';
   }, [auth.displayName]);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!menuContainerRef.current) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof Node && !menuContainerRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,244,245,0.98))]">
@@ -165,9 +199,11 @@ export function ChatShell({
                 </Link>
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={menuContainerRef}>
                 <button
-                  className="relative inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[rgba(82,82,91,0.12)] bg-white shadow-[0_10px_24px_rgba(24,24,27,0.08)]"
+                  aria-expanded={isMenuOpen}
+                  aria-haspopup="menu"
+                  className="relative inline-flex h-11 w-11 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[rgba(82,82,91,0.12)] bg-white shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition hover:shadow-[0_12px_26px_rgba(24,24,27,0.12)]"
                   onClick={() => setIsMenuOpen((current) => !current)}
                   type="button"
                 >
@@ -197,37 +233,45 @@ export function ChatShell({
                   )}
                 </button>
 
-                {isMenuOpen ? (
-                  <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-(--line) bg-white p-3 shadow-[0_18px_40px_rgba(24,24,27,0.12)]">
-                    <div className="border-b border-(--line) px-2 pb-3">
-                      <p className="text-sm font-semibold text-(--ink-strong)">
-                        {auth.displayName || 'Sakinah.now'}
-                      </p>
-                      <p className="mt-1 text-xs text-(--ink-soft)">
-                        {auth.isAuthenticated
-                          ? 'Connected with Quran Foundation'
-                          : 'Not connected to Quran Foundation'}
-                      </p>
-                    </div>
-                    <div className="mt-3">
-                      {auth.isAuthenticated ? (
-                        <a
-                          className="flex rounded-xl px-3 py-2 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.9)]"
-                          href="/api/qf/auth/logout"
-                        >
-                          Log out
-                        </a>
-                      ) : (
-                        <a
-                          className="flex rounded-xl px-3 py-2 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.9)]"
-                          href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(pathname || '/')}`}
-                        >
-                          Connect Quran Foundation
-                        </a>
-                      )}
-                    </div>
+                <div
+                  aria-hidden={!isMenuOpen}
+                  className={`absolute right-0 top-full z-30 mt-2 w-64 origin-top-right rounded-2xl border border-[rgba(63,63,70,0.12)] bg-white/95 p-2 shadow-[0_20px_36px_rgba(24,24,27,0.14)] backdrop-blur-md transition duration-150 ease-out ${
+                    isMenuOpen
+                      ? 'translate-y-0 scale-100 opacity-100'
+                      : 'pointer-events-none -translate-y-1 scale-95 opacity-0'
+                  }`}
+                  role="menu"
+                >
+                  <div className="rounded-xl px-3 py-2">
+                    <p className="text-sm font-semibold leading-tight text-(--ink-strong)">
+                      {auth.displayName || 'Sakinah.now'}
+                    </p>
+                    <p className="mt-1 text-xs text-(--ink-soft)">
+                      {auth.isAuthenticated
+                        ? 'Connected with Quran Foundation'
+                        : 'Not connected to Quran Foundation'}
+                    </p>
                   </div>
-                ) : null}
+                  <div className="mt-1 border-t border-[rgba(63,63,70,0.08)] pt-1">
+                    {auth.isAuthenticated ? (
+                      <a
+                        className="flex rounded-xl px-3 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.9)]"
+                        href="/api/qf/auth/logout"
+                        role="menuitem"
+                      >
+                        Log out
+                      </a>
+                    ) : (
+                      <a
+                        className="flex rounded-xl px-3 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.9)]"
+                        href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(pathname || '/')}`}
+                        role="menuitem"
+                      >
+                        Connect Quran Foundation
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </header>
