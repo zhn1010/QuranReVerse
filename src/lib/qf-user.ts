@@ -139,6 +139,7 @@ export type QfSessionSummary = {
 };
 
 type QfProfile = {
+  avatarUrl?: string;
   avatarUrls?: {
     large?: string;
     medium?: string;
@@ -148,6 +149,44 @@ type QfProfile = {
   lastName?: string;
   username?: string;
 };
+
+function getRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readAvatarFromProfile(profileRecord: Record<string, unknown>) {
+  const profile = profileRecord as QfProfile;
+  const avatarUrlsRecord = getRecord(profile.avatarUrls);
+  const medium = typeof avatarUrlsRecord?.medium === 'string' ? avatarUrlsRecord.medium : null;
+  const small = typeof avatarUrlsRecord?.small === 'string' ? avatarUrlsRecord.small : null;
+  const large = typeof avatarUrlsRecord?.large === 'string' ? avatarUrlsRecord.large : null;
+  const directAvatar = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : null;
+  const snakeCaseAvatar =
+    typeof profileRecord.avatar_url === 'string' ? (profileRecord.avatar_url as string) : null;
+
+  const avatarUrl = medium ?? small ?? large ?? directAvatar ?? snakeCaseAvatar;
+  const avatarSource = medium
+    ? 'avatarUrls.medium'
+    : small
+      ? 'avatarUrls.small'
+      : large
+        ? 'avatarUrls.large'
+        : directAvatar
+          ? 'avatarUrl'
+          : snakeCaseAvatar
+            ? 'avatar_url'
+            : null;
+
+  return {
+    avatarUrl: avatarUrl ?? null,
+    avatarSource,
+    avatarUrlsKeys: avatarUrlsRecord ? Object.keys(avatarUrlsRecord) : [],
+  };
+}
 
 function isQfAuthDebugEnabled() {
   return process.env.QF_AUTH_DEBUG === 'true';
@@ -519,8 +558,20 @@ async function qfApiFetch(
   const { apiBaseUrl, clientId } = getQfConfig();
   let activeSession = session;
 
+  qfAuthDebug('qf api request starting', {
+    hasRefreshToken: Boolean(activeSession.refreshToken),
+    hasSessionUserSub: Boolean(activeSession.user.sub),
+    method: init?.method ?? 'GET',
+    path,
+    tokenExpiresInMs: activeSession.expiresAt - Date.now(),
+  });
+
   if (activeSession.expiresAt <= Date.now() + 30_000 && activeSession.refreshToken) {
     activeSession = await refreshSession(activeSession);
+    qfAuthDebug('qf api request session refreshed before request', {
+      path,
+      tokenExpiresInMs: activeSession.expiresAt - Date.now(),
+    });
   }
 
   const execute = async (token: string) =>
@@ -535,9 +586,26 @@ async function qfApiFetch(
 
   let response = await execute(activeSession.accessToken);
 
+  qfAuthDebug('qf api request completed', {
+    ok: response.ok,
+    path,
+    status: response.status,
+    url: response.url,
+  });
+
   if ((response.status === 401 || response.status === 403) && activeSession.refreshToken) {
+    qfAuthDebug('qf api request unauthorized; retrying with refreshed token', {
+      path,
+      status: response.status,
+    });
     activeSession = await refreshSession(activeSession);
     response = await execute(activeSession.accessToken);
+    qfAuthDebug('qf api request retry completed', {
+      ok: response.ok,
+      path,
+      status: response.status,
+      url: response.url,
+    });
   }
 
   return { response, session: activeSession };
@@ -546,6 +614,12 @@ async function qfApiFetch(
 async function readApiResponse<T>(response: Response) {
   if (!response.ok) {
     const details = await response.text();
+    qfAuthDebug('qf api response not ok', {
+      bodyPreview: details.slice(0, 700),
+      status: response.status,
+      url: response.url,
+      wwwAuthenticate: response.headers.get('www-authenticate'),
+    });
     throw new Error(`Quran Foundation API request failed: ${response.status} ${details}`);
   }
 
@@ -948,34 +1022,68 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
   }
 
   try {
-    const { response } = await qfApiFetch(session, '/auth/v1/profile');
+    const profilePath = '/auth/v1/profile';
+    const { response } = await qfApiFetch(session, profilePath);
+
+    qfAuthDebug('profile request completed', {
+      ok: response.ok,
+      path: profilePath,
+      responseUrl: response.url,
+      status: response.status,
+    });
+
     const payload = await readApiResponse<Record<string, unknown>>(response);
-    const profileRecord =
-      payload.data && typeof payload.data === 'object'
-        ? (payload.data as Record<string, unknown>)
-        : payload;
-    
-    // Add inspection logs for the avatar fix
-    console.log('[qf-avatar-debug] profile record received:', JSON.stringify(profileRecord, null, 2));
-    
-    const profile = profileRecord as QfProfile;
-    const displayName = [profile.firstName, profile.lastName]
+    const payloadDataRecord = getRecord(payload.data);
+    const profileCandidateRecords: Array<{ label: string; record: Record<string, unknown> }> = [];
+
+    if (payloadDataRecord) {
+      profileCandidateRecords.push({ label: 'payload.data', record: payloadDataRecord });
+    }
+    profileCandidateRecords.push({ label: 'payload', record: payload });
+
+    const nestedKeys = ['profile', 'user', 'account'] as const;
+    for (const key of nestedKeys) {
+      const nestedRecord = getRecord(payloadDataRecord?.[key]);
+      if (nestedRecord) {
+        profileCandidateRecords.push({ label: `payload.data.${key}`, record: nestedRecord });
+      }
+    }
+
+    let avatarUrl: string | null = null;
+    let avatarSource: string | null = null;
+    let avatarFromRecordLabel: string | null = null;
+    let selectedProfileRecord: Record<string, unknown> = payloadDataRecord ?? payload;
+
+    for (const candidate of profileCandidateRecords) {
+      const avatar = readAvatarFromProfile(candidate.record);
+      if (avatar.avatarUrl) {
+        avatarUrl = avatar.avatarUrl;
+        avatarSource = avatar.avatarSource;
+        avatarFromRecordLabel = candidate.label;
+        selectedProfileRecord = candidate.record;
+        break;
+      }
+    }
+
+    const selectedProfile = selectedProfileRecord as QfProfile;
+    const displayName = [selectedProfile.firstName, selectedProfile.lastName]
       .filter((value) => typeof value === 'string' && value.trim().length > 0)
       .join(' ')
       .trim();
 
-    // Check for different potential snake_case or camelCase properties based on standard Quran Foundation returns
-    const rawRecord = profileRecord as any;
-    const avatarUrl =
-      profile.avatarUrls?.medium ?? profile.avatarUrls?.small ?? profile.avatarUrls?.large ??
-      rawRecord.avatar_url ?? rawRecord.avatarUrl ?? null;
-      
-    console.log('[qf-avatar-debug] extracted avatarUrl:', avatarUrl);
+    qfAuthDebug('profile payload inspected for avatar', {
+      avatarFromRecordLabel,
+      avatarSource,
+      hasAvatarUrl: Boolean(avatarUrl),
+      payloadDataKeys: payloadDataRecord ? Object.keys(payloadDataRecord) : null,
+      payloadKeys: Object.keys(payload),
+      selectedProfileKeys: Object.keys(selectedProfileRecord),
+    });
 
     return {
       avatarUrl,
       collectionName: QF_BOOKMARK_COLLECTION_NAME,
-      displayName: displayName || profile.username || null,
+      displayName: displayName || selectedProfile.username || null,
       isAuthenticated: true,
     };
   } catch (error) {
