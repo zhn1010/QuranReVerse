@@ -9,8 +9,24 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN!,
 });
 
-const ANONYMOUS_DAILY_LIMIT = 2;
-const AUTHENTICATED_DAILY_LIMIT = 10;
+function readDailyLimitFromEnv(key: string, fallback: number) {
+  const raw = process.env[key]?.trim();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+const ANONYMOUS_DAILY_LIMIT = readDailyLimitFromEnv('ANONYMOUS_DAILY_LIMIT', 4);
+const AUTHENTICATED_DAILY_LIMIT = readDailyLimitFromEnv('AUTHENTICATED_DAILY_LIMIT', 10);
 
 async function checkRateLimit(
   request: Request,

@@ -400,18 +400,18 @@ export function ChatResultView({
           ) : null}
 
           <div className="border-t border-[rgba(63,63,70,0.08)] pt-4">
-            {result.selected_reflection.reflection_is_translated ? (
-              <p className="text-xs uppercase tracking-[0.14em] text-(--ink-soft)">
-                Reflection translated from{' '}
-                {result.selected_reflection.reflection_source_language_code?.toUpperCase() ??
-                  'source language'}
-              </p>
-            ) : null}
-            <div className="mt-3">
+            <div>
               <ReflectionBody
+                authorName={result.selected_reflection.reflection.authorName}
                 body={result.selected_reflection.reflection.body}
+                createdAt={result.selected_reflection.reflection.createdAt}
                 fallbackDirection={outputFallbackDirection}
                 postId={result.selected_reflection.reflection.id}
+                translatedFromLanguageCode={
+                  result.selected_reflection.reflection_is_translated
+                    ? result.selected_reflection.reflection_source_language_code
+                    : null
+                }
               />
             </div>
             {result.selected_reflection.reflection_is_translated &&
@@ -651,19 +651,32 @@ export function ChatResultView({
 }
 
 function ReflectionBody({
+  authorName,
   body,
+  createdAt,
   fallbackDirection,
   postId,
+  translatedFromLanguageCode,
 }: {
+  authorName?: string | null;
   body: string;
+  createdAt?: string | null;
   fallbackDirection: TextDirection;
   postId?: number;
+  translatedFromLanguageCode?: string | null;
 }) {
   const normalizedBody = body.trim();
   const direction = detectTextDirection(normalizedBody, fallbackDirection);
+  const metaItems = [
+    authorName?.trim() ? `By ${authorName.trim()}` : null,
+    formatReflectionDate(createdAt),
+    translatedFromLanguageCode
+      ? `Translated from ${translatedFromLanguageCode.toUpperCase()}`
+      : null,
+  ].filter((item): item is string => Boolean(item));
 
   return (
-    <div className="mt-3">
+    <div>
       <p
         className={`whitespace-pre-line text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
           direction,
@@ -672,16 +685,41 @@ function ReflectionBody({
       >
         {normalizedBody}
       </p>
-      {postId ? (
-        <a
-          className="mt-3 inline-block text-xs text-(--ink-soft) underline decoration-[rgba(82,82,91,0.25)] underline-offset-4 transition hover:text-(--ink-strong)"
-          href={`https://quranreflect.com/posts/${postId}`}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Read on QuranReflect.com
-        </a>
+
+      {metaItems.length > 0 || postId ? (
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-(--ink-soft)">
+          {metaItems.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+          {postId ? (
+            <a
+              className="underline decoration-[rgba(82,82,91,0.25)] underline-offset-4 transition hover:text-(--ink-strong)"
+              href={`https://quranreflect.com/posts/${postId}`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Read on QuranReflect.com
+            </a>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
+}
+
+function formatReflectionDate(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
