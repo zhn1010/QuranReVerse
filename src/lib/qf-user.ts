@@ -1068,17 +1068,43 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
   }
 
   try {
-    const profilePath = '/auth/v1/profile';
-    const { response } = await qfApiFetch(session, profilePath);
+    const profilePaths = ['/quran-reflect/v1/users/profile', '/auth/v1/profile'];
+    let payload: Record<string, unknown> | null = null;
+    let resolvedProfilePath: string | null = null;
+    let lastProfileError: Error | null = null;
 
-    qfAuthDebug('profile request completed', {
-      ok: response.ok,
-      path: profilePath,
-      responseUrl: response.url,
-      status: response.status,
+    for (const profilePath of profilePaths) {
+      try {
+        const { response } = await qfApiFetch(session, profilePath);
+
+        qfAuthDebug('profile request completed', {
+          ok: response.ok,
+          path: profilePath,
+          responseUrl: response.url,
+          status: response.status,
+        });
+
+        payload = await readApiResponse<Record<string, unknown>>(response);
+        resolvedProfilePath = profilePath;
+        break;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        qfAuthDebug('profile request failed for path', {
+          message,
+          path: profilePath,
+        });
+        lastProfileError = error instanceof Error ? error : new Error(message);
+      }
+    }
+
+    if (!payload) {
+      throw lastProfileError ?? new Error('Unable to load profile from known profile endpoints.');
+    }
+
+    qfAuthDebug('profile request resolved', {
+      path: resolvedProfilePath,
     });
 
-    const payload = await readApiResponse<Record<string, unknown>>(response);
     const payloadDataRecord = getRecord(payload.data);
     const profileCandidateRecords: Array<{ label: string; record: Record<string, unknown> }> = [];
 
