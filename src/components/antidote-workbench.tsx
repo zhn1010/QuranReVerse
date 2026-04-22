@@ -430,6 +430,14 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     () => detectTextDirection(userFeeling, 'ltr'),
     [userFeeling],
   );
+  const noteBodyDirection = useMemo<TextDirection>(
+    () => detectTextDirection(noteState.body, outputFallbackDirection),
+    [noteState.body, outputFallbackDirection],
+  );
+  const noteFeedbackDirection = useMemo<TextDirection>(
+    () => detectTextDirection(noteState.error, noteBodyDirection),
+    [noteState.error, noteBodyDirection],
+  );
 
   useEffect(() => {
     if (!authState.isAuthenticated) {
@@ -954,11 +962,18 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
-                    className="inline-flex items-center justify-center rounded-full bg-(--accent-strong) px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-(--accent-strong) px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isSubmitting}
                     type="submit"
                   >
-                    {isSubmitting ? 'Listening and reflecting...' : 'Find Quranic grounding'}
+                    {isSubmitting ? (
+                      <>
+                        <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        Listening and reflecting...
+                      </>
+                    ) : (
+                      'Find Quranic grounding'
+                    )}
                   </button>
                 </div>
               </div>
@@ -1261,8 +1276,9 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
             </p>
             <div className="relative mt-4">
               <textarea
-                className="min-h-64 w-full rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.5)] px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] sm:min-h-80"
+                className={`min-h-64 w-full rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.5)] px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] sm:min-h-80 ${getDirectionStyles(noteBodyDirection)}`}
                 disabled={noteState.isSaving || noteState.isGenerating}
+                dir={noteBodyDirection}
                 onChange={(inputEvent) =>
                   setNoteState((prev) => ({
                     ...prev,
@@ -1305,7 +1321,12 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
               </div>
             </div>
             {noteState.error ? (
-              <p className="mt-2 text-sm text-[rgb(146,64,14)]">{noteState.error}</p>
+              <p
+                className={`mt-2 text-sm text-[rgb(146,64,14)] ${getDirectionStyles(noteFeedbackDirection)}`}
+                dir={noteFeedbackDirection}
+              >
+                {noteState.error}
+              </p>
             ) : null}
             <div className="mt-4 flex justify-end gap-3">
               <button

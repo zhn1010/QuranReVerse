@@ -438,67 +438,76 @@ export function ChatResultView({
             ) : null}
           </div>
 
-          {selectedEmbeds.map((embed) => (
-            <div
-              className="overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white shadow-[0_2px_8px_rgba(24,24,27,0.04)]"
-              key={embed.label}
-            >
-              <div className="border-b border-[rgba(63,63,70,0.08)] px-4 py-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
-                      {embed.label}
-                    </p>
-                    <p className="mt-1 text-xs text-(--ink-soft)">Embedded from Quran.com</p>
+          {selectedEmbeds.length > 0 ? (
+            <details className="rounded-xl border border-[rgba(63,63,70,0.08)] bg-white/70 p-3 text-sm text-(--ink-soft)">
+              <summary className="cursor-pointer font-medium text-(--ink-strong)">
+                Show referenced ayahs ({selectedEmbeds.length})
+              </summary>
+              <div className="mt-3 space-y-4">
+                {selectedEmbeds.map((embed) => (
+                  <div
+                    className="overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white shadow-[0_2px_8px_rgba(24,24,27,0.04)]"
+                    key={embed.label}
+                  >
+                    <div className="border-b border-[rgba(63,63,70,0.08)] px-4 py-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
+                            {embed.label}
+                          </p>
+                          <p className="mt-1 text-xs text-(--ink-soft)">Embedded from Quran.com</p>
+                        </div>
+                        {auth.isAuthenticated ? (
+                          <button
+                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={bookmarkState.savingKey === embed.label}
+                            onClick={() =>
+                              handleBookmarkToggle(
+                                embed.reference.chapterId,
+                                embed.label.split(':')[1] ?? '',
+                                embed.label,
+                              )
+                            }
+                            type="button"
+                          >
+                            {bookmarkState.savingKey === embed.label
+                              ? bookmarkState.savingAction === 'remove'
+                                ? 'Removing...'
+                                : 'Bookmarking...'
+                              : bookmarkState.savedKeys[embed.label]
+                                ? 'Bookmarked'
+                                : `Bookmark to Quran.com`}
+                          </button>
+                        ) : (
+                          <a
+                            className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white"
+                            href={loginHref}
+                            onClick={handleConnectClick}
+                          >
+                            Connect to bookmark
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <iframe
+                      allow="clipboard-write"
+                      className="block w-full bg-white"
+                      data-quran-embed="true"
+                      frameBorder="0"
+                      loading="lazy"
+                      src={buildQuranEmbedUrl(
+                        embed.reference.chapterId,
+                        embed.label.split(':')[1] ?? '',
+                        translationId,
+                      )}
+                      title={`Quran passage ${embed.label}`}
+                      width="100%"
+                    />
                   </div>
-                  {auth.isAuthenticated ? (
-                    <button
-                      className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={bookmarkState.savingKey === embed.label}
-                      onClick={() =>
-                        handleBookmarkToggle(
-                          embed.reference.chapterId,
-                          embed.label.split(':')[1] ?? '',
-                          embed.label,
-                        )
-                      }
-                      type="button"
-                    >
-                      {bookmarkState.savingKey === embed.label
-                        ? bookmarkState.savingAction === 'remove'
-                          ? 'Removing...'
-                          : 'Bookmarking...'
-                        : bookmarkState.savedKeys[embed.label]
-                          ? 'Bookmarked'
-                          : `Bookmark to Quran.com`}
-                    </button>
-                  ) : (
-                    <a
-                      className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white"
-                      href={loginHref}
-                      onClick={handleConnectClick}
-                    >
-                      Connect to bookmark
-                    </a>
-                  )}
-                </div>
+                ))}
               </div>
-              <iframe
-                allow="clipboard-write"
-                className="block w-full bg-white"
-                data-quran-embed="true"
-                frameBorder="0"
-                loading="lazy"
-                src={buildQuranEmbedUrl(
-                  embed.reference.chapterId,
-                  embed.label.split(':')[1] ?? '',
-                  translationId,
-                )}
-                title={`Quran passage ${embed.label}`}
-                width="100%"
-              />
-            </div>
-          ))}
+            </details>
+          ) : null}
 
           {result.reflection_guide ? (
             <div className="border-t border-[rgba(63,63,70,0.08)] pt-4">

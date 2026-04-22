@@ -18,7 +18,7 @@ function readDailyLimitFromEnv(key: string, fallback: number) {
 
   const parsed = Number.parseInt(raw, 10);
 
-  if (!Number.isFinite(parsed) || parsed < 1) {
+  if (!Number.isFinite(parsed)) {
     return fallback;
   }
 
@@ -39,6 +39,10 @@ async function checkRateLimit(
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
   if (isAuthenticated && userId) {
+    if (AUTHENTICATED_DAILY_LIMIT < 0) {
+      return { allowed: true };
+    }
+
     const key = `rate_limit:user:${userId}:${today}`;
     const current = await redis.incr(key);
 
@@ -55,6 +59,10 @@ async function checkRateLimit(
       };
     }
   } else {
+    if (ANONYMOUS_DAILY_LIMIT < 0) {
+      return { allowed: true };
+    }
+
     // Anonymous user - use browser fingerprint for more reliable tracking
     const fingerprint =
       request.headers.get('x-browser-fingerprint') ||

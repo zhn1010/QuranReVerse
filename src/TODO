@@ -1,6 +1,8 @@
-○ Check the reason for avatar not showing up in the header when user is authenticated
-○ Make the Save loading modal be in the chat flow
+● Check the reason for avatar not showing up in the header when user is authenticated
+● Preserve Scroll after login
+○ Show list of saved notes and bookmarks
 ○ Add donation button in chat
 ○ Add ability to process links in input
 ○ Add ability to process youtube videos in input
-● 
+○ Check why sometimes it doesn't translate the post
+● Add author and date of post

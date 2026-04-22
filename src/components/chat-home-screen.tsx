@@ -105,6 +105,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
   const router = useRouter();
   const [eventContent, setEventContent] = useState(starterEvent);
   const [userFeeling, setUserFeeling] = useState(starterFeeling);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -142,12 +143,18 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
           onSubmit={(event) => {
             event.preventDefault();
 
+            if (isSubmitting) {
+              return;
+            }
+
             const normalizedEvent = eventContent.trim();
             const normalizedFeeling = userFeeling.trim();
 
             if (!normalizedEvent) {
               return;
             }
+
+            setIsSubmitting(true);
 
             const chatId = crypto.randomUUID();
             createPendingChatThread({
@@ -183,21 +190,25 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
                 value={userFeeling}
               />
               <button
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-(--ink-strong) text-white transition hover:bg-(--accent) disabled:opacity-40"
-                disabled={!eventContent.trim()}
+                className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-(--ink-strong) text-white transition hover:bg-(--accent) active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!eventContent.trim() || isSubmitting}
                 type="submit"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+                {isSubmitting ? (
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                ) : (
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
