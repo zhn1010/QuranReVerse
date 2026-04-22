@@ -427,10 +427,7 @@ export function ChatResultView({
                     className="relative overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white]"
                     key={embed.label}
                   >
-                    <div
-                      className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[70px] items-center justify-end pr-[9.5
-                    rem]"
-                    >
+                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[70px] items-center justify-end pr-[9.5rem]">
                       {auth.isAuthenticated ? (
                         <button
                           aria-label={
