@@ -414,31 +414,9 @@ export function ChatResultView({
                 }
               />
             </div>
-            {result.selected_reflection.reflection_is_translated &&
-            result.selected_reflection.reflection_original_body ? (
-              <details className="mt-4 rounded-xl border border-[rgba(63,63,70,0.08)] bg-white/70 p-3 text-sm text-(--ink-soft)">
-                <summary className="cursor-pointer font-medium text-(--ink-strong)">
-                  Show original reflection text
-                </summary>
-                <p
-                  className={`mt-3 whitespace-pre-line leading-7 ${getDirectionStyles(
-                    detectTextDirection(
-                      result.selected_reflection.reflection_original_body,
-                      outputFallbackDirection,
-                    ),
-                  )}`}
-                  dir={detectTextDirection(
-                    result.selected_reflection.reflection_original_body,
-                    outputFallbackDirection,
-                  )}
-                >
-                  {result.selected_reflection.reflection_original_body}
-                </p>
-              </details>
-            ) : null}
           </div>
 
-          {selectedEmbeds.length > 0 ? (
+          {selectedEmbeds.length > 1 ? (
             <details className="rounded-xl border border-[rgba(63,63,70,0.08)] bg-white/70 p-3 text-sm text-(--ink-soft)">
               <summary className="cursor-pointer font-medium text-(--ink-strong)">
                 Show referenced ayahs ({selectedEmbeds.length})
@@ -446,48 +424,64 @@ export function ChatResultView({
               <div className="mt-3 space-y-4">
                 {selectedEmbeds.map((embed) => (
                   <div
-                    className="overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white shadow-[0_2px_8px_rgba(24,24,27,0.04)]"
+                    className="relative overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white]"
                     key={embed.label}
                   >
-                    <div className="border-b border-[rgba(63,63,70,0.08)] px-4 py-3">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
-                            {embed.label}
-                          </p>
-                          <p className="mt-1 text-xs text-(--ink-soft)">Embedded from Quran.com</p>
-                        </div>
-                        {auth.isAuthenticated ? (
-                          <button
-                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                            disabled={bookmarkState.savingKey === embed.label}
-                            onClick={() =>
-                              handleBookmarkToggle(
-                                embed.reference.chapterId,
-                                embed.label.split(':')[1] ?? '',
-                                embed.label,
-                              )
-                            }
-                            type="button"
+                    <div className="pointer-events-none absolute top-0 z-10 flex h-[5rem] items-center justify-end pr-[8rem]">
+                      {auth.isAuthenticated ? (
+                        <button
+                          aria-label={
+                            bookmarkState.savedKeys[embed.label]
+                              ? 'Remove bookmark'
+                              : 'Bookmark ayah'
+                          }
+                          className="pointer-events-auto inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-strong) backdrop-blur-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={bookmarkState.savingKey === embed.label}
+                          onClick={() =>
+                            handleBookmarkToggle(
+                              embed.reference.chapterId,
+                              embed.label.split(':')[1] ?? '',
+                              embed.label,
+                            )
+                          }
+                          type="button"
+                        >
+                          {bookmarkState.savingKey === embed.label ? (
+                            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[rgba(63,63,70,0.25)] border-t-[rgba(63,63,70,0.7)]" />
+                          ) : (
+                            <svg
+                              className="h-4 w-4"
+                              fill={bookmarkState.savedKeys[embed.label] ? 'currentColor' : 'none'}
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.8"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
+                            </svg>
+                          )}
+                        </button>
+                      ) : (
+                        <a
+                          aria-label="Connect to bookmark"
+                          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-strong) shadow-sm backdrop-blur-sm transition hover:bg-white"
+                          href={loginHref}
+                          onClick={handleConnectClick}
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="1.8"
+                            viewBox="0 0 24 24"
                           >
-                            {bookmarkState.savingKey === embed.label
-                              ? bookmarkState.savingAction === 'remove'
-                                ? 'Removing...'
-                                : 'Bookmarking...'
-                              : bookmarkState.savedKeys[embed.label]
-                                ? 'Bookmarked'
-                                : `Bookmark to Quran.com`}
-                          </button>
-                        ) : (
-                          <a
-                            className="inline-flex items-center justify-center rounded-full border border-[rgba(63,63,70,0.1)] px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-white"
-                            href={loginHref}
-                            onClick={handleConnectClick}
-                          >
-                            Connect to bookmark
-                          </a>
-                        )}
-                      </div>
+                            <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
+                          </svg>
+                        </a>
+                      )}
                     </div>
                     <iframe
                       allow="clipboard-write"
@@ -507,6 +501,81 @@ export function ChatResultView({
                 ))}
               </div>
             </details>
+          ) : selectedEmbeds.length === 1 ? (
+            <div className="relative overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white shadow-[0_2px_8px_rgba(24,24,27,0.04)]">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[70px] items-center justify-end pr-[9.75rem]">
+                {auth.isAuthenticated ? (
+                  <button
+                    aria-label={
+                      bookmarkState.savedKeys[selectedEmbeds[0].label]
+                        ? 'Remove bookmark'
+                        : 'Bookmark ayah'
+                    }
+                    className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={bookmarkState.savingKey === selectedEmbeds[0].label}
+                    onClick={() =>
+                      handleBookmarkToggle(
+                        selectedEmbeds[0].reference.chapterId,
+                        selectedEmbeds[0].label.split(':')[1] ?? '',
+                        selectedEmbeds[0].label,
+                      )
+                    }
+                    type="button"
+                  >
+                    {bookmarkState.savingKey === selectedEmbeds[0].label ? (
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[rgba(63,63,70,0.25)] border-t-[rgba(63,63,70,0.7)]" />
+                    ) : (
+                      <svg
+                        className="h-4 w-4"
+                        fill={
+                          bookmarkState.savedKeys[selectedEmbeds[0].label] ? 'currentColor' : 'none'
+                        }
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.8"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
+                      </svg>
+                    )}
+                  </button>
+                ) : (
+                  <a
+                    aria-label="Connect to bookmark"
+                    className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-soft) transition hover:bg-white"
+                    href={loginHref}
+                    onClick={handleConnectClick}
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+              <iframe
+                allow="clipboard-write"
+                className="block w-full bg-white"
+                data-quran-embed="true"
+                frameBorder="0"
+                loading="lazy"
+                src={buildQuranEmbedUrl(
+                  selectedEmbeds[0].reference.chapterId,
+                  selectedEmbeds[0].label.split(':')[1] ?? '',
+                  translationId,
+                )}
+                title={`Quran passage ${selectedEmbeds[0].label}`}
+                width="100%"
+              />
+            </div>
           ) : null}
 
           {result.reflection_guide ? (
