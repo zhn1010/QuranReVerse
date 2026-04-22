@@ -427,7 +427,7 @@ export function ChatResultView({
                     className="relative overflow-hidden rounded-xl border border-[rgba(63,63,70,0.08)] bg-white]"
                     key={embed.label}
                   >
-                    <div className="pointer-events-none absolute top-0 z-10 flex h-[5rem] items-center justify-end pr-[8rem]">
+                    <div className="pointer-events-none absolute top-0 z-10 flex h-[70px] items-center justify-end pr-[8rem]">
                       {auth.isAuthenticated ? (
                         <button
                           aria-label={
@@ -435,7 +435,7 @@ export function ChatResultView({
                               ? 'Remove bookmark'
                               : 'Bookmark ayah'
                           }
-                          className="pointer-events-auto inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-strong) backdrop-blur-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                          className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                           disabled={bookmarkState.savingKey === embed.label}
                           onClick={() =>
                             handleBookmarkToggle(
@@ -465,7 +465,7 @@ export function ChatResultView({
                       ) : (
                         <a
                           aria-label="Connect to bookmark"
-                          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-strong) shadow-sm backdrop-blur-sm transition hover:bg-white"
+                          className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-[rgba(63,63,70,0.1)] bg-white/92 text-(--ink-soft) transition hover:bg-white"
                           href={loginHref}
                           onClick={handleConnectClick}
                         >
