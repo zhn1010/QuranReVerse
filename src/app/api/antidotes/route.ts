@@ -772,6 +772,10 @@ async function translateSelectedReflectionIfNeeded(
   targetLanguageCode: string,
 ) {
   if (!selectedReflection?.reflection) {
+    logLlmDebug('reflection translation skipped: no selected reflection body', {
+      hasSelectedReflection: Boolean(selectedReflection),
+      targetLanguageCode,
+    });
     return selectedReflection;
   }
 
@@ -779,12 +783,38 @@ async function translateSelectedReflectionIfNeeded(
     selectedReflection.reflection_source_language_code ??
     getLanguageCodeFromReflectionLanguageName(selectedReflection.reflection.languageName);
 
-  if (!sourceLanguageCode || sourceLanguageCode === targetLanguageCode) {
+  if (!sourceLanguageCode) {
+    logLlmDebug('reflection translation skipped: unknown source language', {
+      reflectionId: selectedReflection.reflection.id,
+      reflectionLanguageName: selectedReflection.reflection.languageName,
+      targetLanguageCode,
+    });
+
     return {
       ...selectedReflection,
-      reflection_source_language_code: sourceLanguageCode ?? null,
+      reflection_source_language_code: null,
     };
   }
+
+  if (sourceLanguageCode === targetLanguageCode) {
+    logLlmDebug('reflection translation skipped: source equals target', {
+      reflectionId: selectedReflection.reflection.id,
+      sourceLanguageCode,
+      targetLanguageCode,
+    });
+
+    return {
+      ...selectedReflection,
+      reflection_source_language_code: sourceLanguageCode,
+    };
+  }
+
+  logLlmDebug('reflection translation started', {
+    reflectionBodyLength: selectedReflection.reflection.body.length,
+    reflectionId: selectedReflection.reflection.id,
+    sourceLanguageCode,
+    targetLanguageCode,
+  });
 
   const translation = await callStructuredOpenAI<ReflectionTranslationResponse>({
     inputText: `Target language code: ${targetLanguageCode}
@@ -799,13 +829,24 @@ ${selectedReflection.reflection.body}`,
     schemaName: 'selected_reflection_translation',
   });
 
+  const translatedText = translation.translated_text.trim();
+  const usedOriginalFallback = translatedText.length === 0;
+
+  logLlmDebug('reflection translation completed', {
+    reflectionId: selectedReflection.reflection.id,
+    sourceLanguageCode,
+    targetLanguageCode,
+    translatedTextLength: translatedText.length,
+    usedOriginalFallback,
+  });
+
   return {
     ...selectedReflection,
     reflection_is_translated: true,
     reflection_source_language_code: sourceLanguageCode,
     reflection: {
       ...selectedReflection.reflection,
-      body: translation.translated_text.trim() || selectedReflection.reflection.body,
+      body: translatedText || selectedReflection.reflection.body,
     },
   };
 }
