@@ -152,31 +152,30 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
           target="_blank"
         >
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-(--ink-strong)">{bookmark.surahName}</p>
               <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
                 {bookmark.verseKey}
               </p>
             </div>
-            <p className="shrink-0 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
-              {new Date(bookmark.createdAt).toLocaleDateString(undefined, {
-                day: 'numeric',
-                month: 'short',
-              })}
-            </p>
+            {bookmark.surahArabicName ? (
+              <p className="shrink-0 text-right text-sm leading-6 text-(--ink-soft)" dir="rtl">
+                {bookmark.surahArabicName}
+              </p>
+            ) : null}
           </div>
-
-          {bookmark.surahArabicName ? (
-            <p className="mt-3 text-right text-sm leading-6 text-(--ink-soft)" dir="rtl">
-              {bookmark.surahArabicName}
-            </p>
-          ) : null}
 
           <p className="mt-2 line-clamp-2 text-right text-base leading-8 text-(--ink-strong)" dir="rtl">
             {bookmark.arabicText || `${bookmark.surahNo}:${bookmark.ayahNo}`}
           </p>
 
-          <div className="mt-3 flex items-center justify-end">
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+              {new Date(bookmark.createdAt).toLocaleDateString(undefined, {
+                day: 'numeric',
+                month: 'short',
+              })}
+            </p>
             <span className="text-(--ink-soft)" aria-hidden="true">
               ↗
             </span>
