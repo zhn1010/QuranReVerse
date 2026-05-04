@@ -152,7 +152,7 @@ export function ChatShell({
           } md:sticky md:top-0 md:translate-x-0`}
         >
           <div className="flex h-full min-h-0 flex-col pt-4">
-            <div className={`${railSectionClass} flex items-center justify-between py-2`}>
+            <div className={`${railSectionClass} flex items-center justify-between pt-2`}>
               <span className="sr-only">Conversations</span>
               <button
                 aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
