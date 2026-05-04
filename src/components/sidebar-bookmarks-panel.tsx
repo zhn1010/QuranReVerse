@@ -5,6 +5,7 @@ import {
   getSidebarBookmarksServerSnapshot,
   getSidebarBookmarksSnapshot,
   prefetchSidebarBookmarks,
+  revalidateSidebarBookmarks,
   resetSidebarBookmarks,
   subscribeSidebarBookmarks,
 } from '@/lib/sidebar-bookmarks-store';
