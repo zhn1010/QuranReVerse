@@ -17,7 +17,14 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
     getSidebarBookmarksServerSnapshot,
   );
   const [deletingBookmarkId, setDeletingBookmarkId] = useState<string | null>(null);
+  const [confirmingBookmarkId, setConfirmingBookmarkId] = useState<string | null>(null);
+  const [optimisticallyRemovedBookmarkIds, setOptimisticallyRemovedBookmarkIds] = useState<
+    Record<string, true>
+  >({});
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const visibleBookmarks = state.bookmarks.filter(
+    (bookmark) => !optimisticallyRemovedBookmarkIds[bookmark.bookmarkId],
+  );
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -67,7 +74,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
     );
   }
 
-  if (state.bookmarks.length === 0) {
+  if (visibleBookmarks.length === 0) {
     return (
       <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
         <p className="text-sm font-semibold text-(--ink-strong)">Bookmarks</p>
@@ -83,8 +90,14 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
       return;
     }
 
+    const bookmarkId = bookmark.bookmarkId;
     setDeleteError(null);
-    setDeletingBookmarkId(bookmark.bookmarkId);
+    setConfirmingBookmarkId(null);
+    setDeletingBookmarkId(bookmarkId);
+    setOptimisticallyRemovedBookmarkIds((prev) => ({
+      ...prev,
+      [bookmarkId]: true,
+    }));
 
     try {
       const response = await fetch('/api/qf/bookmark', {
@@ -106,6 +119,11 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
 
       await revalidateSidebarBookmarks();
     } catch (error) {
+      setOptimisticallyRemovedBookmarkIds((prev) => {
+        const next = { ...prev };
+        delete next[bookmarkId];
+        return next;
+      });
       setDeleteError(error instanceof Error ? error.message : 'Could not remove this bookmark.');
     } finally {
       setDeletingBookmarkId(null);
@@ -119,7 +137,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
           {deleteError}
         </p>
       ) : null}
-      {state.bookmarks.map((bookmark) => (
+      {visibleBookmarks.map((bookmark) => (
         <div
           className="rounded-[1.25rem] border border-[rgba(63,63,70,0.08)] bg-white/68 px-4 py-3 transition hover:bg-white/92"
           key={bookmark.bookmarkId}
@@ -141,7 +159,11 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
                 aria-label={`Delete bookmark ${bookmark.verseKey}`}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-[rgba(140,32,32,0.1)] hover:text-[rgb(140,32,32)] disabled:cursor-not-allowed disabled:opacity-55"
                 disabled={Boolean(deletingBookmarkId)}
-                onClick={() => void handleDeleteBookmark(bookmark)}
+                onClick={() =>
+                  setConfirmingBookmarkId((current) =>
+                    current === bookmark.bookmarkId ? null : bookmark.bookmarkId,
+                  )
+                }
                 type="button"
               >
                 <svg
@@ -164,6 +186,28 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
               </button>
             </div>
           </div>
+          {confirmingBookmarkId === bookmark.bookmarkId ? (
+            <div className="mt-2 flex items-center justify-between rounded-xl border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-3 py-2">
+              <p className="text-xs text-[rgb(110,28,28)]">Delete this bookmark?</p>
+              <div className="flex items-center gap-2">
+                <button
+                  className="rounded-full border border-[rgba(140,32,32,0.3)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.08)] disabled:cursor-not-allowed disabled:opacity-55"
+                  disabled={Boolean(deletingBookmarkId)}
+                  onClick={() => void handleDeleteBookmark(bookmark)}
+                  type="button"
+                >
+                  Confirm
+                </button>
+                <button
+                  className="rounded-full border border-[rgba(63,63,70,0.16)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white"
+                  onClick={() => setConfirmingBookmarkId(null)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <p className="mt-2 line-clamp-2 text-right text-base leading-8 text-(--ink-strong)" dir="rtl">
             {bookmark.arabicText || `${bookmark.surahNo}:${bookmark.ayahNo}`}
