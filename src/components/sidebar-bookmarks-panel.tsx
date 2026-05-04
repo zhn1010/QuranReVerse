@@ -188,7 +188,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
           </div>
           {confirmingBookmarkId === bookmark.bookmarkId ? (
             <div className="mt-2 flex items-center justify-between rounded-xl border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-3 py-2">
-              <p className="text-xs text-[rgb(110,28,28)]">Delete this bookmark?</p>
+              <p className="text-xs text-[rgb(110,28,28)]">Confirm?</p>
               <div className="flex items-center gap-2">
                 <button
                   className="rounded-full border border-[rgba(140,32,32,0.3)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.08)] disabled:cursor-not-allowed disabled:opacity-55"
@@ -196,20 +196,23 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
                   onClick={() => void handleDeleteBookmark(bookmark)}
                   type="button"
                 >
-                  Confirm
+                  Yes
                 </button>
                 <button
                   className="rounded-full border border-[rgba(63,63,70,0.16)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white"
                   onClick={() => setConfirmingBookmarkId(null)}
                   type="button"
                 >
-                  Cancel
+                  No
                 </button>
               </div>
             </div>
           ) : null}
 
-          <p className="mt-2 line-clamp-2 text-right text-base leading-8 text-(--ink-strong)" dir="rtl">
+          <p
+            className="mt-2 line-clamp-2 text-right text-base leading-8 text-(--ink-strong)"
+            dir="rtl"
+          >
             {bookmark.arabicText || `${bookmark.surahNo}:${bookmark.ayahNo}`}
           </p>
 
