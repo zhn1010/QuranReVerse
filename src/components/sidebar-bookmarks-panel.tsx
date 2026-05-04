@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { buildQuranEmbedUrl, getTranslationIdForLanguageCode } from '@/lib/reflection-ui';
 
 type SidebarBookmark = {
   arabicText: string;
@@ -31,7 +30,6 @@ const initialState: BookmarkPanelState = {
 
 export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [state, setState] = useState<BookmarkPanelState>(initialState);
-  const translationId = getTranslationIdForLanguageCode(undefined);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -146,10 +144,10 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
     <div className="space-y-3">
       {state.bookmarks.map((bookmark) => (
         <article
-          className="overflow-hidden rounded-[1.75rem] border border-[rgba(63,63,70,0.08)] bg-white/72 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
+          className="rounded-[1.75rem] border border-[rgba(63,63,70,0.08)] bg-white/72 px-4 py-4 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
           key={bookmark.bookmarkId}
         >
-          <div className="flex items-start justify-between gap-3 px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-(--ink-strong)">{bookmark.surahName}</p>
               <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-(--ink-soft)">
@@ -163,16 +161,18 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
               })}
             </p>
           </div>
-          <iframe
-            allow="clipboard-write"
-            className="block h-[19rem] w-full bg-white"
-            data-quran-embed="true"
-            frameBorder="0"
-            loading="lazy"
-            src={buildQuranEmbedUrl(bookmark.surahNo, bookmark.ayahNo, translationId)}
-            title={`Bookmarked ayah ${bookmark.verseKey}`}
-            width="100%"
-          />
+
+          <p className="mt-4 text-right text-lg leading-9 text-(--ink-strong)" dir="rtl">
+            {bookmark.arabicText || `${bookmark.surahNo}:${bookmark.ayahNo}`}
+          </p>
+
+          <p className="mt-3 text-sm leading-6 text-(--ink-soft)">
+            {bookmark.englishTranslation || 'Translation preview is unavailable for this ayah.'}
+          </p>
+
+          <p className="mt-3 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+            {bookmark.translationName}
+          </p>
         </article>
       ))}
     </div>
