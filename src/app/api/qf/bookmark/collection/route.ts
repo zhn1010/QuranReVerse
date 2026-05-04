@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import type { ChapterId } from '@quranjs/api';
+import { NextResponse } from 'next/server';
 import { getQuranClient, getVerseWithTranslation } from '@/lib/quran-client';
 import {
   listAyahBookmarksInSakinahCollection,
@@ -14,14 +14,26 @@ async function buildSurahNames(surahNumbers: number[]) {
     uniqueSurahNumbers.map(async (surahNo) => {
       try {
         const chapter = await client.chapters.findById(surahNo as ChapterId);
-        return [surahNo, chapter.translatedName?.name || chapter.nameSimple || `Surah ${surahNo}`] as const;
+        return [
+          surahNo,
+          {
+            arabic: chapter.nameArabic || '',
+            english: chapter.translatedName?.name || chapter.nameSimple || `Surah ${surahNo}`,
+          },
+        ] as const;
       } catch {
-        return [surahNo, `Surah ${surahNo}`] as const;
+        return [
+          surahNo,
+          {
+            arabic: '',
+            english: `Surah ${surahNo}`,
+          },
+        ] as const;
       }
     }),
   );
 
-  return Object.fromEntries(entries) as Record<number, string>;
+  return Object.fromEntries(entries) as Record<number, { arabic: string; english: string }>;
 }
 
 export async function GET() {
@@ -35,7 +47,7 @@ export async function GET() {
           const enrichedAyah = await getVerseWithTranslation(
             bookmark.surahNo,
             bookmark.ayahNo,
-            surahNames[bookmark.surahNo],
+            surahNames[bookmark.surahNo]?.english,
           );
 
           return {
@@ -44,7 +56,11 @@ export async function GET() {
             bookmarkId: bookmark.bookmarkId,
             createdAt: bookmark.createdAt,
             englishTranslation: enrichedAyah?.englishTranslation ?? '',
-            surahName: enrichedAyah?.surahName ?? surahNames[bookmark.surahNo] ?? `Surah ${bookmark.surahNo}`,
+            surahArabicName: surahNames[bookmark.surahNo]?.arabic ?? '',
+            surahName:
+              enrichedAyah?.surahName ??
+              surahNames[bookmark.surahNo]?.english ??
+              `Surah ${bookmark.surahNo}`,
             surahNo: bookmark.surahNo,
             translationName: enrichedAyah?.translationName ?? 'English translation',
             verseKey: enrichedAyah?.verseKey ?? `${bookmark.surahNo}:${bookmark.ayahNo}`,
@@ -56,7 +72,8 @@ export async function GET() {
             bookmarkId: bookmark.bookmarkId,
             createdAt: bookmark.createdAt,
             englishTranslation: '',
-            surahName: surahNames[bookmark.surahNo] ?? `Surah ${bookmark.surahNo}`,
+            surahArabicName: surahNames[bookmark.surahNo]?.arabic ?? '',
+            surahName: surahNames[bookmark.surahNo]?.english ?? `Surah ${bookmark.surahNo}`,
             surahNo: bookmark.surahNo,
             translationName: 'English translation',
             verseKey: `${bookmark.surahNo}:${bookmark.ayahNo}`,

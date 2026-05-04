@@ -8,6 +8,7 @@ type SidebarBookmark = {
   bookmarkId: string;
   createdAt: string;
   englishTranslation: string;
+  surahArabicName: string;
   surahName: string;
   surahNo: number;
   translationName: string;
@@ -165,14 +166,17 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
             </p>
           </div>
 
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-(--ink-soft)">
-            {bookmark.englishTranslation || 'Open this ayah on Quran.com.'}
+          {bookmark.surahArabicName ? (
+            <p className="mt-3 text-right text-sm leading-6 text-(--ink-soft)" dir="rtl">
+              {bookmark.surahArabicName}
+            </p>
+          ) : null}
+
+          <p className="mt-2 line-clamp-2 text-right text-base leading-8 text-(--ink-strong)" dir="rtl">
+            {bookmark.arabicText || `${bookmark.surahNo}:${bookmark.ayahNo}`}
           </p>
 
-          <div className="mt-3 flex items-center justify-between">
-            <p className="text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
-              {bookmark.translationName}
-            </p>
+          <div className="mt-3 flex items-center justify-end">
             <span className="text-(--ink-soft)" aria-hidden="true">
               ↗
             </span>
