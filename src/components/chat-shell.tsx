@@ -4,10 +4,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import type { QfSessionSummary } from '@/lib/qf-user';
-import { listChatThreads, getServerSnapshot, subscribeToChatHistory } from '@/lib/chat-store';
+import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/lib/chat-store';
 
 const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
+const DESKTOP_SIDEBAR_EXPANDED_KEY = 'sakinah:desktop-sidebar-expanded';
+const SIDEBAR_TABS = [
+  { id: 'chats', label: 'Chats' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'bookmarks', label: 'Bookmarks' },
+] as const;
+
+type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
 
 export function ChatShell({
   activeChatId,
@@ -20,8 +29,19 @@ export function ChatShell({
 }) {
   const pathname = usePathname();
   const history = useSyncExternalStore(subscribeToChatHistory, listChatThreads, getServerSnapshot);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [sidebarHasOpened, setSidebarHasOpened] = useState(false);
+  const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      return window.localStorage.getItem(DESKTOP_SIDEBAR_EXPANDED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTabId>('chats');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,97 +91,232 @@ export function ChatShell({
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        DESKTOP_SIDEBAR_EXPANDED_KEY,
+        isDesktopSidebarExpanded ? 'true' : 'false',
+      );
+    } catch {
+      // Ignore storage failures so sidebar state still works in memory.
+    }
+  }, [isDesktopSidebarExpanded]);
+
+  const isSidebarExpanded = isDesktopSidebarExpanded || isMobileSidebarOpen;
+  const railButtonClass =
+    'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white';
+  const railSectionClass = 'px-[18px]';
+  const handleSidebarToggle = () => {
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      setIsDesktopSidebarExpanded((current) => !current);
+      setIsMobileSidebarOpen(false);
+      return;
+    }
+
+    setIsMobileSidebarOpen((current) => !current);
+  };
+  const handleSidebarCollapse = () => {
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      setIsDesktopSidebarExpanded(false);
+      return;
+    }
+
+    setIsMobileSidebarOpen(false);
+  };
+  const handleSidebarNavigation = () => {
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      return;
+    }
+
+    setIsMobileSidebarOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,244,245,0.98))]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-[288px] border-r border-[rgba(63,63,70,0.08)] bg-[rgba(248,248,249,0.96)] px-4 py-4 backdrop-blur-xl ${sidebarHasOpened ? 'transition-transform duration-300' : ''} ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          className={`fixed inset-y-0 left-0 z-40 h-screen w-[288px] -translate-x-full overflow-hidden border-r border-[rgba(63,63,70,0.08)] bg-[rgba(248,248,249,0.96)] backdrop-blur-xl transition-[width,transform] duration-300 ${
+            isMobileSidebarOpen ? 'translate-x-0' : ''
+          } ${
+            isDesktopSidebarExpanded ? 'md:w-[288px]' : 'md:w-[72px] md:px-0'
+          } md:sticky md:top-0 md:translate-x-0`}
         >
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between px-2 py-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">
-                Conversations
-              </span>
+          <div className="flex h-full min-h-0 flex-col pt-4">
+            <div className={`${railSectionClass} flex items-center justify-between py-2`}>
+              <span className="sr-only">Conversations</span>
               <button
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white"
-                onClick={() => setIsSidebarOpen(false)}
+                aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                className={railButtonClass}
+                onClick={handleSidebarToggle}
                 type="button"
               >
-                ×
+                <svg
+                  className="h-[18px] w-[18px]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
               </button>
+              {isSidebarExpanded ? (
+                <button
+                  aria-label="Minimize sidebar"
+                  className={railButtonClass}
+                  onClick={handleSidebarCollapse}
+                  type="button"
+                >
+                  <svg
+                    className="h-[18px] w-[18px]"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M18 6v12" />
+                    <path d="M14 8l-4 4 4 4" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
 
-            <Link
-              className="inline-flex items-center justify-center rounded-2xl bg-(--ink-strong) px-4 py-3 text-sm font-semibold text-white transition hover:bg-(--accent) md:mt-2"
-              href="/"
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              New chat
-            </Link>
-
-            <div className="mt-6 flex-1 overflow-y-auto">
-              <p className="px-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-(--ink-soft)">
-                Recent
-              </p>
-              <div className="mt-3 space-y-1">
-                {history.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-(--line) px-4 py-5 text-sm leading-7 text-(--ink-soft)">
-                    Your reflection history will appear here.
-                  </div>
+            <div className={`${railSectionClass} mt-6`}>
+              <Link
+                className={`inline-flex items-center overflow-hidden transition ${
+                  isSidebarExpanded
+                    ? 'w-full gap-4 rounded-full pr-4 hover:bg-white/70'
+                    : 'h-9 w-9 justify-center'
+                }`}
+                href="/"
+                onClick={handleSidebarNavigation}
+              >
+                <span className={railButtonClass}>
+                  <svg
+                    className="h-[18px] w-[18px]"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+                {isSidebarExpanded ? (
+                  <span className="shrink-0 whitespace-nowrap text-sm font-medium text-(--ink-strong)">
+                    New chat
+                  </span>
                 ) : (
-                  history.map((thread) => {
-                    const isActive = thread.id === activeChatId;
-
-                    return (
-                      <Link
-                        className={`block rounded-2xl px-3 py-3 transition ${
-                          isActive
-                            ? 'bg-white text-(--ink-strong) shadow-[0_10px_24px_rgba(24,24,27,0.08)]'
-                            : 'text-(--ink-soft) hover:bg-white/70 hover:text-(--ink-strong)'
-                        }`}
-                        href={`/chat/${thread.id}`}
-                        key={thread.id}
-                        onClick={() => setIsSidebarOpen(false)}
-                      >
-                        <p className="line-clamp-1 text-sm font-semibold">
-                          {thread.title || 'Reflection'}
-                        </p>
-                        <p className="mt-1 line-clamp-1 text-xs text-(--ink-soft)">
-                          {new Date(thread.updatedAt).toLocaleDateString(undefined, {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </p>
-                      </Link>
-                    );
-                  })
+                  <span className="sr-only">New chat</span>
                 )}
-              </div>
+              </Link>
+            </div>
+
+            <div className="mt-6 min-h-0 flex-1">
+              {isSidebarExpanded ? (
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="shrink-0 px-3">
+                    <div className="grid grid-cols-3 gap-1 border-b border-[rgba(63,63,70,0.08)] pb-2">
+                      {SIDEBAR_TABS.map((tab) => {
+                        const isActive = activeSidebarTab === tab.id;
+
+                        return (
+                          <button
+                            aria-pressed={isActive}
+                            className={`cursor-pointer rounded-full px-2 py-1.5 text-xs font-medium transition ${
+                              isActive
+                                ? 'bg-white/90 text-(--ink-strong)'
+                                : 'text-(--ink-soft) hover:text-(--ink-strong)'
+                            }`}
+                            key={tab.id}
+                            onClick={() => setActiveSidebarTab(tab.id)}
+                            type="button"
+                          >
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+                    {activeSidebarTab === 'chats' ? (
+                      <>
+                        <div className="mt-3 space-y-1">
+                          {history.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-(--line) px-4 py-5 text-sm leading-7 text-(--ink-soft)">
+                              Your reflection history will appear here.
+                            </div>
+                          ) : (
+                            history.map((thread) => {
+                              const isActive = thread.id === activeChatId;
+
+                              return (
+                                <Link
+                                  className={`block rounded-2xl px-3 py-3 transition ${
+                                    isActive
+                                      ? 'bg-white text-(--ink-strong) shadow-[0_10px_24px_rgba(24,24,27,0.08)]'
+                                      : 'text-(--ink-soft) hover:bg-white/70 hover:text-(--ink-strong)'
+                                  }`}
+                                  href={`/chat/${thread.id}`}
+                                  key={thread.id}
+                                  onClick={handleSidebarNavigation}
+                                >
+                                  <p className="line-clamp-1 text-sm font-semibold">
+                                    {thread.title || 'Reflection'}
+                                  </p>
+                                  <p className="mt-1 line-clamp-1 text-xs text-(--ink-soft)">
+                                    {new Date(thread.updatedAt).toLocaleDateString(undefined, {
+                                      day: 'numeric',
+                                      month: 'short',
+                                    })}
+                                  </p>
+                                </Link>
+                              );
+                            })
+                          )}
+                        </div>
+                      </>
+                    ) : activeSidebarTab === 'notes' ? (
+                      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+                        <p className="text-sm font-semibold text-(--ink-strong)">Notes</p>
+                        <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
+                          Notes saved from your reflections will appear here once we connect this
+                          tab to your Quran Foundation account data.
+                        </p>
+                      </div>
+                    ) : (
+                      <SidebarBookmarksPanel isAuthenticated={auth.isAuthenticated} />
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </aside>
 
-        {isSidebarOpen ? (
+        {isMobileSidebarOpen ? (
           <button
             aria-label="Close sidebar"
-            className="fixed inset-0 z-30 bg-[rgba(24,24,27,0.18)]"
-            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 z-30 bg-[rgba(24,24,27,0.18)] md:hidden"
+            onClick={() => setIsMobileSidebarOpen(false)}
             type="button"
           />
         ) : null}
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 backdrop-blur-xl bg-[rgba(255,255,255,0.82)] border-b border-(--line)">
+          <header className="sticky top-0 z-20 border-b border-(--line) bg-[rgba(255,255,255,0.82)] backdrop-blur-xl">
             <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">
                 <button
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-[rgba(244,244,245,0.8)]"
-                  onClick={() => {
-                    setSidebarHasOpened(true);
-                    setIsSidebarOpen(true);
-                  }}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-[rgba(244,244,245,0.8)] md:hidden"
+                  onClick={() => setIsMobileSidebarOpen(true)}
                   type="button"
                 >
                   <span className="sr-only">Open sidebar</span>

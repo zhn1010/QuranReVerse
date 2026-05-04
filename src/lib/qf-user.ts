@@ -13,7 +13,7 @@ const QF_PRELIVE_AUTH_BASE_URL = 'https://prelive-oauth2.quran.foundation';
 const QF_PRELIVE_API_BASE_URL = 'https://apis-prelive.quran.foundation';
 const QF_PRODUCTION_AUTH_BASE_URL = 'https://oauth2.quran.foundation';
 const QF_PRODUCTION_API_BASE_URL = 'https://apis.quran.foundation';
-const QF_BOOKMARK_COLLECTION_NAME = 'Sakinah.now';
+export const QF_BOOKMARK_COLLECTION_NAME = 'Sakinah.now';
 const QF_BOOKMARK_MUSHAF_ID = 5;
 const AUTH_FLOW_COOKIE_NAME = 'qf_oauth_flow';
 const USER_SESSION_COOKIE_NAME = 'qf_user_session';
@@ -72,6 +72,14 @@ type QfBookmark = {
   key: number;
   type: string;
   verseNumber: number | null;
+};
+
+export type QfAyahBookmark = {
+  ayahNo: string;
+  bookmarkId: string;
+  createdAt: string;
+  surahNo: number;
+  verseNumber: number;
 };
 
 function normalizeCollectionBookmark(raw: unknown): QfBookmark | null {
@@ -1292,6 +1300,52 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
 
   return {
     bookmarkIdsByVerseNumber: idsByVerseNumber,
+    collection,
+    session: listedSession,
+  };
+}
+
+export async function listAyahBookmarksInSakinahCollection() {
+  const session = await getQfUserSession();
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  const { collection, session: collectionSession } = await getExistingVerseCollection(session);
+
+  if (!collection) {
+    return {
+      bookmarks: [] as QfAyahBookmark[],
+      collection: null,
+      session: collectionSession,
+    };
+  }
+
+  const { bookmarks, session: listedSession } = await listCollectionAyahBookmarks(
+    collectionSession,
+    collection.id,
+  );
+
+  const ayahBookmarks = bookmarks
+    .filter(
+      (bookmark): bookmark is QfBookmark & { verseNumber: number } =>
+        bookmark.type === 'ayah' &&
+        Number.isInteger(bookmark.key) &&
+        Boolean(bookmark.verseNumber) &&
+        (bookmark.verseNumber ?? 0) > 0,
+    )
+    .map((bookmark) => ({
+      ayahNo: String(bookmark.verseNumber),
+      bookmarkId: bookmark.id,
+      createdAt: bookmark.createdAt,
+      surahNo: bookmark.key,
+      verseNumber: bookmark.verseNumber,
+    }))
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+
+  return {
+    bookmarks: ayahBookmarks,
     collection,
     session: listedSession,
   };

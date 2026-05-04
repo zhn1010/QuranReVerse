@@ -1,0 +1,180 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { buildQuranEmbedUrl, getTranslationIdForLanguageCode } from '@/lib/reflection-ui';
+
+type SidebarBookmark = {
+  arabicText: string;
+  ayahNo: string;
+  bookmarkId: string;
+  createdAt: string;
+  englishTranslation: string;
+  surahName: string;
+  surahNo: number;
+  translationName: string;
+  verseKey: string;
+};
+
+type BookmarkPanelState = {
+  bookmarks: SidebarBookmark[];
+  collectionName: string;
+  error: string | null;
+  isLoading: boolean;
+};
+
+const initialState: BookmarkPanelState = {
+  bookmarks: [],
+  collectionName: 'Sakinah.now',
+  error: null,
+  isLoading: true,
+};
+
+export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [state, setState] = useState<BookmarkPanelState>(initialState);
+  const translationId = getTranslationIdForLanguageCode(undefined);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setState({
+        bookmarks: [],
+        collectionName: 'Sakinah.now',
+        error: null,
+        isLoading: false,
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void (async () => {
+      setState((current) => ({
+        ...current,
+        error: null,
+        isLoading: true,
+      }));
+
+      try {
+        const response = await fetch('/api/qf/bookmark/collection', {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as {
+          bookmarks?: SidebarBookmark[];
+          collectionName?: string | null;
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Could not load bookmarks.');
+        }
+
+        setState({
+          bookmarks: Array.isArray(payload.bookmarks) ? payload.bookmarks : [],
+          collectionName: payload.collectionName?.trim() || 'Sakinah.now',
+          error: null,
+          isLoading: false,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setState({
+          bookmarks: [],
+          collectionName: 'Sakinah.now',
+          error: error instanceof Error ? error.message : 'Could not load bookmarks.',
+          isLoading: false,
+        });
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+        <p className="text-sm font-semibold text-(--ink-strong)">Bookmarks</p>
+        <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
+          Connect your Quran Foundation account to load bookmarked ayahs from your Sakinah.now
+          collection.
+        </p>
+      </div>
+    );
+  }
+
+  if (state.isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            className="rounded-[1.75rem] border border-[rgba(63,63,70,0.08)] bg-white/60 px-4 py-4"
+            key={index}
+          >
+            <div className="shimmer-bar h-3 w-24 rounded-full" />
+            <div className="mt-4 shimmer-bar h-10 w-full rounded-2xl" />
+            <div className="mt-3 shimmer-bar h-3 w-[88%] rounded-full" />
+            <div className="mt-2 shimmer-bar h-3 w-[72%] rounded-full" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (state.error) {
+    return (
+      <div className="rounded-[1.75rem] border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-4 py-5">
+        <p className="text-sm font-semibold text-[rgb(110,28,28)]">Could not load bookmarks</p>
+        <p className="mt-2 text-sm leading-6 text-[rgb(110,28,28)]">{state.error}</p>
+      </div>
+    );
+  }
+
+  if (state.bookmarks.length === 0) {
+    return (
+      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+        <p className="text-sm font-semibold text-(--ink-strong)">Bookmarks</p>
+        <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
+          No ayahs have been saved in your {state.collectionName} collection yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {state.bookmarks.map((bookmark) => (
+        <article
+          className="overflow-hidden rounded-[1.75rem] border border-[rgba(63,63,70,0.08)] bg-white/72 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
+          key={bookmark.bookmarkId}
+        >
+          <div className="flex items-start justify-between gap-3 px-4 py-4">
+            <div>
+              <p className="text-sm font-semibold text-(--ink-strong)">{bookmark.surahName}</p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-(--ink-soft)">
+                {bookmark.verseKey}
+              </p>
+            </div>
+            <p className="shrink-0 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+              {new Date(bookmark.createdAt).toLocaleDateString(undefined, {
+                day: 'numeric',
+                month: 'short',
+              })}
+            </p>
+          </div>
+          <iframe
+            allow="clipboard-write"
+            className="block h-[19rem] w-full bg-white"
+            data-quran-embed="true"
+            frameBorder="0"
+            loading="lazy"
+            src={buildQuranEmbedUrl(bookmark.surahNo, bookmark.ayahNo, translationId)}
+            title={`Bookmarked ayah ${bookmark.verseKey}`}
+            width="100%"
+          />
+        </article>
+      ))}
+    </div>
+  );
+}
