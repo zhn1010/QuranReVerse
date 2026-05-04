@@ -143,14 +143,17 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
   return (
     <div className="space-y-3">
       {state.bookmarks.map((bookmark) => (
-        <article
-          className="rounded-[1.75rem] border border-[rgba(63,63,70,0.08)] bg-white/72 px-4 py-4 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
+        <a
+          className="block rounded-[1.25rem] border border-[rgba(63,63,70,0.08)] bg-white/68 px-4 py-3 transition hover:bg-white/92"
+          href={`https://quran.com/${bookmark.verseKey}`}
           key={bookmark.bookmarkId}
+          rel="noreferrer"
+          target="_blank"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-(--ink-strong)">{bookmark.surahName}</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-(--ink-soft)">
+              <p className="text-sm font-medium text-(--ink-strong)">{bookmark.surahName}</p>
+              <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
                 {bookmark.verseKey}
               </p>
             </div>
@@ -162,18 +165,19 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
             </p>
           </div>
 
-          <p className="mt-4 text-right text-lg leading-9 text-(--ink-strong)" dir="rtl">
-            {bookmark.arabicText || `${bookmark.surahNo}:${bookmark.ayahNo}`}
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-(--ink-soft)">
+            {bookmark.englishTranslation || 'Open this ayah on Quran.com.'}
           </p>
 
-          <p className="mt-3 text-sm leading-6 text-(--ink-soft)">
-            {bookmark.englishTranslation || 'Translation preview is unavailable for this ayah.'}
-          </p>
-
-          <p className="mt-3 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
-            {bookmark.translationName}
-          </p>
-        </article>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+              {bookmark.translationName}
+            </p>
+            <span className="text-(--ink-soft)" aria-hidden="true">
+              ↗
+            </span>
+          </div>
+        </a>
       ))}
     </div>
   );
