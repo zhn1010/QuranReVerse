@@ -1,94 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-type SidebarBookmark = {
-  arabicText: string;
-  ayahNo: string;
-  bookmarkId: string;
-  createdAt: string;
-  englishTranslation: string;
-  surahArabicName: string;
-  surahName: string;
-  surahNo: number;
-  translationName: string;
-  verseKey: string;
-};
-
-type BookmarkPanelState = {
-  bookmarks: SidebarBookmark[];
-  collectionName: string;
-  error: string | null;
-  isLoading: boolean;
-};
-
-const initialState: BookmarkPanelState = {
-  bookmarks: [],
-  collectionName: 'Sakinah.now',
-  error: null,
-  isLoading: true,
-};
+import { useEffect, useSyncExternalStore } from 'react';
+import {
+  getSidebarBookmarksServerSnapshot,
+  getSidebarBookmarksSnapshot,
+  prefetchSidebarBookmarks,
+  resetSidebarBookmarks,
+  subscribeSidebarBookmarks,
+} from '@/lib/sidebar-bookmarks-store';
 
 export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const [state, setState] = useState<BookmarkPanelState>(initialState);
+  const state = useSyncExternalStore(
+    subscribeSidebarBookmarks,
+    getSidebarBookmarksSnapshot,
+    getSidebarBookmarksServerSnapshot,
+  );
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setState({
-        bookmarks: [],
-        collectionName: 'Sakinah.now',
-        error: null,
-        isLoading: false,
-      });
+      resetSidebarBookmarks();
       return;
     }
 
-    const controller = new AbortController();
-
-    void (async () => {
-      setState((current) => ({
-        ...current,
-        error: null,
-        isLoading: true,
-      }));
-
-      try {
-        const response = await fetch('/api/qf/bookmark/collection', {
-          signal: controller.signal,
-        });
-        const payload = (await response.json()) as {
-          bookmarks?: SidebarBookmark[];
-          collectionName?: string | null;
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(payload.error || 'Could not load bookmarks.');
-        }
-
-        setState({
-          bookmarks: Array.isArray(payload.bookmarks) ? payload.bookmarks : [],
-          collectionName: payload.collectionName?.trim() || 'Sakinah.now',
-          error: null,
-          isLoading: false,
-        });
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setState({
-          bookmarks: [],
-          collectionName: 'Sakinah.now',
-          error: error instanceof Error ? error.message : 'Could not load bookmarks.',
-          isLoading: false,
-        });
-      }
-    })();
-
-    return () => {
-      controller.abort();
-    };
+    void prefetchSidebarBookmarks();
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {
@@ -103,7 +37,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
     );
   }
 
-  if (state.isLoading) {
+  if (state.isLoading && !state.hasFetched) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, index) => (

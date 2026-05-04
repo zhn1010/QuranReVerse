@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/toast';
 import type { ApiResponse } from '@/lib/antidote-types';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import {
   buildQuranEmbedUrl,
   detectTextDirection,
@@ -209,6 +210,7 @@ export function ChatResultView({
         savingAction: null,
         savingKey: null,
       }));
+      void revalidateSidebarBookmarks();
 
       if (isBookmarked) {
         toast.success(

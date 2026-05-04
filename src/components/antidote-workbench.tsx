@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Script from 'next/script';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import { useToast } from '@/components/toast';
 
 type ReflectionReference = {
@@ -831,6 +832,8 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
       if (!response.ok) {
         throw new Error(payload.error || 'Could not update the ayah bookmark.');
       }
+
+      void revalidateSidebarBookmarks();
 
       setBookmarkState((prev) => {
         const nextSavedKeys = {

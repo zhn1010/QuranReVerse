@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { prefetchSidebarBookmarks, resetSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/lib/chat-store';
 
 const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
@@ -101,6 +102,15 @@ export function ChatShell({
       // Ignore storage failures so sidebar state still works in memory.
     }
   }, [isDesktopSidebarExpanded]);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) {
+      resetSidebarBookmarks();
+      return;
+    }
+
+    void prefetchSidebarBookmarks();
+  }, [auth.isAuthenticated]);
 
   const isSidebarExpanded = isDesktopSidebarExpanded || isMobileSidebarOpen;
   const railButtonClass =
