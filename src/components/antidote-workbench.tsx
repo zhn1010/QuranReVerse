@@ -3,10 +3,23 @@
 import Image from 'next/image';
 import Script from 'next/script';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useToast } from '@/components/toast';
+import { requestAntidoteStream } from '@/lib/antidotes/browser';
+import {
+  HERO_HIDDEN_STORAGE_KEY,
+  PENDING_SESSION_STORAGE_KEY,
+} from '@/lib/app-constants';
+import {
+  buildQfLoginHref,
+  buildQfNoteDraftPayload,
+  fetchQfBookmarkStates,
+  saveQfNote,
+  streamQfNoteDraft,
+  toggleQfBookmark,
+} from '@/lib/qf-browser';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
 import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
-import { useToast } from '@/components/toast';
 
 type ReflectionReference = {
   chapterId: number;
@@ -164,9 +177,6 @@ const TRANSLATION_BY_LANG: Record<string, number> = {
 };
 
 const DEFAULT_TRANSLATION_ID = 20; // Saheeh International (English)
-const PENDING_SESSION_KEY = 'sakinah:pending-session';
-const HERO_HIDDEN_KEY = 'sakinah:hero-hidden';
-
 type PendingSession = {
   eventContent: string;
   result: ApiResponse;
@@ -185,25 +195,6 @@ const LOADING_STEPS = [
 
 type PipelineStepKey = (typeof LOADING_STEPS)[number]['key'];
 type PipelineStepStatus = 'completed' | 'in_progress' | 'pending';
-
-type PipelineStepEvent = {
-  label: string;
-  status: Exclude<PipelineStepStatus, 'pending'>;
-  step: PipelineStepKey;
-  type: 'step';
-};
-
-type PipelineResultEvent = {
-  data: ApiResponse;
-  type: 'result';
-};
-
-type PipelineErrorEvent = {
-  error: string;
-  type: 'error';
-};
-
-type PipelineStreamEvent = PipelineErrorEvent | PipelineResultEvent | PipelineStepEvent;
 
 function createInitialLoadingStepStatus(): Record<PipelineStepKey, PipelineStepStatus> {
   return {
@@ -271,8 +262,6 @@ function detectTextDirection(
 function getDirectionStyles(direction: TextDirection) {
   return direction === 'rtl' ? 'text-right' : 'text-left';
 }
-
-const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
 
 function buildQuranEmbedUrl(surahNo: number, ayahNo: string, translationId: number) {
   const verseRef = `${surahNo}:${ayahNo}`;
@@ -365,9 +354,9 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
   });
   useLayoutEffect(() => {
     try {
-      const raw = sessionStorage.getItem(PENDING_SESSION_KEY);
+      const raw = sessionStorage.getItem(PENDING_SESSION_STORAGE_KEY);
       if (!raw) return;
-      sessionStorage.removeItem(PENDING_SESSION_KEY);
+      sessionStorage.removeItem(PENDING_SESSION_STORAGE_KEY);
       const session = JSON.parse(raw) as PendingSession;
       setEventContent(session.eventContent);
       setUserFeeling(session.userFeeling);
@@ -389,7 +378,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(HERO_HIDDEN_KEY) === 'true') {
+      if (localStorage.getItem(HERO_HIDDEN_STORAGE_KEY) === 'true') {
         setIsHeroVisible(false);
       }
     } catch {
@@ -401,7 +390,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     try {
       if (result) {
         sessionStorage.setItem(
-          PENDING_SESSION_KEY,
+          PENDING_SESSION_STORAGE_KEY,
           JSON.stringify({ eventContent, result, scrollY: window.scrollY, userFeeling }),
         );
       }
@@ -454,62 +443,10 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
 
     async function hydrateBookmarks() {
       try {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[qf-bookmark]', 'hydrating bookmark state', {
-            embeds: selectedEmbeds.map((embed) => ({
-              ayahNo: embed.label.split(':')[1] ?? '',
-              key: embed.label,
-              surahNo: embed.reference.chapterId,
-            })),
-          });
-        }
-
-        const updates: Record<string, boolean> = {};
-
-        await Promise.all(
-          selectedEmbeds.map(async (embed) => {
-            const requestedAyahNo = embed.label.split(':')[1] ?? '';
-            const response = await fetch(
-              `/api/qf/bookmark?surahNo=${encodeURIComponent(
-                embed.reference.chapterId,
-              )}&ayahNo=${encodeURIComponent(embed.label.split(':')[1] ?? '')}`,
-              {
-                credentials: 'include',
-              },
-            );
-
-            const payload = (await response.json()) as {
-              bookmarkIdsByVerseNumber?: Record<number, string>;
-              error?: string;
-            };
-
-            if (process.env.NODE_ENV !== 'production') {
-              console.log('[qf-bookmark]', 'hydrate response', {
-                ayahNo: requestedAyahNo,
-                key: embed.label,
-                payloadKeysCount: Object.keys(payload.bookmarkIdsByVerseNumber ?? {}).length,
-                responseOk: response.ok,
-                status: response.status,
-                surahNo: embed.reference.chapterId,
-              });
-            }
-
-            if (!response.ok) {
-              throw new Error(payload.error || 'Could not load bookmark state.');
-            }
-
-            updates[embed.label] =
-              Boolean(payload.bookmarkIdsByVerseNumber) &&
-              Object.keys(payload.bookmarkIdsByVerseNumber ?? {}).length > 0;
-          }),
-        );
+        const updates = await fetchQfBookmarkStates(selectedEmbeds);
 
         if (isCancelled) {
           return;
-        }
-
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[qf-bookmark]', 'hydrate updates', updates);
         }
 
         setBookmarkState((prev) => ({
@@ -545,95 +482,29 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     setResult(null);
 
     try {
-      const response = await fetch('/api/antidotes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const finalResult = await requestAntidoteStream(
+        {
           eventContent,
           userFeeling,
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json()) as ApiResponse;
-        throw new Error(payload.error || 'Request failed.');
-      }
-
-      if (!response.body) {
-        throw new Error('No stream received from server.');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let finalResult: ApiResponse | null = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const rawLine of lines) {
-          const line = rawLine.trim();
-          if (!line) {
-            continue;
-          }
-
-          const event = JSON.parse(line) as PipelineStreamEvent;
-
-          if (event.type === 'step') {
+        },
+        {
+          onStep: (pipelineEvent) => {
             setLoadingStepStatus((prev) => ({
               ...prev,
-              [event.step]: event.status,
+              [pipelineEvent.step]: pipelineEvent.status,
             }));
-            continue;
-          }
+          },
+        },
+      );
 
-          if (event.type === 'result') {
-            finalResult = event.data;
-            setLoadingStepStatus(() => ({
-              ayah_selection: 'completed',
-              guide_generation: 'completed',
-              language_detection: 'completed',
-              reflection_curation: 'completed',
-              reflection_fetch: 'completed',
-              reflection_translation: 'completed',
-            }));
-            continue;
-          }
-
-          if (event.type === 'error') {
-            throw new Error(event.error || 'Request failed.');
-          }
-        }
-      }
-
-      if (!finalResult && buffer.trim().length > 0) {
-        const tailEvent = JSON.parse(buffer.trim()) as PipelineStreamEvent;
-
-        if (tailEvent.type === 'result') {
-          finalResult = tailEvent.data;
-        } else if (tailEvent.type === 'step') {
-          setLoadingStepStatus((prev) => ({
-            ...prev,
-            [tailEvent.step]: tailEvent.status,
-          }));
-        } else if (tailEvent.type === 'error') {
-          throw new Error(tailEvent.error || 'Request failed.');
-        }
-      }
-
-      if (!finalResult) {
-        throw new Error('No result returned from server.');
-      }
-
+      setLoadingStepStatus(() => ({
+        ayah_selection: 'completed',
+        guide_generation: 'completed',
+        language_detection: 'completed',
+        reflection_curation: 'completed',
+        reflection_fetch: 'completed',
+        reflection_translation: 'completed',
+      }));
       setResult(finalResult);
     } catch (submissionError) {
       setResult(null);
@@ -645,87 +516,26 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     }
   }
 
-  function buildNoteRangesFromReflection() {
-    if (!result?.selected_reflection?.reflection) {
-      return [];
-    }
-
-    const references = result.selected_reflection.reflection.references;
-
-    if (references.length > 0) {
-      return references
-        .filter((ref) => ref.from >= 1 && ref.to >= 1)
-        .map((ref) => `${ref.chapterId}:${ref.from}-${ref.chapterId}:${ref.to}`)
-        .filter((range, index, items) => items.indexOf(range) === index);
-    }
-
-    const surahNo = result.selected_reflection.surah_no;
-    const ayahNo = result.selected_reflection.ayah_no;
-    const parts = ayahNo.split('-');
-    const from = Number.parseInt(parts[0] ?? '0', 10);
-    const to = Number.parseInt(parts[1] ?? parts[0] ?? '0', 10);
-
-    if (from >= 1 && to >= 1) {
-      return [`${surahNo}:${from}-${surahNo}:${to}`];
-    }
-
-    return [];
-  }
-
   async function handleNoteDraftGenerate() {
     setNoteState((prev) => ({ ...prev, body: '', error: null, isGenerating: true }));
 
     try {
-      const response = await fetch('/api/qf/note/draft', {
-        body: JSON.stringify({
-          diagnosis: result?.diagnosis ?? null,
+      await streamQfNoteDraft(
+        buildQfNoteDraftPayload({
           eventContent,
-          reflectionBody: result?.selected_reflection?.reflection?.body ?? null,
-          reflectionGuide: result?.reflection_guide ?? null,
-          selectedReflection: result?.selected_reflection
-            ? {
-                authorName: result.selected_reflection.reflection?.authorName ?? null,
-                ayahNo: result.selected_reflection.ayah_no,
-                selectionReason: result.selected_reflection.selection_reason,
-                surahName: result.selected_reflection.surah_name,
-                surahNo: result.selected_reflection.surah_no,
-              }
-            : null,
+          result: {
+            diagnosis: result?.diagnosis ?? null,
+            reflection_guide: result?.reflection_guide ?? null,
+            selected_reflection: result?.selected_reflection ?? null,
+          } as Pick<ApiResponse, 'diagnosis' | 'reflection_guide' | 'selected_reflection'>,
           userFeeling,
         }),
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Could not generate draft.';
-        try {
-          const payload = (await response.json()) as { error?: string };
-          errorMessage = payload.error || errorMessage;
-        } catch {
-          // response may not be JSON
-        }
-        throw new Error(errorMessage);
-      }
-
-      if (!response.body) {
-        throw new Error('No stream received from server.');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        setNoteState((prev) => ({ ...prev, body: prev.body + chunk }));
-      }
+        {
+          onChunk: (text) => {
+            setNoteState((prev) => ({ ...prev, body: text }));
+          },
+        },
+      );
 
       setNoteState((prev) => ({ ...prev, isGenerating: false }));
     } catch (draftError) {
@@ -749,37 +559,10 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     setNoteState((prev) => ({ ...prev, error: null, isSaving: true, success: null }));
 
     try {
-      const ranges = buildNoteRangesFromReflection();
-      const attachedEntities: Array<{
-        entityId: string;
-        entityType: 'reflection';
-      }> = [];
-
-      if (result?.selected_reflection?.reflection) {
-        attachedEntities.push({
-          entityId: String(result.selected_reflection.reflection.id),
-          entityType: 'reflection',
-        });
-      }
-
-      const response = await fetch('/api/qf/note', {
-        body: JSON.stringify({
-          attachedEntities,
-          body: noteState.body.trim(),
-          ranges,
-        }),
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
+      await saveQfNote({
+        body: noteState.body.trim(),
+        selectedReflection: result?.selected_reflection ?? null,
       });
-
-      const payload = (await response.json()) as { error?: string; success?: boolean };
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not save the note.');
-      }
 
       setNoteState({
         body: '',
@@ -813,27 +596,11 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     });
 
     try {
-      const response = await fetch('/api/qf/bookmark', {
-        body: JSON.stringify({
-          ayahNo,
-          surahNo,
-        }),
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: isBookmarked ? 'DELETE' : 'POST',
+      const payload = await toggleQfBookmark({
+        ayahNo,
+        isBookmarked,
+        surahNo,
       });
-      const payload = (await response.json()) as {
-        collectionName?: string;
-        error?: string;
-        removedCount?: number;
-        savedCount?: number;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not update the ayah bookmark.');
-      }
 
       void revalidateSidebarBookmarks();
 
@@ -928,7 +695,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                   ) : (
                     <a
                       className="inline-flex min-h-12 items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2 text-sm font-medium text-white transition hover:bg-(--accent)"
-                      href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                      href={buildQfLoginHref('/')}
                       onClick={saveSessionBeforeNav}
                     >
                       Connect Account
@@ -1091,7 +858,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                               ) : (
                                 <a
                                   className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
-                                  href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                                  href={buildQfLoginHref('/')}
                                   onClick={saveSessionBeforeNav}
                                 >
                                   Connect to Bookmark
@@ -1154,7 +921,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                         ) : (
                           <a
                             className="inline-flex items-center justify-center rounded-full border border-(--line) bg-[rgba(244,244,245,0.72)] px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-white"
-                            href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=/`}
+                            href={buildQfLoginHref('/')}
                             onClick={saveSessionBeforeNav}
                           >
                             Connect to Save as Note
@@ -1183,7 +950,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
               onClick={() => {
                 setIsHeroVisible(false);
                 try {
-                  localStorage.setItem(HERO_HIDDEN_KEY, 'true');
+                  localStorage.setItem(HERO_HIDDEN_STORAGE_KEY, 'true');
                 } catch {
                   // ignore localStorage failures
                 }

@@ -10,7 +10,7 @@ import {
 } from '@/components/chat-loading-state';
 import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
-import type { ApiResponse } from '@/lib/antidote-types';
+import { requestAntidoteStream } from '@/lib/antidotes/browser';
 import { getBrowserFingerprint } from '@/lib/browser-fingerprint';
 import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 import {
@@ -21,25 +21,6 @@ import {
   type LocalChatThread,
 } from '@/lib/chat-store';
 import type { QfSessionSummary } from '@/lib/qf-user';
-
-type PipelineStepEvent = {
-  label: string;
-  status: Exclude<PipelineStepStatus, 'pending'>;
-  step: PipelineStepKey;
-  type: 'step';
-};
-
-type PipelineResultEvent = {
-  data: ApiResponse;
-  type: 'result';
-};
-
-type PipelineErrorEvent = {
-  error: string;
-  type: 'error';
-};
-
-type PipelineStreamEvent = PipelineErrorEvent | PipelineResultEvent | PipelineStepEvent;
 
 export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; chatId: string }) {
   const [thread, setThread] = useState<LocalChatThread | null>(null);
@@ -70,88 +51,23 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
 
     async function run() {
       try {
-        // Generate browser fingerprint for anonymous rate limiting
         const fingerprint = await getBrowserFingerprint();
-
-        const response = await fetch('/api/antidotes', {
-          body: JSON.stringify({
+        const finalResult = await requestAntidoteStream(
+          {
             eventContent: activeThread.eventContent,
+            fingerprint,
             userFeeling: activeThread.userFeeling,
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Browser-Fingerprint': fingerprint,
           },
-          method: 'POST',
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const payload = (await response.json()) as { error?: string };
-          throw new Error(payload.error || 'Request failed.');
-        }
-
-        if (!response.body) {
-          throw new Error('No stream received from server.');
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let finalResult: ApiResponse | null = null;
-
-        while (true) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            break;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-
-          for (const rawLine of lines) {
-            const line = rawLine.trim();
-
-            if (!line) {
-              continue;
-            }
-
-            const event = JSON.parse(line) as PipelineStreamEvent;
-
-            if (event.type === 'step') {
+          {
+            onStep: (event) => {
               setLoadingStepStatus((prev) => ({
                 ...prev,
                 [event.step]: event.status,
               }));
-              continue;
-            }
-
-            if (event.type === 'result') {
-              finalResult = event.data;
-              continue;
-            }
-
-            if (event.type === 'error') {
-              throw new Error(event.error || 'Request failed.');
-            }
-          }
-        }
-
-        if (!finalResult && buffer.trim()) {
-          const tailEvent = JSON.parse(buffer.trim()) as PipelineStreamEvent;
-
-          if (tailEvent.type === 'result') {
-            finalResult = tailEvent.data;
-          } else if (tailEvent.type === 'error') {
-            throw new Error(tailEvent.error || 'Request failed.');
-          }
-        }
-
-        if (!finalResult) {
-          throw new Error('No result returned from server.');
-        }
+            },
+            signal: controller.signal,
+          },
+        );
 
         const nextThread = completeChatThread(chatId, finalResult);
         setThread(nextThread);

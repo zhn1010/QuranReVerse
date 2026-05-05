@@ -1,14 +1,12 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useToast } from '@/components/toast';
 import type { ApiResponse } from '@/lib/antidote-types';
-import { buildNoteRangesFromSelectedReflection } from '@/lib/ayah';
-import { APP_CANONICAL_ORIGIN } from '@/lib/app-constants';
+import { useQfBookmarks } from '@/hooks/use-qf-bookmarks';
+import { useQfNoteComposer } from '@/hooks/use-qf-note-composer';
 import type { QfSessionSummary } from '@/lib/qf-user';
-import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
-import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import {
   buildQuranEmbedUrl,
   detectTextDirection,
@@ -18,20 +16,6 @@ import {
   getTranslationIdForLanguageCode,
   type TextDirection,
 } from '@/lib/reflection-ui';
-
-type BookmarkState = {
-  savedKeys: Record<string, boolean>;
-  savingAction: 'add' | 'remove' | null;
-  savingKey: string | null;
-};
-
-type NoteState = {
-  body: string;
-  error: string | null;
-  isGenerating: boolean;
-  isSaving: boolean;
-  open: boolean;
-};
 
 export function ChatResultView({
   auth,
@@ -47,21 +31,6 @@ export function ChatResultView({
   userFeeling: string;
 }) {
   const toast = useToast();
-  const [bookmarkState, setBookmarkState] = useState<BookmarkState>({
-    savedKeys: {},
-    savingAction: null,
-    savingKey: null,
-  });
-  const [noteState, setNoteState] = useState<NoteState>({
-    body: '',
-    error: null,
-    isGenerating: false,
-    isSaving: false,
-    open: false,
-  });
-  const [noteSaved, setNoteSaved] = useState(false);
-
-  const loginHref = `${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(chatPath)}`;
 
   useEffect(() => {
     if (!auth.isAuthenticated) {
@@ -101,254 +70,19 @@ export function ChatResultView({
     () => getDirectionFromLanguageCode(result.detected_language_code),
     [result.detected_language_code],
   );
-
-  useEffect(() => {
-    if (!auth.isAuthenticated || selectedEmbeds.length === 0) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    async function hydrateBookmarks() {
-      try {
-        const updates: Record<string, boolean> = {};
-
-        await Promise.all(
-          selectedEmbeds.map(async (embed) => {
-            const response = await fetch(
-              `/api/qf/bookmark?surahNo=${encodeURIComponent(
-                embed.reference.chapterId,
-              )}&ayahNo=${encodeURIComponent(embed.label.split(':')[1] ?? '')}`,
-              {
-                credentials: 'include',
-              },
-            );
-            const payload = (await response.json()) as {
-              bookmarkIdsByVerseNumber?: Record<number, string>;
-              error?: string;
-            };
-
-            if (!response.ok) {
-              throw new Error(payload.error || 'Could not load bookmark state.');
-            }
-
-            updates[embed.label] =
-              Boolean(payload.bookmarkIdsByVerseNumber) &&
-              Object.keys(payload.bookmarkIdsByVerseNumber ?? {}).length > 0;
-          }),
-        );
-
-        if (!isCancelled) {
-          setBookmarkState((prev) => ({
-            ...prev,
-            savedKeys: {
-              ...prev.savedKeys,
-              ...updates,
-            },
-          }));
-        }
-      } catch {
-        // ignore bookmark hydration failures in the UI shell
-      }
-    }
-
-    hydrateBookmarks();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [auth.isAuthenticated, selectedEmbeds]);
-
-  function handleConnectClick(event: React.MouseEvent<HTMLAnchorElement>) {
-    event.preventDefault();
-
-    const nextUrl = new URL(chatPath, window.location.origin);
-    nextUrl.searchParams.set('scrollTo', String(Math.round(window.scrollY)));
-
-    const next = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
-    window.location.assign(
-      `${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(next)}`,
-    );
-  }
-
-  async function handleBookmarkToggle(surahNo: number, ayahNo: string, key: string) {
-    const isBookmarked = Boolean(bookmarkState.savedKeys[key]);
-    setBookmarkState((prev) => ({
-      ...prev,
-      savingAction: isBookmarked ? 'remove' : 'add',
-      savingKey: key,
-    }));
-
-    try {
-      const response = await fetch('/api/qf/bookmark', {
-        body: JSON.stringify({
-          ayahNo,
-          surahNo,
-        }),
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: isBookmarked ? 'DELETE' : 'POST',
-      });
-      const payload = (await response.json()) as {
-        collectionName?: string;
-        error?: string;
-        removedCount?: number;
-        savedCount?: number;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not update the ayah bookmark.');
-      }
-
-      setBookmarkState((prev) => ({
-        ...prev,
-        savedKeys: {
-          ...prev.savedKeys,
-          [key]: !isBookmarked,
-        },
-        savingAction: null,
-        savingKey: null,
-      }));
-      void revalidateSidebarBookmarks();
-
-      if (isBookmarked) {
-        toast.success(
-          `${payload.removedCount ?? 1} ayah removed from ${payload.collectionName ?? auth.collectionName}.`,
-        );
-      } else {
-        toast.success(
-          `${payload.savedCount ?? 1} ayah saved to ${payload.collectionName ?? auth.collectionName}.`,
-        );
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save the ayah.');
-      setBookmarkState((prev) => ({
-        ...prev,
-        savingAction: null,
-        savingKey: null,
-      }));
-    }
-  }
-
-  async function handleNoteDraftGenerate() {
-    setNoteState((prev) => ({ ...prev, body: '', error: null, isGenerating: true }));
-
-    try {
-      const response = await fetch('/api/qf/note/draft', {
-        body: JSON.stringify({
-          diagnosis: result.diagnosis,
-          eventContent,
-          reflectionBody: result.selected_reflection?.reflection?.body ?? null,
-          reflectionGuide: result.reflection_guide,
-          selectedReflection: result.selected_reflection
-            ? {
-                authorName: result.selected_reflection.reflection?.authorName ?? null,
-                ayahNo: result.selected_reflection.ayah_no,
-                selectionReason: result.selected_reflection.selection_reason,
-                surahName: result.selected_reflection.surah_name,
-                surahNo: result.selected_reflection.surah_no,
-              }
-            : null,
-          userFeeling,
-        }),
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
-
-      if (!response.ok || !response.body) {
-        const payload = (await response
-          .json()
-          .catch(() => ({ error: 'Could not generate draft.' }))) as {
-          error?: string;
-        };
-        throw new Error(payload.error || 'Could not generate draft.');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let nextBody = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        nextBody += decoder.decode(value, { stream: true });
-        setNoteState((prev) => ({ ...prev, body: nextBody }));
-      }
-
-      setNoteState((prev) => ({ ...prev, isGenerating: false }));
-    } catch (error) {
-      setNoteState((prev) => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Could not generate draft.',
-        isGenerating: false,
-      }));
-    }
-  }
-
-  async function handleNoteSave() {
-    if (!noteState.body.trim() || noteState.body.trim().length < 6) {
-      setNoteState((prev) => ({
-        ...prev,
-        error: 'Note must be at least 6 characters long.',
-      }));
-      return;
-    }
-
-    setNoteState((prev) => ({ ...prev, error: null, isSaving: true }));
-
-    try {
-      const attachedEntities = result.selected_reflection?.reflection
-        ? [
-            {
-              entityId: String(result.selected_reflection.reflection.id),
-              entityType: 'reflection' as const,
-            },
-          ]
-        : [];
-
-      const response = await fetch('/api/qf/note', {
-        body: JSON.stringify({
-          attachedEntities,
-          body: noteState.body.trim(),
-          ranges: buildNoteRangesFromSelectedReflection(result.selected_reflection),
-        }),
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
-      const payload = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not save the note.');
-      }
-
-      setNoteState({
-        body: '',
-        error: null,
-        isGenerating: false,
-        isSaving: false,
-        open: false,
-      });
-      void revalidateSidebarNotes();
-      setNoteSaved(true);
-      toast.success('Note saved to your Quran Foundation account.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not save the note.';
-      setNoteState((prev) => ({
-        ...prev,
-        error: message,
-        isSaving: false,
-      }));
-      toast.error(message);
-    }
-  }
+  const { bookmarkState, handleBookmarkToggle, handleConnectClick, loginHref } = useQfBookmarks({
+    auth,
+    chatPath,
+    selectedEmbeds,
+    toast,
+  });
+  const { noteSaved, noteState, setNoteState, handleNoteDraftGenerate, handleNoteSave } =
+    useQfNoteComposer({
+      eventContent,
+      result,
+      toast,
+      userFeeling,
+    });
 
   if (!result.selected_reflection?.reflection) {
     return (

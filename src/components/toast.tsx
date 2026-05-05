@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { ToastContextValue, ToastOptions } from '@/components/toast-public';
 
 type ToastVariant = 'success' | 'error' | 'info';
 
@@ -19,16 +20,6 @@ type ToastItem = {
   /** milliseconds before auto-dismiss; 0 = manual only */
   duration: number;
   leaving: boolean;
-};
-
-type ToastOptions = {
-  duration?: number;
-};
-
-type ToastContextValue = {
-  success: (message: string, options?: ToastOptions) => void;
-  error: (message: string, options?: ToastOptions) => void;
-  info: (message: string, options?: ToastOptions) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
