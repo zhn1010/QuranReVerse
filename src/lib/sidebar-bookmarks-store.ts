@@ -59,13 +59,7 @@ const store = createResourceStore({
   },
 });
 
-export function subscribeSidebarBookmarks(listener: () => void) {
-  return store.subscribe(listener);
-}
-
-export function getSidebarBookmarksSnapshot() {
-  const snapshot = store.getSnapshot();
-
+function buildSnapshot(snapshot: ReturnType<typeof store.getSnapshot>): SidebarBookmarksSnapshot {
   return {
     bookmarks: snapshot.data.bookmarks,
     collectionName: snapshot.data.collectionName,
@@ -73,6 +67,24 @@ export function getSidebarBookmarksSnapshot() {
     hasFetched: snapshot.hasFetched,
     isLoading: snapshot.isLoading,
   };
+}
+
+let lastStoreSnapshot = store.getSnapshot();
+let lastSidebarSnapshot = buildSnapshot(lastStoreSnapshot);
+
+export function subscribeSidebarBookmarks(listener: () => void) {
+  return store.subscribe(listener);
+}
+
+export function getSidebarBookmarksSnapshot() {
+  const snapshot = store.getSnapshot();
+  if (snapshot === lastStoreSnapshot) {
+    return lastSidebarSnapshot;
+  }
+
+  lastStoreSnapshot = snapshot;
+  lastSidebarSnapshot = buildSnapshot(snapshot);
+  return lastSidebarSnapshot;
 }
 
 export function getSidebarBookmarksServerSnapshot() {

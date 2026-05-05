@@ -40,19 +40,31 @@ const store = createResourceStore({
   },
 });
 
-export function subscribeSidebarNotes(listener: () => void) {
-  return store.subscribe(listener);
-}
-
-export function getSidebarNotesSnapshot() {
-  const snapshot = store.getSnapshot();
-
+function buildSnapshot(snapshot: ReturnType<typeof store.getSnapshot>): SidebarNotesSnapshot {
   return {
     error: snapshot.error,
     hasFetched: snapshot.hasFetched,
     isLoading: snapshot.isLoading,
     notes: snapshot.data.notes,
   };
+}
+
+let lastStoreSnapshot = store.getSnapshot();
+let lastSidebarSnapshot = buildSnapshot(lastStoreSnapshot);
+
+export function subscribeSidebarNotes(listener: () => void) {
+  return store.subscribe(listener);
+}
+
+export function getSidebarNotesSnapshot() {
+  const snapshot = store.getSnapshot();
+  if (snapshot === lastStoreSnapshot) {
+    return lastSidebarSnapshot;
+  }
+
+  lastStoreSnapshot = snapshot;
+  lastSidebarSnapshot = buildSnapshot(snapshot);
+  return lastSidebarSnapshot;
 }
 
 export function getSidebarNotesServerSnapshot() {

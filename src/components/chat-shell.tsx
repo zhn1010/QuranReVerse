@@ -32,17 +32,8 @@ export function ChatShell({
 }) {
   const pathname = usePathname();
   const history = useSyncExternalStore(subscribeToChatHistory, listChatThreads, getServerSnapshot);
-  const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    try {
-      return window.localStorage.getItem(DESKTOP_SIDEBAR_EXPANDED_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(false);
+  const [hasLoadedDesktopSidebarPreference, setHasLoadedDesktopSidebarPreference] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTabId>('chats');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -96,6 +87,22 @@ export function ChatShell({
 
   useEffect(() => {
     try {
+      setIsDesktopSidebarExpanded(
+        window.localStorage.getItem(DESKTOP_SIDEBAR_EXPANDED_KEY) === 'true',
+      );
+    } catch {
+      // Ignore storage failures so sidebar state still works in memory.
+    } finally {
+      setHasLoadedDesktopSidebarPreference(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedDesktopSidebarPreference) {
+      return;
+    }
+
+    try {
       window.localStorage.setItem(
         DESKTOP_SIDEBAR_EXPANDED_KEY,
         isDesktopSidebarExpanded ? 'true' : 'false',
@@ -103,7 +110,7 @@ export function ChatShell({
     } catch {
       // Ignore storage failures so sidebar state still works in memory.
     }
-  }, [isDesktopSidebarExpanded]);
+  }, [hasLoadedDesktopSidebarPreference, isDesktopSidebarExpanded]);
 
   useEffect(() => {
     if (!auth.isAuthenticated) {
