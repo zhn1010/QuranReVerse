@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { useToast } from '@/components/toast';
 import {
   detectTextDirection,
@@ -30,14 +31,27 @@ function buildNotePreview(note: QfSavedNote) {
   return normalized.length > 120 ? `${normalized.slice(0, 117)}...` : normalized;
 }
 
+function buildQuranRangeUrl(range: string) {
+  return `https://quran.com/${range}`;
+}
+
 export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const toast = useToast();
+  const [isMounted, setIsMounted] = useState(false);
   const state = useSyncExternalStore(
     subscribeSidebarNotes,
     getSidebarNotesSnapshot,
     getSidebarNotesServerSnapshot,
   );
   const [activeNote, setActiveNote] = useState<ActiveNoteState | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -252,100 +266,127 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
         </div>
       )}
 
-      {activeNote ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(24,24,27,0.28)] px-4 py-6"
-          onClick={(event) => {
-            if (
-              event.target === event.currentTarget &&
-              !activeNote.isSaving &&
-              !activeNote.isDeleting
-            ) {
-              setActiveNote(null);
-            }
-          }}
-        >
-          <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-[rgba(63,63,70,0.12)] bg-[rgba(255,255,255,0.96)] shadow-[0_30px_80px_rgba(24,24,27,0.18)] backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-[rgba(63,63,70,0.08)] px-6 py-4">
-              <div>
-                <p className="text-lg font-semibold text-(--ink-strong)">Saved note</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
-                  {new Date(
-                    activeNote.note.updatedAt ?? activeNote.note.createdAt ?? Date.now(),
-                  ).toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
+      {isMounted && activeNote
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(24,24,27,0.28)] px-4 py-6"
+              onClick={(event) => {
+                if (
+                  event.target === event.currentTarget &&
+                  !activeNote.isSaving &&
+                  !activeNote.isDeleting
+                ) {
+                  setActiveNote(null);
+                }
+              }}
+            >
+              <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-[rgba(63,63,70,0.12)] bg-[rgba(255,255,255,0.96)] shadow-[0_30px_80px_rgba(24,24,27,0.18)] backdrop-blur-md">
+                <div className="flex items-center justify-between border-b border-[rgba(63,63,70,0.08)] px-6 py-4">
+                  <div>
+                    <p className="text-lg font-semibold text-(--ink-strong)">Saved note</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
+                      {new Date(
+                        activeNote.note.updatedAt ?? activeNote.note.createdAt ?? Date.now(),
+                      ).toLocaleDateString(undefined, {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white"
+                    disabled={activeNote.isSaving || activeNote.isDeleting}
+                    onClick={() => setActiveNote(null)}
+                    type="button"
+                  >
+                    <span className="sr-only">Close note</span>
+                    ×
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-5">
+                  {activeNote.note.ranges.length > 0 ? (
+                    <div className="mb-5 rounded-[1.4rem] border border-[rgba(63,63,70,0.08)] bg-[rgba(244,244,245,0.45)] px-4 py-4">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-(--ink-soft)">
+                        Referenced ayahs
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {activeNote.note.ranges.map((range) => (
+                          <a
+                            className="inline-flex items-center rounded-full border border-[rgba(63,63,70,0.12)] bg-white px-3 py-1.5 text-sm font-medium text-(--ink-strong) transition hover:border-[rgba(63,63,70,0.22)] hover:bg-[rgba(255,255,255,0.96)]"
+                            href={buildQuranRangeUrl(range)}
+                            key={range}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            <span>{range}</span>
+                            <span aria-hidden="true" className="ml-2 text-(--ink-soft)">
+                              ↗
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <textarea
+                    className={`min-h-72 w-full resize-none rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.52)] px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] ${getDirectionStyles(noteDirection)}`}
+                    dir={noteDirection}
+                    disabled={activeNote.isSaving || activeNote.isDeleting}
+                    onChange={(event) =>
+                      setActiveNote((current) =>
+                        current
+                          ? {
+                              ...current,
+                              draftBody: event.target.value,
+                              error: null,
+                            }
+                          : null,
+                      )
+                    }
+                    value={activeNote.draftBody}
+                  />
+
+                  {activeNote.error ? (
+                    <p
+                      className={`mt-3 text-sm text-[rgb(146,64,14)] ${getDirectionStyles(
+                        detectTextDirection(activeNote.error, noteDirection),
+                      )}`}
+                      dir={detectTextDirection(activeNote.error, noteDirection)}
+                    >
+                      {activeNote.error}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center justify-between border-t border-[rgba(63,63,70,0.08)] px-6 py-4">
+                  <button
+                    className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.18)] px-4 py-2.5 text-sm font-semibold text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.05)] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={activeNote.isSaving || activeNote.isDeleting}
+                    onClick={handleDeleteNote}
+                    type="button"
+                  >
+                    {activeNote.isDeleting ? 'Deleting...' : 'Delete note'}
+                  </button>
+                  <button
+                    className="inline-flex cursor-pointer items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={
+                      activeNote.isSaving ||
+                      activeNote.isDeleting ||
+                      activeNote.draftBody.trim().length < 6
+                    }
+                    onClick={handleSaveNote}
+                    type="button"
+                  >
+                    {activeNote.isSaving ? 'Saving...' : 'Save changes'}
+                  </button>
+                </div>
               </div>
-              <button
-                className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white"
-                disabled={activeNote.isSaving || activeNote.isDeleting}
-                onClick={() => setActiveNote(null)}
-                type="button"
-              >
-                <span className="sr-only">Close note</span>
-                ×
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              <textarea
-                className={`min-h-72 w-full resize-none rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.52)] px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] ${getDirectionStyles(noteDirection)}`}
-                dir={noteDirection}
-                disabled={activeNote.isSaving || activeNote.isDeleting}
-                onChange={(event) =>
-                  setActiveNote((current) =>
-                    current
-                      ? {
-                          ...current,
-                          draftBody: event.target.value,
-                          error: null,
-                        }
-                      : null,
-                  )
-                }
-                value={activeNote.draftBody}
-              />
-
-              {activeNote.error ? (
-                <p
-                  className={`mt-3 text-sm text-[rgb(146,64,14)] ${getDirectionStyles(
-                    detectTextDirection(activeNote.error, noteDirection),
-                  )}`}
-                  dir={detectTextDirection(activeNote.error, noteDirection)}
-                >
-                  {activeNote.error}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="flex items-center justify-between border-t border-[rgba(63,63,70,0.08)] px-6 py-4">
-              <button
-                className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.18)] px-4 py-2.5 text-sm font-semibold text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.05)] disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={activeNote.isSaving || activeNote.isDeleting}
-                onClick={handleDeleteNote}
-                type="button"
-              >
-                {activeNote.isDeleting ? 'Deleting...' : 'Delete note'}
-              </button>
-              <button
-                className="inline-flex cursor-pointer items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={
-                  activeNote.isSaving ||
-                  activeNote.isDeleting ||
-                  activeNote.draftBody.trim().length < 6
-                }
-                onClick={handleSaveNote}
-                type="button"
-              >
-                {activeNote.isSaving ? 'Saving...' : 'Save changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
