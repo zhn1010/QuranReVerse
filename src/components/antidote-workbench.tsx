@@ -3,7 +3,12 @@
 import Image from 'next/image';
 import Script from 'next/script';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { OriginalReflectionDetails } from '@/components/reflection/original-reflection-details';
+import { QuranEmbedCard } from '@/components/reflection/quran-embed-card';
+import { ReflectionBody } from '@/components/reflection/reflection-body';
+import { SaveNoteModal } from '@/components/reflection/save-note-modal';
 import { useToast } from '@/components/toast';
+import type { ApiResponse } from '@/lib/antidote-types';
 import { requestAntidoteStream } from '@/lib/antidotes/browser';
 import {
   HERO_HIDDEN_STORAGE_KEY,
@@ -18,67 +23,16 @@ import {
   toggleQfBookmark,
 } from '@/lib/qf-browser';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import {
+  detectTextDirection,
+  getDirectionFromLanguageCode,
+  getDirectionStyles,
+  getSelectedReflectionEmbeds,
+  getTranslationIdForLanguageCode,
+  type TextDirection,
+} from '@/lib/reflection-ui';
 import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
 import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
-
-type ReflectionReference = {
-  chapterId: number;
-  from: number;
-  id: string;
-  to: number;
-};
-
-type RelatedReflection = {
-  authorName: string;
-  body: string;
-  commentsCount: number;
-  createdAt: string | null;
-  id: number;
-  languageName: string | null;
-  likesCount: number;
-  postTypeName: string | null;
-  references: ReflectionReference[];
-};
-
-type SelectedReflection = {
-  ayah_no: string;
-  reflection_is_translated: boolean;
-  reflection_original_body: string | null;
-  reflection_source_language_code: string | null;
-  reflection: RelatedReflection | null;
-  selected_reflection_id: number;
-  selection_reason: string;
-  surah_name: string;
-  surah_no: number;
-};
-
-type ReflectionGuide = {
-  conclusion_text: string;
-  intro_text: string;
-};
-
-type Antidote = {
-  ayah_no: string;
-  related_reflections: RelatedReflection[];
-  reasoning: string;
-  surah_name: string;
-  surah_no: number;
-};
-
-type Diagnosis = {
-  god_centric_reframe: string;
-  materialistic_narrative: string;
-  spiritual_drift: string;
-};
-
-type ApiResponse = {
-  antidotes: Antidote[];
-  detected_language_code: string;
-  diagnosis: Diagnosis;
-  error?: string;
-  reflection_guide: ReflectionGuide | null;
-  selected_reflection: SelectedReflection | null;
-};
 
 type BookmarkState = {
   error: string | null;
@@ -100,83 +54,6 @@ type NoteState = {
 const starterEvent =
   'I spent an hour scrolling success clips and luxury posts. By the end, I felt like my worth depended on being seen, praised, and always ahead.';
 const starterFeeling = 'I feel unsettled, heavy, and disconnected from gratitude.';
-/** ISO 639-1 language code → first Quran.com translation resource ID */
-const TRANSLATION_BY_LANG: Record<string, number> = {
-  aa: 854, // Afar
-  am: 87, // Amharic
-  ar: 1014, // Arabic
-  as: 120, // Assamese
-  az: 75, // Azeri
-  bg: 237, // Bulgarian
-  bm: 795, // Bambara
-  bn: 161, // Bengali
-  bs: 214, // Bosnian
-  ce: 106, // Chechen
-  cs: 26, // Czech
-  de: 208, // German
-  dv: 86, // Divehi
-  en: 85, // English (Abdel Haleem)
-  es: 83, // Spanish
-  fa: 135, // Persian
-  fi: 30, // Finnish
-  fr: 136, // French
-  gu: 225, // Gujarati
-  ha: 32, // Hausa
-  he: 233, // Hebrew
-  hi: 122, // Hindi
-  hr: 997, // Croatian
-  id: 134, // Indonesian
-  it: 153, // Italian
-  ja: 35, // Japanese
-  kk: 222, // Kazakh
-  km: 128, // Khmer
-  kn: 771, // Kannada
-  ko: 36, // Korean
-  ku: 81, // Kurdish
-  ky: 858, // Kyrgyz
-  lg: 232, // Ganda
-  ln: 855, // Lingala
-  lt: 904, // Lithuanian
-  mk: 788, // Macedonian
-  ml: 80, // Malayalam
-  mr: 226, // Marathi
-  ms: 39, // Malay
-  ne: 108, // Nepali
-  nl: 235, // Dutch
-  no: 41, // Norwegian
-  om: 111, // Oromo
-  pa: 857, // Punjabi
-  pl: 42, // Polish
-  ps: 118, // Pashto
-  pt: 103, // Portuguese
-  rn: 921, // Rundi
-  ro: 782, // Romanian
-  ru: 79, // Russian
-  rw: 774, // Kinyarwanda
-  sd: 238, // Sindhi
-  si: 228, // Sinhala
-  so: 46, // Somali
-  sq: 88, // Albanian
-  sr: 215, // Serbian
-  sv: 48, // Swedish
-  sw: 793, // Swahili
-  ta: 229, // Tamil
-  te: 227, // Telugu
-  tg: 139, // Tajik
-  th: 230, // Thai
-  tl: 211, // Tagalog
-  tr: 210, // Turkish
-  tt: 53, // Tatar
-  ug: 76, // Uyghur
-  uk: 217, // Ukrainian
-  ur: 234, // Urdu
-  uz: 55, // Uzbek
-  vi: 220, // Vietnamese
-  yo: 125, // Yoruba
-  zh: 56, // Chinese
-};
-
-const DEFAULT_TRANSLATION_ID = 20; // Saheeh International (English)
 type PendingSession = {
   eventContent: string;
   result: ApiResponse;
@@ -205,123 +82,6 @@ function createInitialLoadingStepStatus(): Record<PipelineStepKey, PipelineStepS
     reflection_fetch: 'pending',
     reflection_translation: 'pending',
   };
-}
-
-type TextDirection = 'ltr' | 'rtl';
-
-const RTL_SCRIPT_CHAR_REGEX = /[\u0590-\u08FF]/gu;
-const LATIN_SCRIPT_CHAR_REGEX = /[A-Za-z]/g;
-const RTL_LANG_CODES = new Set(['ar', 'fa', 'he', 'ps', 'sd', 'ug', 'ur']);
-
-function getTranslationIdForLanguageCode(languageCode: string | null | undefined): number {
-  const normalizedCode = languageCode?.trim().toLowerCase();
-
-  if (normalizedCode && TRANSLATION_BY_LANG[normalizedCode]) {
-    return TRANSLATION_BY_LANG[normalizedCode];
-  }
-
-  return DEFAULT_TRANSLATION_ID;
-}
-
-function getDirectionFromLanguageCode(languageCode: string | null | undefined): TextDirection {
-  const code = languageCode?.trim().toLowerCase();
-
-  if (code && RTL_LANG_CODES.has(code)) {
-    return 'rtl';
-  }
-
-  return 'ltr';
-}
-
-function detectTextDirection(
-  text: string | null | undefined,
-  fallbackDirection: TextDirection = 'ltr',
-): TextDirection {
-  if (!text || text.trim().length === 0) {
-    return fallbackDirection;
-  }
-
-  const rtlMatches = text.match(RTL_SCRIPT_CHAR_REGEX);
-  const latinMatches = text.match(LATIN_SCRIPT_CHAR_REGEX);
-  const rtlCount = rtlMatches?.length ?? 0;
-  const latinCount = latinMatches?.length ?? 0;
-
-  if (rtlCount === 0) {
-    return fallbackDirection;
-  }
-
-  if (latinCount === 0) {
-    return 'rtl';
-  }
-
-  const rtlShare = rtlCount / (rtlCount + latinCount);
-
-  return rtlShare >= 0.3 ? 'rtl' : 'ltr';
-}
-
-function getDirectionStyles(direction: TextDirection) {
-  return direction === 'rtl' ? 'text-right' : 'text-left';
-}
-
-function buildQuranEmbedUrl(surahNo: number, ayahNo: string, translationId: number) {
-  const verseRef = `${surahNo}:${ayahNo}`;
-  const params = new URLSearchParams({
-    answers: 'false',
-    lessons: 'false',
-    mergeVerses: 'true',
-    mushaf: 'kfgqpc_v2',
-    reflections: 'false',
-    tafsir: 'false',
-    translations: String(translationId),
-    verses: verseRef,
-  });
-
-  return `https://quran.com/embed/v1?${params.toString()}`;
-}
-
-function formatReferenceAyah(reference: ReflectionReference) {
-  if (reference.from < 1 || reference.to < 1) {
-    return null;
-  }
-
-  return reference.from === reference.to
-    ? `${reference.chapterId}:${reference.from}`
-    : `${reference.chapterId}:${reference.from}-${reference.to}`;
-}
-
-function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
-  const references =
-    selectedReflection.reflection?.references
-      .map((reference) => ({
-        label: formatReferenceAyah(reference),
-        reference,
-      }))
-      .filter((item): item is { label: string; reference: ReflectionReference } => !!item.label)
-      .filter(
-        (item, index, items) =>
-          items.findIndex((candidate) => candidate.label === item.label) === index,
-      ) ?? [];
-
-  if (references.length > 0) {
-    return references;
-  }
-
-  return [
-    {
-      label: `${selectedReflection.surah_no}:${selectedReflection.ayah_no}`,
-      reference: {
-        chapterId: selectedReflection.surah_no,
-        from: Number.parseInt(selectedReflection.ayah_no.split('-')[0] ?? '0', 10),
-        id: `${selectedReflection.surah_no}:${selectedReflection.ayah_no}`,
-        to: Number.parseInt(
-          selectedReflection.ayah_no.split('-')[1] ??
-            selectedReflection.ayah_no.split('-')[0] ??
-            '0',
-          10,
-        ),
-      },
-    },
-  ];
 }
 
 export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSessionSummary }) {
@@ -399,9 +159,8 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
     }
   }
 
-  const selectedEmbeds = useMemo<Array<{ label: string; reference: ReflectionReference }>>(
-    () =>
-      result?.selected_reflection ? getSelectedReflectionEmbeds(result.selected_reflection) : [],
+  const selectedEmbeds = useMemo(
+    () => (result?.selected_reflection ? getSelectedReflectionEmbeds(result.selected_reflection) : []),
     [result],
   );
 
@@ -796,91 +555,67 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
                         <div className="mt-5">
                           <ReflectionBody
                             body={result.selected_reflection.reflection.body}
-                            alwaysExpand
                             fallbackDirection={outputFallbackDirection}
+                            metaLayout="stacked"
                             postId={result.selected_reflection.reflection.id}
                           />
                         </div>
                         {result.selected_reflection.reflection_is_translated &&
                         result.selected_reflection.reflection_original_body ? (
-                          <details className="mt-4 rounded-2xl border border-(--line) bg-[rgba(255,255,255,0.7)] p-3 text-sm text-(--ink-soft)">
-                            <summary className="cursor-pointer font-medium text-(--ink-strong)">
-                              Show original reflection text
-                            </summary>
-                            <p
-                              className={`mt-3 whitespace-pre-line leading-7 ${getDirectionStyles(
-                                detectTextDirection(
-                                  result.selected_reflection.reflection_original_body,
-                                  outputFallbackDirection,
-                                ),
-                              )}`}
-                              dir={detectTextDirection(
-                                result.selected_reflection.reflection_original_body,
-                                outputFallbackDirection,
-                              )}
-                            >
-                              {result.selected_reflection.reflection_original_body}
-                            </p>
-                          </details>
+                          <OriginalReflectionDetails
+                            body={result.selected_reflection.reflection_original_body}
+                            fallbackDirection={outputFallbackDirection}
+                          />
                         ) : null}
                       </div>
                       {selectedEmbeds.map((embed) => (
-                        <div
-                          key={embed.label}
-                          className="overflow-hidden rounded-[1.6rem] border border-(--line) bg-white shadow-[0_12px_32px_rgba(24,24,27,0.06)]"
-                        >
-                          <div className="border-b border-(--line) px-4 py-3">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
-                                {embed.label}
-                              </p>
-                              {authState.isAuthenticated ? (
-                                <button
-                                  className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
-                                  disabled={bookmarkState.savingKey === embed.label}
-                                  onClick={() =>
-                                    handleBookmarkToggle(
-                                      embed.reference.chapterId,
-                                      embed.label.split(':')[1] ?? '',
-                                      embed.label,
-                                    )
-                                  }
-                                  type="button"
-                                >
-                                  {bookmarkState.savingKey === embed.label
-                                    ? bookmarkState.savingAction === 'remove'
-                                      ? 'Removing...'
-                                      : 'Bookmarking...'
-                                    : bookmarkState.savedKeys[embed.label]
-                                      ? 'Bookmarked'
-                                      : `Bookmark ${embed.label} to '${authState.collectionName}' collection`}
-                                </button>
-                              ) : (
-                                <a
-                                  className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
-                                  href={buildQfLoginHref('/')}
-                                  onClick={saveSessionBeforeNav}
-                                >
-                                  Connect to Bookmark
-                                </a>
-                              )}
+                        <QuranEmbedCard
+                          ayahNo={embed.label.split(':')[1] ?? ''}
+                          containerClassName="overflow-hidden rounded-[1.6rem] border border-(--line) bg-white shadow-[0_12px_32px_rgba(24,24,27,0.06)]"
+                          header={
+                            <div className="border-b border-(--line) px-4 py-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--accent-strong)">
+                                  {embed.label}
+                                </p>
+                                {authState.isAuthenticated ? (
+                                  <button
+                                    className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
+                                    disabled={bookmarkState.savingKey === embed.label}
+                                    onClick={() =>
+                                      handleBookmarkToggle(
+                                        embed.reference.chapterId,
+                                        embed.label.split(':')[1] ?? '',
+                                        embed.label,
+                                      )
+                                    }
+                                    type="button"
+                                  >
+                                    {bookmarkState.savingKey === embed.label
+                                      ? bookmarkState.savingAction === 'remove'
+                                        ? 'Removing...'
+                                        : 'Bookmarking...'
+                                      : bookmarkState.savedKeys[embed.label]
+                                        ? 'Bookmarked'
+                                        : `Bookmark ${embed.label} to '${authState.collectionName}' collection`}
+                                  </button>
+                                ) : (
+                                  <a
+                                    className="inline-flex items-center justify-center rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)]"
+                                    href={buildQfLoginHref('/')}
+                                    onClick={saveSessionBeforeNav}
+                                  >
+                                    Connect to Bookmark
+                                  </a>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <iframe
-                            allow="clipboard-write"
-                            className="block w-full bg-white"
-                            data-quran-embed="true"
-                            frameBorder="0"
-                            loading="lazy"
-                            src={buildQuranEmbedUrl(
-                              embed.reference.chapterId,
-                              embed.label.split(':')[1] ?? '',
-                              translationId,
-                            )}
-                            title={`Quran passage ${embed.label}`}
-                            width="100%"
-                          />
-                        </div>
+                          }
+                          key={embed.label}
+                          label={embed.label}
+                          surahNo={embed.reference.chapterId}
+                          translationId={translationId}
+                        />
                       ))}
                       {result.reflection_guide ? (
                         <div className="border-t border-(--line) pt-6">
@@ -1028,153 +763,40 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
           </div>
         </div>
       ) : null}
-      {noteState.open ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.4)] p-4"
-          onClick={(overlayEvent) => {
-            if (overlayEvent.target === overlayEvent.currentTarget && !noteState.isSaving) {
-              setNoteState((prev) => ({ ...prev, open: false }));
-            }
-          }}
-        >
-          <div className="flex w-full max-w-2xl flex-col rounded-[1.8rem] border border-(--line) bg-white p-6 shadow-[0_24px_80px_rgba(24,24,27,0.16)] sm:p-8">
-            <h2 className="text-lg font-semibold text-(--ink-strong)">Save a Note</h2>
-            <p className="mt-1 text-sm leading-7 text-(--ink-soft)">
-              This note will be saved to your Quran Foundation account
-              {selectedEmbeds.length > 0
-                ? ` and linked to ${selectedEmbeds.map((e) => e.label).join(', ')}`
-                : ''}
-              .
-            </p>
-            <div className="relative mt-4">
-              <textarea
-                className={`min-h-64 w-full rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.5)] px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] sm:min-h-80 ${getDirectionStyles(noteBodyDirection)}`}
-                disabled={noteState.isSaving || noteState.isGenerating}
-                dir={noteBodyDirection}
-                onChange={(inputEvent) =>
-                  setNoteState((prev) => ({
-                    ...prev,
-                    body: inputEvent.target.value,
-                    error: null,
-                  }))
-                }
-                placeholder="Write your personal reflection or note here (min 6 characters)..."
-                value={noteState.body}
-              />
-              <div className="absolute bottom-3 left-3">
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-full border border-(--line) bg-white/90 px-3.5 py-1.5 text-xs font-medium text-(--ink-soft) shadow-sm transition hover:bg-white hover:text-(--ink-strong) disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={noteState.isSaving || noteState.isGenerating || !result}
-                  onClick={handleNoteDraftGenerate}
-                  type="button"
-                >
-                  {noteState.isGenerating ? (
-                    <>
-                      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-(--line) border-t-(--accent-strong)" />
-                      Drafting...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      Generate Draft
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-            {noteState.error ? (
-              <p
-                className={`mt-2 text-sm text-[rgb(146,64,14)] ${getDirectionStyles(noteFeedbackDirection)}`}
-                dir={noteFeedbackDirection}
-              >
-                {noteState.error}
-              </p>
-            ) : null}
-            <div className="mt-4 flex justify-end gap-3">
-              <button
-                className="inline-flex items-center justify-center rounded-full border border-(--line) px-5 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.72)] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={noteState.isSaving || noteState.isGenerating}
-                onClick={() => setNoteState((prev) => ({ ...prev, open: false }))}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="inline-flex items-center justify-center rounded-full bg-(--accent-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={
-                  noteState.isSaving || noteState.isGenerating || noteState.body.trim().length < 6
-                }
-                onClick={handleNoteSave}
-                type="button"
-              >
-                {noteState.isSaving ? 'Saving...' : 'Save Note'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <SaveNoteModal
+        body={noteState.body}
+        bodyDirection={noteBodyDirection}
+        description={
+          <>
+            This note will be saved to your Quran Foundation account
+            {selectedEmbeds.length > 0
+              ? ` and linked to ${selectedEmbeds.map((e) => e.label).join(', ')}`
+              : ''}
+            .
+          </>
+        }
+        disableGenerate={!result}
+        error={noteState.error}
+        feedbackDirection={noteFeedbackDirection}
+        generateLabel="Generate Draft"
+        isGenerating={noteState.isGenerating}
+        isOpen={noteState.open}
+        isSaving={noteState.isSaving}
+        onBodyChange={(body) =>
+          setNoteState((prev) => ({
+            ...prev,
+            body,
+            error: null,
+          }))
+        }
+        onClose={() => setNoteState((prev) => ({ ...prev, open: false }))}
+        onGenerateDraft={handleNoteDraftGenerate}
+        onSave={handleNoteSave}
+        placeholder="Write your personal reflection or note here (min 6 characters)..."
+        saveLabel="Save Note"
+        title="Save a Note"
+      />
     </main>
-  );
-}
-
-function ReflectionBody({
-  body,
-  alwaysExpand,
-  fallbackDirection,
-  postId,
-}: {
-  body: string;
-  alwaysExpand?: boolean;
-  fallbackDirection?: TextDirection;
-  postId?: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const normalizedBody = body.trim();
-  const shouldCollapse = normalizedBody.length > 420 && !alwaysExpand;
-  const direction = detectTextDirection(normalizedBody, fallbackDirection ?? 'ltr');
-
-  return (
-    <div className="mt-3">
-      <p
-        className={`whitespace-pre-line text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(direction)} ${
-          !expanded && shouldCollapse ? 'line-clamp-6' : ''
-        }`}
-        dir={direction}
-      >
-        {normalizedBody}
-      </p>
-
-      {shouldCollapse ? (
-        <button
-          className="mt-3 text-sm font-medium text-(--accent-strong) underline decoration-[rgba(82,82,91,0.3)] underline-offset-4"
-          onClick={() => setExpanded((current) => !current)}
-          type="button"
-        >
-          {expanded ? 'Show less' : 'Continue reading'}
-        </button>
-      ) : null}
-
-      {postId ? (
-        <a
-          className="mt-3 inline-block text-xs text-(--ink-soft) underline decoration-[rgba(82,82,91,0.25)] underline-offset-4 transition hover:text-(--ink-strong)"
-          href={`https://quranreflect.com/posts/${postId}`}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Read on QuranReflect.com
-        </a>
-      ) : null}
-    </div>
   );
 }
 
