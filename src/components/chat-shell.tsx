@@ -6,12 +6,12 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import { SidebarNotesPanel } from '@/components/sidebar-notes-panel';
+import { APP_CANONICAL_ORIGIN, APP_NAME } from '@/lib/app-constants';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { prefetchSidebarNotes, resetSidebarNotes } from '@/lib/sidebar-notes-store';
 import { prefetchSidebarBookmarks, resetSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/lib/chat-store';
 
-const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
 const DESKTOP_SIDEBAR_EXPANDED_KEY = 'sakinah:desktop-sidebar-expanded';
 const SIDEBAR_TABS = [
   { id: 'chats', label: 'Chats' },
@@ -407,7 +407,7 @@ export function ChatShell({
                 >
                   <div className="rounded-xl px-3 py-2">
                     <p className="text-sm font-semibold leading-tight text-(--ink-strong)">
-                      {auth.displayName || 'Sakinah.now'}
+                      {auth.displayName || APP_NAME}
                     </p>
                     <p className="mt-1 text-xs text-(--ink-soft)">
                       {auth.isAuthenticated

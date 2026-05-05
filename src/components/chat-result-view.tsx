@@ -4,6 +4,8 @@ import Script from 'next/script';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/toast';
 import type { ApiResponse } from '@/lib/antidote-types';
+import { buildNoteRangesFromSelectedReflection } from '@/lib/ayah';
+import { APP_CANONICAL_ORIGIN } from '@/lib/app-constants';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
 import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
@@ -16,8 +18,6 @@ import {
   getTranslationIdForLanguageCode,
   type TextDirection,
 } from '@/lib/reflection-ui';
-
-const APP_CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'https://sakinah.now';
 
 type BookmarkState = {
   savedKeys: Record<string, boolean>;
@@ -232,33 +232,6 @@ export function ChatResultView({
     }
   }
 
-  function buildNoteRangesFromReflection() {
-    if (!result.selected_reflection?.reflection) {
-      return [];
-    }
-
-    const references = result.selected_reflection.reflection.references;
-
-    if (references.length > 0) {
-      return references
-        .filter((ref) => ref.from >= 1 && ref.to >= 1)
-        .map((ref) => `${ref.chapterId}:${ref.from}-${ref.chapterId}:${ref.to}`)
-        .filter((range, index, items) => items.indexOf(range) === index);
-    }
-
-    const surahNo = result.selected_reflection.surah_no;
-    const ayahNo = result.selected_reflection.ayah_no;
-    const parts = ayahNo.split('-');
-    const from = Number.parseInt(parts[0] ?? '0', 10);
-    const to = Number.parseInt(parts[1] ?? parts[0] ?? '0', 10);
-
-    if (from >= 1 && to >= 1) {
-      return [`${surahNo}:${from}-${surahNo}:${to}`];
-    }
-
-    return [];
-  }
-
   async function handleNoteDraftGenerate() {
     setNoteState((prev) => ({ ...prev, body: '', error: null, isGenerating: true }));
 
@@ -344,7 +317,7 @@ export function ChatResultView({
         body: JSON.stringify({
           attachedEntities,
           body: noteState.body.trim(),
-          ranges: buildNoteRangesFromReflection(),
+          ranges: buildNoteRangesFromSelectedReflection(result.selected_reflection),
         }),
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

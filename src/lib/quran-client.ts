@@ -5,6 +5,7 @@ import {
   type Verse,
   type VerseKey,
 } from '@quranjs/api';
+import { parseAyahSelection } from '@/lib/ayah';
 
 const QURAN_DEFAULT_AUTH_BASE_URL = 'https://oauth2.quran.foundation';
 
@@ -76,33 +77,10 @@ export type EnrichedAyah = {
   verseKey: string;
 };
 
-type ParsedAyahSelection = {
-  from: number;
-  to: number;
-};
-
 function buildSurahName(verse: Verse) {
   const verseKey = verse.verseKey ?? '';
   const chapterId = Number(String(verseKey).split(':')[0] || 0);
   return Number.isInteger(chapterId) && chapterId > 0 ? `Surah ${chapterId}` : 'Surah';
-}
-
-function parseAyahSelection(ayahNo: string): ParsedAyahSelection | null {
-  const normalized = ayahNo.trim();
-  const match = /^(\d+)(?:-(\d+))?$/u.exec(normalized);
-
-  if (!match) {
-    return null;
-  }
-
-  const from = Number.parseInt(match[1], 10);
-  const to = match[2] ? Number.parseInt(match[2], 10) : from;
-
-  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from) {
-    return null;
-  }
-
-  return { from, to };
 }
 
 function getTranslationText(verse: Verse) {

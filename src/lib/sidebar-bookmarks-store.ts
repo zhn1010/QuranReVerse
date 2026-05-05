@@ -1,3 +1,5 @@
+import { QF_BOOKMARK_COLLECTION_NAME } from '@/lib/app-constants';
+
 type SidebarBookmark = {
   arabicText: string;
   ayahNo: string;
@@ -27,7 +29,7 @@ export type SidebarBookmarksSnapshot = {
 
 const INITIAL_SNAPSHOT: SidebarBookmarksSnapshot = {
   bookmarks: [],
-  collectionName: 'Sakinah.now',
+  collectionName: QF_BOOKMARK_COLLECTION_NAME,
   error: null,
   hasFetched: false,
   isLoading: false,
@@ -76,7 +78,7 @@ async function requestSidebarBookmarks(force: boolean) {
 
       setSnapshot({
         bookmarks: Array.isArray(payload.bookmarks) ? payload.bookmarks : [],
-        collectionName: payload.collectionName?.trim() || 'Sakinah.now',
+        collectionName: payload.collectionName?.trim() || QF_BOOKMARK_COLLECTION_NAME,
         error: null,
         hasFetched: true,
         isLoading: false,

@@ -1,4 +1,8 @@
-import type { ReflectionReference, SelectedReflection } from '@/lib/antidote-types';
+import {
+  getSelectedReflectionEmbeds as getSelectedReflectionAyahEmbeds,
+  type AyahReference,
+} from '@/lib/ayah';
+import type { SelectedReflection } from '@/lib/antidote-types';
 
 export type TextDirection = 'ltr' | 'rtl';
 
@@ -149,47 +153,9 @@ export function buildQuranEmbedUrl(surahNo: number, ayahNo: string, translationI
   return `https://quran.com/embed/v1?${params.toString()}`;
 }
 
-function formatReferenceAyah(reference: ReflectionReference) {
-  if (reference.from < 1 || reference.to < 1) {
-    return null;
-  }
-
-  return reference.from === reference.to
-    ? `${reference.chapterId}:${reference.from}`
-    : `${reference.chapterId}:${reference.from}-${reference.to}`;
-}
-
 export function getSelectedReflectionEmbeds(selectedReflection: SelectedReflection) {
-  const references =
-    selectedReflection.reflection?.references
-      .map((reference) => ({
-        label: formatReferenceAyah(reference),
-        reference,
-      }))
-      .filter((item): item is { label: string; reference: ReflectionReference } => Boolean(item.label))
-      .filter(
-        (item, index, items) =>
-          items.findIndex((candidate) => candidate.label === item.label) === index,
-      ) ?? [];
-
-  if (references.length > 0) {
-    return references;
-  }
-
-  return [
-    {
-      label: `${selectedReflection.surah_no}:${selectedReflection.ayah_no}`,
-      reference: {
-        chapterId: selectedReflection.surah_no,
-        from: Number.parseInt(selectedReflection.ayah_no.split('-')[0] ?? '0', 10),
-        id: `${selectedReflection.surah_no}:${selectedReflection.ayah_no}`,
-        to: Number.parseInt(
-          selectedReflection.ayah_no.split('-')[1] ??
-            selectedReflection.ayah_no.split('-')[0] ??
-            '0',
-          10,
-        ),
-      },
-    },
-  ];
+  return getSelectedReflectionAyahEmbeds(selectedReflection) as Array<{
+    label: string;
+    reference: AyahReference;
+  }>;
 }

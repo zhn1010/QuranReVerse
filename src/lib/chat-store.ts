@@ -1,7 +1,5 @@
 import type { ApiResponse } from '@/lib/antidote-types';
-
-const CHAT_HISTORY_KEY = 'sakinah:chat-history';
-const HISTORY_UPDATED_EVENT = 'sakinah:history-updated';
+import { CHAT_HISTORY_STORAGE_KEY, CHAT_HISTORY_UPDATED_EVENT } from '@/lib/app-constants';
 
 export type ChatThreadStatus = 'completed' | 'error' | 'pending';
 
@@ -33,7 +31,7 @@ function readThreadsUnsafe() {
   }
 
   try {
-    const raw = window.localStorage.getItem(CHAT_HISTORY_KEY);
+    const raw = window.localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
 
     if (!raw) {
       return [];
@@ -72,9 +70,9 @@ function writeThreadsUnsafe(threads: LocalChatThread[]) {
     return;
   }
 
-  window.localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(sortThreads(threads)));
+  window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(sortThreads(threads)));
   invalidateSnapshot();
-  window.dispatchEvent(new Event(HISTORY_UPDATED_EVENT));
+  window.dispatchEvent(new Event(CHAT_HISTORY_UPDATED_EVENT));
 }
 
 let cachedSnapshot: LocalChatThread[] | null = null;
@@ -204,10 +202,10 @@ export function subscribeToChatHistory(onChange: () => void) {
   };
 
   window.addEventListener('storage', handleChange);
-  window.addEventListener(HISTORY_UPDATED_EVENT, handleChange);
+  window.addEventListener(CHAT_HISTORY_UPDATED_EVENT, handleChange);
 
   return () => {
     window.removeEventListener('storage', handleChange);
-    window.removeEventListener(HISTORY_UPDATED_EVENT, handleChange);
+    window.removeEventListener(CHAT_HISTORY_UPDATED_EVENT, handleChange);
   };
 }

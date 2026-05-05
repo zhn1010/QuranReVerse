@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import { parseAyahSelection } from '@/lib/ayah';
 
 const QURAN_REFLECT_AUTH_BASE_URL = 'https://oauth2.quran.foundation';
 const QURAN_REFLECT_API_BASE_URL = 'https://apis.quran.foundation';
@@ -138,23 +139,6 @@ function buildFeedUrl(surahNo: number, from: number, to: number, limit: number) 
   url.searchParams.set('filter[references][0][to]', String(to));
 
   return url;
-}
-
-function parseAyahSelection(ayahNo: string) {
-  const match = /^(\d+)(?:-(\d+))?$/u.exec(ayahNo.trim());
-
-  if (!match) {
-    return null;
-  }
-
-  const from = Number.parseInt(match[1], 10);
-  const to = match[2] ? Number.parseInt(match[2], 10) : from;
-
-  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from) {
-    return null;
-  }
-
-  return { from, to };
 }
 
 function getAuthorName(post: {

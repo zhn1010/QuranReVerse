@@ -8,12 +8,15 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_EXPIRATION_SECONDS,
 } from '@/lib/session';
+import { parseAyahSelection } from '@/lib/ayah';
+import { QF_BOOKMARK_COLLECTION_NAME } from '@/lib/app-constants';
+
+export { QF_BOOKMARK_COLLECTION_NAME };
 
 const QF_PRELIVE_AUTH_BASE_URL = 'https://prelive-oauth2.quran.foundation';
 const QF_PRELIVE_API_BASE_URL = 'https://apis-prelive.quran.foundation';
 const QF_PRODUCTION_AUTH_BASE_URL = 'https://oauth2.quran.foundation';
 const QF_PRODUCTION_API_BASE_URL = 'https://apis.quran.foundation';
-export const QF_BOOKMARK_COLLECTION_NAME = 'Sakinah.now';
 const QF_BOOKMARK_MUSHAF_ID = 5;
 const AUTH_FLOW_COOKIE_NAME = 'qf_oauth_flow';
 const USER_SESSION_COOKIE_NAME = 'qf_user_session';
@@ -764,23 +767,6 @@ async function ensureVerseCollection(session: QfSessionCookie) {
   }
 
   return createCollection(listedSession, QF_BOOKMARK_COLLECTION_NAME);
-}
-
-function parseAyahSelection(ayahNo: string) {
-  const match = /^(\d+)(?:-(\d+))?$/u.exec(ayahNo.trim());
-
-  if (!match) {
-    return null;
-  }
-
-  const from = Number.parseInt(match[1], 10);
-  const to = match[2] ? Number.parseInt(match[2], 10) : from;
-
-  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from) {
-    return null;
-  }
-
-  return { from, to };
 }
 
 async function addAyahBookmark(
@@ -1537,15 +1523,19 @@ export async function updateNoteInQfAccount(noteId: string, body: string) {
     throw new Error('You need to connect your Quran Foundation account first.');
   }
 
-  const { response, session: updatedSession } = await qfApiFetch(session, `/auth/v1/notes/${noteId}`, {
-    body: JSON.stringify({
-      body,
-    }),
-    headers: {
-      'Content-Type': 'application/json',
+  const { response, session: updatedSession } = await qfApiFetch(
+    session,
+    `/auth/v1/notes/${noteId}`,
+    {
+      body: JSON.stringify({
+        body,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'PATCH',
     },
-    method: 'PATCH',
-  });
+  );
 
   const result = await readApiResponse<{
     data?: unknown;
@@ -1565,9 +1555,13 @@ export async function deleteNoteInQfAccount(noteId: string) {
     throw new Error('You need to connect your Quran Foundation account first.');
   }
 
-  const { response, session: updatedSession } = await qfApiFetch(session, `/auth/v1/notes/${noteId}`, {
-    method: 'DELETE',
-  });
+  const { response, session: updatedSession } = await qfApiFetch(
+    session,
+    `/auth/v1/notes/${noteId}`,
+    {
+      method: 'DELETE',
+    },
+  );
 
   if (!response.ok) {
     const details = await response.text();

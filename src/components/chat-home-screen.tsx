@@ -4,13 +4,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
 import { ChatShell } from '@/components/chat-shell';
+import { HERO_HIDDEN_STORAGE_KEY } from '@/lib/app-constants';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { createPendingChatThread } from '@/lib/chat-store';
 import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 
 const starterEvent = '';
 const starterFeeling = '';
-const HERO_HIDDEN_KEY = 'sakinah:hero-hidden';
 
 const EXAMPLES: ReadonlyArray<{
   label: string;
@@ -120,7 +120,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
   const [isHeroVisible, setIsHeroVisible] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
-      return localStorage.getItem(HERO_HIDDEN_KEY) !== 'true';
+      return localStorage.getItem(HERO_HIDDEN_STORAGE_KEY) !== 'true';
     } catch {
       return false;
     }
@@ -267,7 +267,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
               onClick={() => {
                 setIsHeroVisible(false);
                 try {
-                  localStorage.setItem(HERO_HIDDEN_KEY, 'true');
+                  localStorage.setItem(HERO_HIDDEN_STORAGE_KEY, 'true');
                 } catch {
                   // ignore localStorage failures
                 }
@@ -344,7 +344,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
               onClick={() => {
                 setIsHeroVisible(false);
                 try {
-                  localStorage.setItem(HERO_HIDDEN_KEY, 'true');
+                  localStorage.setItem(HERO_HIDDEN_STORAGE_KEY, 'true');
                 } catch {
                   // ignore localStorage failures
                 }
