@@ -1,5 +1,48 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { createPipelineStep, toJsonLine } from '@/lib/antidotes/events';
+import {
+  getLanguageCodeFromReflectionLanguageName,
+  normalizeAyahNo,
+  normalizeLanguageCode,
+} from '@/lib/antidotes/language';
+import {
+  antidoteSystemPrompt,
+  chatTitleSystemPrompt,
+  curatorSystemPrompt,
+  languageDetectionSystemPrompt,
+  reflectionTranslationSystemPrompt,
+  spiritualGuideSystemPrompt,
+} from '@/lib/antidotes/prompts';
+import {
+  buildReflectionCandidates,
+  createSelectedReflection,
+  serializeReflectionCandidates,
+} from '@/lib/antidotes/reflections';
+import {
+  antidoteResponseSchema,
+  chatTitleResponseSchema,
+  curatorResponseSchema,
+  languageDetectionResponseSchema,
+  reflectionTranslationResponseSchema,
+  spiritualGuideResponseSchema,
+} from '@/lib/antidotes/schemas';
+import type {
+  AntidoteResponse,
+  ChatTitleResponse,
+  CuratedReflectionCandidate,
+  CuratedReflectionResponse,
+  Diagnosis,
+  EnrichedAntidote,
+  LanguageDetectionResponse,
+  OpenAIAntidote,
+  PipelineEvent,
+  PipelineResultEvent,
+  ReflectionGuide,
+  ReflectionTranslationResponse,
+  SelectedReflection,
+  SpiritualGuideResponse,
+} from '@/lib/antidotes/types';
 import { getRelatedReflectionsForAyah, type RelatedReflection } from '@/lib/quran-reflect';
 import { getSession } from '@/lib/session';
 import { callStructuredOpenAI } from '@/lib/openai-client';
@@ -89,406 +132,6 @@ async function checkRateLimit(
 
   return { allowed: true };
 }
-
-const antidoteSystemPrompt = `You are a specialist in Islamic Psychology (Ilm an-Nafs) and Quranic Exegesis (Tafsir). Your goal is to help a user return to sakinah by transitioning from a "Materialistic/Power-centric" worldview to a "God-centric" worldview.
-
-The Logic:
-1. Analyze the External Event (what happened/what was read).
-2. Analyze the Internal Feeling (the spiritual symptom).
-3. Identify the Root Spiritual Drift (e.g., Fear of Poverty, Attachment to Status, Heedlessness, Social Comparison).
-4. Select 1-3 Quranic Ayahs that act as direct grounding anchors—specifically verses that reframe the event through the lens of Allah's Power, Wisdom, or Provision.
-
-Return only JSON. Do not include any introductory or trailing text. Use the Clear Quran or Sahih International logic for verse selection. Keep each reasoning brief, concrete, and under 25 words.`;
-
-const curatorSystemPrompt = `You are an expert curator of Islamic spiritual content. Your task is to review a list of human-written reflections and select the single most effective grounding reflection for a user's specific spiritual state.
-
-Selection Criteria:
-1. Relevance: Does the reflection directly address the spiritual drift?
-2. Reframing Power: Does it move the reader from a materialistic or power-centric view to a God-centric view?
-3. Practicality: Is the tone empathetic and useful in a modern context?
-4. Quality: Avoid reflections that are too short, overly academic, or purely personal journals without a broader lesson.
-
-Return only JSON. Do not include any introductory or trailing text. Select exactly one candidate from the provided IDs. Keep the reason concrete and under 35 words.`;
-
-const spiritualGuideSystemPrompt = `You are a compassionate spiritual companion designed to help Muslims navigate modern life through the Quran.
-
-Your voice:
-1. Empathetic and validating: Acknowledge that the user's feelings are real.
-2. Insightful: Connect the spiritual drift to the current experience.
-3. Action-oriented: End with a small, practical heart-action or dua focus.
-4. Grounded: Use a modern tone that is warm and clear without sounding preachy.
-5. Integrative: The intro must naturally lead into the chosen reflection and the conclusion must naturally follow from it, so the reader experiences one seamless narrative—not three separate paragraphs.
-
-Return only JSON. Do not reproduce the reflection text itself. The intro should be 3-4 sentences. The conclusion should be 2-3 sentences.`;
-
-const languageDetectionSystemPrompt = `Detect the primary language used in the user's input. Return a normalized ISO-639-1 language code when possible.
-
-Rules:
-1. Return a lowercase language code such as en, ar, tr, ur, fa, fr, de, es.
-2. If mixed language is used, choose the language that dominates the meaning.
-3. If uncertain, return en.
-4. Return only JSON.`;
-
-const reflectionTranslationSystemPrompt = `Translate the provided reflection text into the target language.
-
-Rules:
-1. Preserve line breaks and paragraph structure.
-2. Keep hashtags, references, and links unchanged when possible.
-3. Keep tone and meaning faithful; do not summarize.
-4. Return only JSON.`;
-
-const chatTitleSystemPrompt = `Write a very short title for this reflection session.
-
-Rules:
-1. Use the same language as the user input.
-2. Keep it concrete, calm, and natural.
-3. Prefer 3 to 6 words.
-4. Do not use quotation marks.
-5. Return only JSON.`;
-
-const antidoteResponseSchema = {
-  additionalProperties: false,
-  properties: {
-    antidotes: {
-      items: {
-        additionalProperties: false,
-        properties: {
-          ayah_no: { type: 'string' },
-          reasoning: { type: 'string' },
-          surah_name: { type: 'string' },
-          surah_no: { type: 'integer' },
-        },
-        required: ['surah_name', 'surah_no', 'ayah_no', 'reasoning'],
-        type: 'object',
-      },
-      maxItems: 3,
-      minItems: 1,
-      type: 'array',
-    },
-    diagnosis: {
-      additionalProperties: false,
-      properties: {
-        god_centric_reframe: { type: 'string' },
-        materialistic_narrative: { type: 'string' },
-        spiritual_drift: { type: 'string' },
-      },
-      required: ['spiritual_drift', 'materialistic_narrative', 'god_centric_reframe'],
-      type: 'object',
-    },
-  },
-  required: ['diagnosis', 'antidotes'],
-  type: 'object',
-} as const;
-
-const curatorResponseSchema = {
-  additionalProperties: false,
-  properties: {
-    selected_reflection_id: { type: 'integer' },
-    selection_reason: { type: 'string' },
-  },
-  required: ['selected_reflection_id', 'selection_reason'],
-  type: 'object',
-} as const;
-
-const spiritualGuideResponseSchema = {
-  additionalProperties: false,
-  properties: {
-    conclusion_text: { type: 'string' },
-    intro_text: { type: 'string' },
-  },
-  required: ['intro_text', 'conclusion_text'],
-  type: 'object',
-} as const;
-
-const languageDetectionResponseSchema = {
-  additionalProperties: false,
-  properties: {
-    language_code: { type: 'string' },
-  },
-  required: ['language_code'],
-  type: 'object',
-} as const;
-
-const reflectionTranslationResponseSchema = {
-  additionalProperties: false,
-  properties: {
-    translated_text: { type: 'string' },
-  },
-  required: ['translated_text'],
-  type: 'object',
-} as const;
-
-const chatTitleResponseSchema = {
-  additionalProperties: false,
-  properties: {
-    title: { type: 'string' },
-  },
-  required: ['title'],
-  type: 'object',
-} as const;
-
-type OpenAIAntidote = {
-  ayah_no: string;
-  reasoning: string;
-  surah_name: string;
-  surah_no: number;
-};
-
-type AntidoteResponse = {
-  antidotes: OpenAIAntidote[];
-  diagnosis: {
-    god_centric_reframe: string;
-    materialistic_narrative: string;
-    spiritual_drift: string;
-  };
-};
-
-type Diagnosis = AntidoteResponse['diagnosis'];
-
-type CuratedReflectionResponse = {
-  selected_reflection_id: number;
-  selection_reason: string;
-};
-
-type SpiritualGuideResponse = {
-  conclusion_text: string;
-  intro_text: string;
-};
-
-type LanguageDetectionResponse = {
-  language_code: string;
-};
-
-type ReflectionTranslationResponse = {
-  translated_text: string;
-};
-
-type ChatTitleResponse = {
-  title: string;
-};
-
-type EnrichedAntidote = OpenAIAntidote & {
-  related_reflections: RelatedReflection[];
-};
-
-type CuratedReflectionCandidate = RelatedReflection & {
-  ayah_no: string;
-  surah_name: string;
-  surah_no: number;
-};
-
-type SelectedReflection = {
-  ayah_no: string;
-  reflection_is_translated: boolean;
-  reflection_original_body: string | null;
-  reflection_source_language_code: string | null;
-  reflection: RelatedReflection | null;
-  selected_reflection_id: number;
-  selection_reason: string;
-  surah_name: string;
-  surah_no: number;
-};
-
-type ReflectionGuide = {
-  conclusion_text: string;
-  intro_text: string;
-};
-
-type PipelineStepKey =
-  | 'language_detection'
-  | 'ayah_selection'
-  | 'reflection_fetch'
-  | 'reflection_curation'
-  | 'reflection_translation'
-  | 'guide_generation';
-
-type PipelineStepEvent = {
-  label: string;
-  status: 'completed' | 'in_progress';
-  step: PipelineStepKey;
-  type: 'step';
-};
-
-type PipelineResultEvent = {
-  data: {
-    antidotes: EnrichedAntidote[];
-    chat_title: string;
-    detected_language_code: string;
-    diagnosis: Diagnosis;
-    reflection_guide: ReflectionGuide | null;
-    selected_reflection: SelectedReflection | null;
-  };
-  type: 'result';
-};
-
-type PipelineErrorEvent = {
-  error: string;
-  type: 'error';
-};
-
-type PipelineEvent = PipelineStepEvent | PipelineResultEvent | PipelineErrorEvent;
-
-const SUPPORTED_LANGUAGE_CODES = new Set([
-  'aa',
-  'am',
-  'ar',
-  'as',
-  'az',
-  'bg',
-  'bm',
-  'bn',
-  'bs',
-  'ce',
-  'cs',
-  'de',
-  'dv',
-  'en',
-  'es',
-  'fa',
-  'fi',
-  'fr',
-  'gu',
-  'ha',
-  'he',
-  'hi',
-  'hr',
-  'id',
-  'it',
-  'ja',
-  'kk',
-  'km',
-  'kn',
-  'ko',
-  'ku',
-  'ky',
-  'lg',
-  'ln',
-  'lt',
-  'mk',
-  'ml',
-  'mr',
-  'ms',
-  'ne',
-  'nl',
-  'no',
-  'om',
-  'pa',
-  'pl',
-  'ps',
-  'pt',
-  'rn',
-  'ro',
-  'ru',
-  'rw',
-  'sd',
-  'si',
-  'so',
-  'sq',
-  'sr',
-  'sv',
-  'sw',
-  'ta',
-  'te',
-  'tg',
-  'th',
-  'tl',
-  'tr',
-  'tt',
-  'ug',
-  'uk',
-  'ur',
-  'uz',
-  'vi',
-  'yo',
-  'zh',
-]);
-
-const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
-  arabic: 'ar',
-  azeri: 'az',
-  bengali: 'bn',
-  bosnian: 'bs',
-  chechen: 'ce',
-  chinese: 'zh',
-  croatian: 'hr',
-  czech: 'cs',
-  divehi: 'dv',
-  dutch: 'nl',
-  english: 'en',
-  finnish: 'fi',
-  french: 'fr',
-  german: 'de',
-  hebrew: 'he',
-  hindi: 'hi',
-  indonesian: 'id',
-  italian: 'it',
-  japanese: 'ja',
-  korean: 'ko',
-  kurdish: 'ku',
-  malay: 'ms',
-  malayalam: 'ml',
-  nepali: 'ne',
-  norwegian: 'no',
-  pashto: 'ps',
-  persian: 'fa',
-  polish: 'pl',
-  portuguese: 'pt',
-  romanian: 'ro',
-  russian: 'ru',
-  sinhala: 'si',
-  somali: 'so',
-  spanish: 'es',
-  swahili: 'sw',
-  swedish: 'sv',
-  tagalog: 'tl',
-  tajik: 'tg',
-  tamil: 'ta',
-  telugu: 'te',
-  thai: 'th',
-  turkish: 'tr',
-  ukrainian: 'uk',
-  urdu: 'ur',
-  uzbek: 'uz',
-  vietnamese: 'vi',
-};
-
-function normalizeAyahNo(surahNo: number, ayahNo: string) {
-  const normalized = ayahNo.trim();
-  const exactMatch = new RegExp(`^${surahNo}:(\\d+(?:-\\d+)?)$`, 'u').exec(normalized);
-
-  if (exactMatch) {
-    return exactMatch[1];
-  }
-
-  return normalized;
-}
-
-function normalizeLanguageCode(rawCode: string) {
-  const normalized = rawCode.trim().toLowerCase();
-
-  if (!normalized) {
-    return 'en';
-  }
-
-  const base = normalized.split('-')[0] ?? normalized;
-
-  if (SUPPORTED_LANGUAGE_CODES.has(base)) {
-    return base;
-  }
-
-  return 'en';
-}
-
-function getLanguageCodeFromReflectionLanguageName(languageName: string | null) {
-  if (!languageName) {
-    return null;
-  }
-
-  const key = languageName.trim().toLowerCase();
-
-  return LANGUAGE_NAME_TO_CODE[key] ?? null;
-}
-
 function isLlmDebugEnabled() {
   return process.env.LLM_DEBUG === 'true';
 }
@@ -561,19 +204,6 @@ async function enrichAntidotes(antidotes: OpenAIAntidote[]) {
   );
 }
 
-function buildReflectionCandidates(antidotes: EnrichedAntidote[]) {
-  return antidotes.flatMap((antidote) =>
-    antidote.related_reflections.map(
-      (reflection): CuratedReflectionCandidate => ({
-        ...reflection,
-        ayah_no: antidote.ayah_no,
-        surah_name: antidote.surah_name,
-        surah_no: antidote.surah_no,
-      }),
-    ),
-  );
-}
-
 async function curateReflection(
   diagnosis: Diagnosis,
   candidates: CuratedReflectionCandidate[],
@@ -582,12 +212,7 @@ async function curateReflection(
     return null;
   }
 
-  const serializedCandidates = candidates
-    .map(
-      (candidate) =>
-        `[ID: ${candidate.id}] [Ayah: ${candidate.surah_no}:${candidate.ayah_no}] "${candidate.body}"`,
-    )
-    .join('\n\n');
+  const serializedCandidates = serializeReflectionCandidates(candidates);
 
   const selection = await callStructuredOpenAI<CuratedReflectionResponse>(
     {
@@ -615,34 +240,7 @@ Analyze the candidate reflections against the diagnosis. Select the one reflecti
     },
   );
 
-  const selectedCandidate =
-    candidates.find((candidate) => candidate.id === selection.selected_reflection_id) ?? null;
-
-  return {
-    ayah_no: selectedCandidate?.ayah_no ?? '',
-    reflection_is_translated: false,
-    reflection_original_body: selectedCandidate?.body ?? null,
-    reflection_source_language_code: getLanguageCodeFromReflectionLanguageName(
-      selectedCandidate?.languageName ?? null,
-    ),
-    reflection: selectedCandidate
-      ? {
-          authorName: selectedCandidate.authorName,
-          body: selectedCandidate.body,
-          commentsCount: selectedCandidate.commentsCount,
-          createdAt: selectedCandidate.createdAt,
-          id: selectedCandidate.id,
-          languageName: selectedCandidate.languageName,
-          likesCount: selectedCandidate.likesCount,
-          postTypeName: selectedCandidate.postTypeName,
-          references: selectedCandidate.references,
-        }
-      : null,
-    selected_reflection_id: selection.selected_reflection_id,
-    selection_reason: selection.selection_reason,
-    surah_name: selectedCandidate?.surah_name ?? '',
-    surah_no: selectedCandidate?.surah_no ?? 0,
-  };
+  return createSelectedReflection(selection, candidates);
 }
 
 async function translateSelectedReflectionIfNeeded(
@@ -847,23 +445,6 @@ User Feeling: ${userFeeling}`,
   return response.title.trim() || 'Reflection';
 }
 
-function createPipelineStep(
-  step: PipelineStepKey,
-  label: string,
-  status: PipelineStepEvent['status'],
-): PipelineStepEvent {
-  return {
-    label,
-    status,
-    step,
-    type: 'step',
-  };
-}
-
-function toJsonLine(event: PipelineEvent) {
-  return `${JSON.stringify(event)}\n`;
-}
-
 export async function POST(request: Request) {
   // Check rate limit first
   const rateLimitCheck = await checkRateLimit(request);
@@ -908,44 +489,26 @@ export async function POST(request: Request) {
       };
 
       try {
-        send(
-          createPipelineStep('language_detection', 'Detecting your input language', 'in_progress'),
-        );
+        send(createPipelineStep('language_detection', 'in_progress'));
         const detectedLanguageCode = await detectInputLanguage(eventContent, userFeeling);
-        send(
-          createPipelineStep('language_detection', 'Detecting your input language', 'completed'),
-        );
+        send(createPipelineStep('language_detection', 'completed'));
 
-        send(createPipelineStep('ayah_selection', 'Selecting grounding ayahs', 'in_progress'));
+        send(createPipelineStep('ayah_selection', 'in_progress'));
         const response = await callAntidoteModel(eventContent, userFeeling);
-        send(createPipelineStep('ayah_selection', 'Selecting grounding ayahs', 'completed'));
+        send(createPipelineStep('ayah_selection', 'completed'));
 
-        send(
-          createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'in_progress'),
-        );
+        send(createPipelineStep('reflection_fetch', 'in_progress'));
         const enrichedAntidotes = await enrichAntidotes(response.antidotes);
-        send(
-          createPipelineStep('reflection_fetch', 'Collecting relevant reflections', 'completed'),
-        );
+        send(createPipelineStep('reflection_fetch', 'completed'));
 
-        send(
-          createPipelineStep('reflection_curation', 'Curating the strongest match', 'in_progress'),
-        );
+        send(createPipelineStep('reflection_curation', 'in_progress'));
         const selectedReflection = await curateReflection(
           response.diagnosis,
           buildReflectionCandidates(enrichedAntidotes),
         );
-        send(
-          createPipelineStep('reflection_curation', 'Curating the strongest match', 'completed'),
-        );
+        send(createPipelineStep('reflection_curation', 'completed'));
 
-        send(
-          createPipelineStep(
-            'reflection_translation',
-            'Aligning reflection language with your input',
-            'in_progress',
-          ),
-        );
+        send(createPipelineStep('reflection_translation', 'in_progress'));
         let localizedSelectedReflection = selectedReflection;
         try {
           localizedSelectedReflection = await translateSelectedReflectionIfNeeded(
@@ -958,17 +521,9 @@ export async function POST(request: Request) {
             message: error instanceof Error ? error.message : 'Unknown error',
           });
         }
-        send(
-          createPipelineStep(
-            'reflection_translation',
-            'Aligning reflection language with your input',
-            'completed',
-          ),
-        );
+        send(createPipelineStep('reflection_translation', 'completed'));
 
-        send(
-          createPipelineStep('guide_generation', 'Preparing your guided reading', 'in_progress'),
-        );
+        send(createPipelineStep('guide_generation', 'in_progress'));
         const [reflectionGuide, chatTitle] = await Promise.all([
           buildReflectionGuide({
             detectedLanguageCode,
@@ -983,7 +538,7 @@ export async function POST(request: Request) {
             userFeeling,
           }),
         ]);
-        send(createPipelineStep('guide_generation', 'Preparing your guided reading', 'completed'));
+        send(createPipelineStep('guide_generation', 'completed'));
 
         const resultEvent: PipelineResultEvent = {
           data: {
