@@ -2,17 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import {
-  ChatLoadingState,
-  createInitialLoadingStepStatus,
-  type PipelineStepKey,
-  type PipelineStepStatus,
-} from '@/components/chat-loading-state';
 import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
 import { requestAntidoteStream } from '@/lib/antidotes/browser';
 import { getBrowserFingerprint } from '@/lib/browser-fingerprint';
-import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 import {
   completeChatThread,
   failChatThread,
@@ -21,6 +14,13 @@ import {
   type LocalChatThread,
 } from '@/lib/chat-store';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
+import {
+  ChatLoadingState,
+  createInitialLoadingStepStatus,
+  type PipelineStepKey,
+  type PipelineStepStatus,
+} from './chat-loading-state';
 
 export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; chatId: string }) {
   const [thread, setThread] = useState<LocalChatThread | null>(null);

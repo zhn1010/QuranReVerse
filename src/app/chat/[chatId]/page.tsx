@@ -1,4 +1,4 @@
-import { ChatThreadScreen } from '@/components/chat-thread-screen';
+import { ChatThreadScreen } from '@/components/chat-thread';
 import { getQfUserSessionSummary } from '@/lib/qf-user';
 
 export const dynamic = 'force-dynamic';
