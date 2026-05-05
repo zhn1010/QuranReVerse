@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
+import { SidebarNotesPanel } from '@/components/sidebar-notes-panel';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { prefetchSidebarNotes, resetSidebarNotes } from '@/lib/sidebar-notes-store';
 import { prefetchSidebarBookmarks, resetSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/lib/chat-store';
 
@@ -106,10 +108,12 @@ export function ChatShell({
   useEffect(() => {
     if (!auth.isAuthenticated) {
       resetSidebarBookmarks();
+      resetSidebarNotes();
       return;
     }
 
     void prefetchSidebarBookmarks();
+    void prefetchSidebarNotes();
   }, [auth.isAuthenticated]);
 
   const isSidebarExpanded = isDesktopSidebarExpanded || isMobileSidebarOpen;
@@ -294,13 +298,7 @@ export function ChatShell({
                         </div>
                       </>
                     ) : activeSidebarTab === 'notes' ? (
-                      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
-                        <p className="text-sm font-semibold text-(--ink-strong)">Notes</p>
-                        <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
-                          Notes saved from your reflections will appear here once we connect this
-                          tab to your Quran Foundation account data.
-                        </p>
-                      </div>
+                      <SidebarNotesPanel isAuthenticated={auth.isAuthenticated} />
                     ) : (
                       <SidebarBookmarksPanel isAuthenticated={auth.isAuthenticated} />
                     )}

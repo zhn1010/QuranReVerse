@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createNoteInQfAccount, persistQfUserSession } from '@/lib/qf-user';
+import {
+  createNoteInQfAccount,
+  deleteNoteInQfAccount,
+  listNotesInQfAccount,
+  persistQfUserSession,
+  updateNoteInQfAccount,
+} from '@/lib/qf-user';
 import type { QfNoteAttachedEntity } from '@/lib/qf-user';
 
 export async function POST(request: Request) {
@@ -37,6 +43,114 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       note: result.note,
       success: true,
+    });
+
+    await persistQfUserSession(response, result.session);
+
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      message.includes('connection expired') ||
+      message.includes('connect your Quran Foundation')
+    ) {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unexpected error' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET() {
+  try {
+    const result = await listNotesInQfAccount();
+    const response = NextResponse.json({
+      notes: result.notes,
+      success: true,
+    });
+
+    await persistQfUserSession(response, result.session);
+
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      message.includes('connection expired') ||
+      message.includes('connect your Quran Foundation')
+    ) {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unexpected error' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = (await request.json()) as {
+      body?: string;
+      id?: string;
+    };
+
+    if (!body.id || typeof body.id !== 'string') {
+      return NextResponse.json({ error: 'Note id is required.' }, { status: 400 });
+    }
+
+    if (!body.body || typeof body.body !== 'string') {
+      return NextResponse.json({ error: 'Note body is required.' }, { status: 400 });
+    }
+
+    if (body.body.length < 6 || body.body.length > 10000) {
+      return NextResponse.json(
+        { error: 'Note body must be between 6 and 10,000 characters.' },
+        { status: 400 },
+      );
+    }
+
+    const result = await updateNoteInQfAccount(body.id, body.body);
+    const response = NextResponse.json({
+      note: result.note,
+      success: true,
+    });
+
+    await persistQfUserSession(response, result.session);
+
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      message.includes('connection expired') ||
+      message.includes('connect your Quran Foundation')
+    ) {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unexpected error' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = (await request.json()) as {
+      id?: string;
+    };
+
+    if (!body.id || typeof body.id !== 'string') {
+      return NextResponse.json({ error: 'Note id is required.' }, { status: 400 });
+    }
+
+    const result = await deleteNoteInQfAccount(body.id);
+    const response = NextResponse.json({
+      success: result.success,
     });
 
     await persistQfUserSession(response, result.session);

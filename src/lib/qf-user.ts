@@ -1410,6 +1410,198 @@ export type QfNoteAttachedEntity = {
   entityType: 'reflection';
 };
 
+export type QfSavedNote = {
+  attachedEntities: QfNoteAttachedEntity[];
+  body: string;
+  createdAt: string | null;
+  id: string;
+  ranges: string[];
+  updatedAt: string | null;
+};
+
+function normalizeQfNote(raw: unknown): QfSavedNote | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const id =
+    typeof record.id === 'string'
+      ? record.id
+      : typeof record.id === 'number'
+        ? String(record.id)
+        : null;
+  const body = typeof record.body === 'string' ? record.body : '';
+
+  if (!id) {
+    return null;
+  }
+
+  const attachedEntities = Array.isArray(record.attachedEntities)
+    ? record.attachedEntities
+        .map((entity) => {
+          if (!entity || typeof entity !== 'object') {
+            return null;
+          }
+
+          const entityRecord = entity as Record<string, unknown>;
+          if (
+            typeof entityRecord.entityId !== 'string' ||
+            entityRecord.entityType !== 'reflection'
+          ) {
+            return null;
+          }
+
+          const normalizedEntity: QfNoteAttachedEntity = {
+            entityId: entityRecord.entityId,
+            entityMetadata:
+              entityRecord.entityMetadata && typeof entityRecord.entityMetadata === 'object'
+                ? (entityRecord.entityMetadata as Record<string, unknown>)
+                : undefined,
+            entityType: 'reflection' as const,
+          };
+
+          return normalizedEntity;
+        })
+        .filter((entity): entity is QfNoteAttachedEntity => Boolean(entity))
+    : [];
+
+  const ranges = Array.isArray(record.ranges)
+    ? record.ranges
+        .map((range) => {
+          if (typeof range === 'string') {
+            return range;
+          }
+
+          if (range && typeof range === 'object') {
+            const rangeRecord = range as Record<string, unknown>;
+            if (typeof rangeRecord.range === 'string') {
+              return rangeRecord.range;
+            }
+          }
+
+          return null;
+        })
+        .filter((range): range is string => Boolean(range))
+    : [];
+
+  return {
+    attachedEntities,
+    body,
+    createdAt: typeof record.createdAt === 'string' ? record.createdAt : null,
+    id,
+    ranges,
+    updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : null,
+  };
+}
+
+export async function listNotesInQfAccount() {
+  const session = await getQfUserSession();
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  const allNotes: QfSavedNote[] = [];
+  let activeSession = session;
+  let after: string | null = null;
+
+  while (true) {
+    const searchParams = new URLSearchParams({
+      first: '20',
+    });
+
+    if (after) {
+      searchParams.set('after', after);
+    }
+
+    const { response, session: updatedSession } = await qfApiFetch(
+      activeSession,
+      `/auth/v1/notes?${searchParams.toString()}`,
+    );
+    const payload = await readApiResponse<{
+      data?: unknown[];
+      pagination?: QfPagination;
+      success?: boolean;
+    }>(response);
+
+    activeSession = updatedSession;
+
+    const normalizedNotes = (payload.data ?? [])
+      .map((note) => normalizeQfNote(note))
+      .filter((note): note is QfSavedNote => Boolean(note));
+
+    allNotes.push(...normalizedNotes);
+
+    if (!payload.pagination?.hasNextPage || !payload.pagination.endCursor) {
+      break;
+    }
+
+    after = payload.pagination.endCursor;
+  }
+
+  allNotes.sort(
+    (left, right) =>
+      Date.parse(right.updatedAt ?? right.createdAt ?? '') -
+      Date.parse(left.updatedAt ?? left.createdAt ?? ''),
+  );
+
+  return {
+    notes: allNotes,
+    session: activeSession,
+  };
+}
+
+export async function updateNoteInQfAccount(noteId: string, body: string) {
+  const session = await getQfUserSession();
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  const { response, session: updatedSession } = await qfApiFetch(session, `/auth/v1/notes/${noteId}`, {
+    body: JSON.stringify({
+      body,
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'PATCH',
+  });
+
+  const result = await readApiResponse<{
+    data?: unknown;
+    success?: boolean;
+  }>(response);
+
+  return {
+    note: normalizeQfNote(result.data),
+    session: updatedSession,
+  };
+}
+
+export async function deleteNoteInQfAccount(noteId: string) {
+  const session = await getQfUserSession();
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  const { response, session: updatedSession } = await qfApiFetch(session, `/auth/v1/notes/${noteId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Failed to delete note: ${response.status} ${details}`);
+  }
+
+  return {
+    session: updatedSession,
+    success: true,
+  };
+}
+
 export async function createNoteInQfAccount(
   body: string,
   ranges: string[],

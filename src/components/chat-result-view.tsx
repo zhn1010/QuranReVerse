@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/toast';
 import type { ApiResponse } from '@/lib/antidote-types';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
 import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import {
   buildQuranEmbedUrl,
@@ -362,6 +363,7 @@ export function ChatResultView({
         isSaving: false,
         open: false,
       });
+      void revalidateSidebarNotes();
       setNoteSaved(true);
       toast.success('Note saved to your Quran Foundation account.');
     } catch (error) {

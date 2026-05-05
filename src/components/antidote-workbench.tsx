@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Script from 'next/script';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
 import { revalidateSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
 import { useToast } from '@/components/toast';
 
@@ -788,6 +789,7 @@ export default function AntidoteWorkbench({ initialAuth }: { initialAuth: QfSess
         open: false,
         success: null,
       });
+      void revalidateSidebarNotes();
       toast.success('Note saved to your Quran Foundation account.');
     } catch (noteError) {
       const message = noteError instanceof Error ? noteError.message : 'Could not save the note.';
