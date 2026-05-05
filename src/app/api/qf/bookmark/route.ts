@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
 import {
   bookmarkAyahsInSakinahCollection,
   getAyahBookmarksInSakinahCollection,
@@ -38,11 +39,13 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
+    const message = getErrorMessage(error);
+
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Unexpected error',
+        error: message || 'Unexpected error',
       },
-      { status: 500 },
+      { status: getQfErrorStatus(error) },
     );
   }
 }
@@ -95,11 +98,10 @@ export async function GET(request: Request) {
       });
     }
 
-    const message = error instanceof Error ? error.message : String(error);
-    if (
-      message.includes('connection expired') ||
-      message.includes('connect your Quran Foundation')
-    ) {
+    const message = getErrorMessage(error);
+    const status = getQfErrorStatus(error);
+
+    if (status === 401) {
       return NextResponse.json({ error: message }, { status: 401 });
     }
 
@@ -135,11 +137,13 @@ export async function DELETE(request: Request) {
 
     return response;
   } catch (error) {
+    const message = getErrorMessage(error);
+
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Unexpected error',
+        error: message || 'Unexpected error',
       },
-      { status: 500 },
+      { status: getQfErrorStatus(error) },
     );
   }
 }

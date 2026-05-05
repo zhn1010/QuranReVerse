@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
 import {
   createNoteInQfAccount,
   deleteNoteInQfAccount,
@@ -49,11 +50,10 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (
-      message.includes('connection expired') ||
-      message.includes('connect your Quran Foundation')
-    ) {
+    const message = getErrorMessage(error);
+    const status = getQfErrorStatus(error);
+
+    if (status === 401) {
       return NextResponse.json({ error: message }, { status: 401 });
     }
 
@@ -76,11 +76,10 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (
-      message.includes('connection expired') ||
-      message.includes('connect your Quran Foundation')
-    ) {
+    const message = getErrorMessage(error);
+    const status = getQfErrorStatus(error);
+
+    if (status === 401) {
       return NextResponse.json({ error: message }, { status: 401 });
     }
 
@@ -123,11 +122,10 @@ export async function PATCH(request: Request) {
 
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (
-      message.includes('connection expired') ||
-      message.includes('connect your Quran Foundation')
-    ) {
+    const message = getErrorMessage(error);
+    const status = getQfErrorStatus(error);
+
+    if (status === 401) {
       return NextResponse.json({ error: message }, { status: 401 });
     }
 
@@ -157,11 +155,10 @@ export async function DELETE(request: Request) {
 
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (
-      message.includes('connection expired') ||
-      message.includes('connect your Quran Foundation')
-    ) {
+    const message = getErrorMessage(error);
+    const status = getQfErrorStatus(error);
+
+    if (status === 401) {
       return NextResponse.json({ error: message }, { status: 401 });
     }
 

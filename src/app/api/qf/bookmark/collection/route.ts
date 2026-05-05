@@ -1,5 +1,6 @@
 import type { ChapterId } from '@quranjs/api';
 import { NextResponse } from 'next/server';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
 import { getQuranClient, getVerseWithTranslation } from '@/lib/quran-client';
 import {
   listAyahBookmarksInSakinahCollection,
@@ -93,12 +94,10 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
+    const status = getQfErrorStatus(error);
 
-    if (
-      message.includes('connection expired') ||
-      message.includes('connect your Quran Foundation')
-    ) {
+    if (status === 401) {
       return NextResponse.json({ error: message }, { status: 401 });
     }
 

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
-const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-5';
+import { createTextStreamFromOpenAIResponse, postOpenAIResponse } from '@/lib/openai-client';
 
 const NOTE_DRAFT_SYSTEM_PROMPT = `You are a personal journal ghostwriter for a Muslim who has just gone through a Quranic grounding session on Sakinah.now. The user came to the app feeling spiritually unsettled, received a diagnosis of their inner state, read a curated community reflection tied to specific Quran verses, and was guided back toward a God-centric perspective.
 
@@ -74,12 +72,6 @@ function buildPromptInput(body: DraftRequestBody): string {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 });
-    }
-
     const body = (await request.json()) as DraftRequestBody;
 
     if (!body.eventContent || !body.userFeeling) {
@@ -91,32 +83,21 @@ export async function POST(request: Request) {
 
     const inputText = buildPromptInput(body);
 
-    const upstreamResponse = await fetch(OPENAI_API_URL, {
-      body: JSON.stringify({
-        input: [
-          {
-            content: [
-              {
-                text: inputText,
-                type: 'input_text',
-              },
-            ],
-            role: 'user',
-          },
-        ],
-        instructions: NOTE_DRAFT_SYSTEM_PROMPT,
-        max_output_tokens: 600,
-        model: OPENAI_MODEL,
-        reasoning: {
-          effort: 'minimal',
+    const upstreamResponse = await postOpenAIResponse({
+      input: [
+        {
+          content: [
+            {
+              text: inputText,
+              type: 'input_text',
+            },
+          ],
+          role: 'user',
         },
-        stream: true,
-      }),
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      method: 'POST',
+      ],
+      instructions: NOTE_DRAFT_SYSTEM_PROMPT,
+      max_output_tokens: 600,
+      stream: true,
     });
 
     if (!upstreamResponse.ok) {
@@ -128,68 +109,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Could not generate the note draft.' }, { status: 502 });
     }
 
-    if (!upstreamResponse.body) {
-      return NextResponse.json(
-        { error: 'OpenAI did not return a readable stream.' },
-        { status: 502 },
-      );
-    }
-
-    const reader = upstreamResponse.body.getReader();
-    const decoder = new TextDecoder();
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        let buffer = '';
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-              break;
-            }
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() ?? '';
-
-            for (const line of lines) {
-              const trimmed = line.trim();
-
-              if (!trimmed || !trimmed.startsWith('data:')) {
-                continue;
-              }
-
-              const jsonStr = trimmed.slice(5).trim();
-
-              if (jsonStr === '[DONE]') {
-                continue;
-              }
-
-              try {
-                const event = JSON.parse(jsonStr) as Record<string, unknown>;
-                const eventType = event.type as string | undefined;
-
-                if (eventType === 'response.output_text.delta') {
-                  const delta = (event as { delta?: string }).delta;
-
-                  if (typeof delta === 'string') {
-                    controller.enqueue(encoder.encode(delta));
-                  }
-                }
-              } catch {
-                // skip malformed SSE lines
-              }
-            }
-          }
-        } catch (streamError) {
-          console.error('[note-draft] stream error', streamError);
-        } finally {
-          controller.close();
-        }
-      },
+    const stream = createTextStreamFromOpenAIResponse(upstreamResponse, (streamError) => {
+      console.error('[note-draft] stream error', streamError);
     });
 
     return new Response(stream, {
@@ -201,6 +122,10 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('OPENAI_API_KEY')) {
+      return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 });
+    }
+
     console.error('[note-draft] unexpected error', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unexpected error' },

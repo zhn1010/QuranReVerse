@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 import { getRelatedReflectionsForAyah, type RelatedReflection } from '@/lib/quran-reflect';
 import { getSession } from '@/lib/session';
+import { callStructuredOpenAI } from '@/lib/openai-client';
 
 // Initialize Redis client for rate limiting (uses same KV env vars)
 const redis = new Redis({
@@ -88,9 +89,6 @@ async function checkRateLimit(
 
   return { allowed: true };
 }
-
-const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
-const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-5';
 
 const antidoteSystemPrompt = `You are a specialist in Islamic Psychology (Ilm an-Nafs) and Quranic Exegesis (Tafsir). Your goal is to help a user return to sakinah by transitioning from a "Materialistic/Power-centric" worldview to a "God-centric" worldview.
 
@@ -491,38 +489,6 @@ function getLanguageCodeFromReflectionLanguageName(languageName: string | null) 
   return LANGUAGE_NAME_TO_CODE[key] ?? null;
 }
 
-function extractResponseText(payload: Record<string, unknown>) {
-  if (typeof payload.output_text === 'string' && payload.output_text.trim().length > 0) {
-    return payload.output_text;
-  }
-
-  const output = Array.isArray(payload.output) ? payload.output : [];
-
-  for (const item of output) {
-    if (!item || typeof item !== 'object') {
-      continue;
-    }
-
-    const content = Array.isArray((item as { content?: unknown[] }).content)
-      ? (item as { content: unknown[] }).content
-      : [];
-
-    for (const block of content) {
-      if (!block || typeof block !== 'object') {
-        continue;
-      }
-
-      const maybeText = (block as { text?: unknown }).text;
-
-      if (typeof maybeText === 'string' && maybeText.trim().length > 0) {
-        return maybeText;
-      }
-    }
-  }
-
-  return null;
-}
-
 function isLlmDebugEnabled() {
   return process.env.LLM_DEBUG === 'true';
 }
@@ -535,127 +501,34 @@ function logLlmDebug(message: string, details: Record<string, unknown>) {
   console.log('[llm-debug]', message, details);
 }
 
-async function callStructuredOpenAI<T>({
-  inputText,
-  instructions,
-  maxOutputTokens,
-  schema,
-  schemaName,
-}: {
-  inputText: string;
-  instructions: string;
-  maxOutputTokens: number;
-  schema: Record<string, unknown>;
-  schemaName: string;
-}): Promise<T> {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('Missing required environment variable: OPENAI_API_KEY');
-  }
-
-  const response = await fetch(OPENAI_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      input: [
-        {
-          content: [
-            {
-              text: inputText,
-              type: 'input_text',
-            },
-          ],
-          role: 'user',
-        },
-      ],
-      instructions,
-      max_output_tokens: maxOutputTokens,
-      model: OPENAI_MODEL,
-      reasoning: {
-        effort: 'minimal',
-      },
-      text: {
-        verbosity: 'low',
-        format: {
-          name: schemaName,
-          schema,
-          strict: true,
-          type: 'json_schema',
-        },
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`OpenAI request failed: ${response.status} ${response.statusText} ${details}`);
-  }
-
-  const payload = (await response.json()) as Record<string, unknown>;
-  logLlmDebug('received openai payload', {
-    hasOutputText: typeof payload.output_text === 'string',
-    schemaName,
-    status: payload.status,
-  });
-
-  const refusal = payload.refusal;
-
-  if (typeof refusal === 'string' && refusal.trim().length > 0) {
-    throw new Error(refusal);
-  }
-
-  const text = extractResponseText(payload);
-
-  if (!text) {
-    logLlmDebug('missing structured json text', {
-      schemaName,
-    });
-    throw new Error('OpenAI did not return structured JSON text.');
-  }
-
-  logLlmDebug('raw structured text extracted', {
-    preview: text.slice(0, 500),
-    schemaName,
-    textEndsWithBrace: text.trim().endsWith('}'),
-    textLength: text.length,
-    textStartsWithBrace: text.trim().startsWith('{'),
-  });
-
-  try {
-    return JSON.parse(text) as T;
-  } catch (error) {
-    logLlmDebug('failed to parse structured json', {
-      parseError: error instanceof Error ? error.message : String(error),
-      preview: text.slice(0, 1000),
-      schemaName,
-      textLength: text.length,
-    });
-    throw error;
-  }
-}
-
 async function callAntidoteModel(eventText: string, feelingText: string) {
-  return callStructuredOpenAI<AntidoteResponse>({
-    inputText: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide only the most relevant Quranic grounding passages. Each suggestion must include the Surah name, Surah number, Ayah number, and a short spiritual reframing rationale.`,
-    instructions: antidoteSystemPrompt,
-    maxOutputTokens: 350,
-    schema: antidoteResponseSchema,
-    schemaName: 'quranic_antidotes',
-  });
+  return callStructuredOpenAI<AntidoteResponse>(
+    {
+      inputText: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide only the most relevant Quranic grounding passages. Each suggestion must include the Surah name, Surah number, Ayah number, and a short spiritual reframing rationale.`,
+      instructions: antidoteSystemPrompt,
+      maxOutputTokens: 350,
+      schema: antidoteResponseSchema,
+      schemaName: 'quranic_antidotes',
+    },
+    {
+      debugLogger: logLlmDebug,
+    },
+  );
 }
 
 async function detectInputLanguage(eventText: string, feelingText: string) {
-  const response = await callStructuredOpenAI<LanguageDetectionResponse>({
-    inputText: `Event/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"`,
-    instructions: languageDetectionSystemPrompt,
-    maxOutputTokens: 40,
-    schema: languageDetectionResponseSchema,
-    schemaName: 'input_language_detection',
-  });
+  const response = await callStructuredOpenAI<LanguageDetectionResponse>(
+    {
+      inputText: `Event/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"`,
+      instructions: languageDetectionSystemPrompt,
+      maxOutputTokens: 40,
+      schema: languageDetectionResponseSchema,
+      schemaName: 'input_language_detection',
+    },
+    {
+      debugLogger: logLlmDebug,
+    },
+  );
 
   return normalizeLanguageCode(response.language_code);
 }
@@ -716,8 +589,9 @@ async function curateReflection(
     )
     .join('\n\n');
 
-  const selection = await callStructuredOpenAI<CuratedReflectionResponse>({
-    inputText: `Part 1: The Spiritual Diagnosis
+  const selection = await callStructuredOpenAI<CuratedReflectionResponse>(
+    {
+      inputText: `Part 1: The Spiritual Diagnosis
 
 Spiritual Drift: ${diagnosis.spiritual_drift}
 
@@ -731,11 +605,15 @@ ${serializedCandidates}
 
 Task:
 Analyze the candidate reflections against the diagnosis. Select the one reflection that best grounds the user and addresses their current drift.`,
-    instructions: curatorSystemPrompt,
-    maxOutputTokens: 180,
-    schema: curatorResponseSchema,
-    schemaName: 'curated_reflection_selection',
-  });
+      instructions: curatorSystemPrompt,
+      maxOutputTokens: 180,
+      schema: curatorResponseSchema,
+      schemaName: 'curated_reflection_selection',
+    },
+    {
+      debugLogger: logLlmDebug,
+    },
+  );
 
   const selectedCandidate =
     candidates.find((candidate) => candidate.id === selection.selected_reflection_id) ?? null;
@@ -816,18 +694,23 @@ async function translateSelectedReflectionIfNeeded(
     targetLanguageCode,
   });
 
-  const translation = await callStructuredOpenAI<ReflectionTranslationResponse>({
-    inputText: `Target language code: ${targetLanguageCode}
+  const translation = await callStructuredOpenAI<ReflectionTranslationResponse>(
+    {
+      inputText: `Target language code: ${targetLanguageCode}
 
 Source language code: ${sourceLanguageCode}
 
 Reflection text:
 ${selectedReflection.reflection.body}`,
-    instructions: reflectionTranslationSystemPrompt,
-    maxOutputTokens: 1200,
-    schema: reflectionTranslationResponseSchema,
-    schemaName: 'selected_reflection_translation',
-  });
+      instructions: reflectionTranslationSystemPrompt,
+      maxOutputTokens: 1200,
+      schema: reflectionTranslationResponseSchema,
+      schemaName: 'selected_reflection_translation',
+    },
+    {
+      debugLogger: logLlmDebug,
+    },
+  );
 
   const translatedText = translation.translated_text.trim();
   const usedOriginalFallback = translatedText.length === 0;
@@ -899,10 +782,15 @@ Constraint: Do not reproduce the reflection text itself—only reference its the
   } as const;
 
   try {
-    return await callStructuredOpenAI<SpiritualGuideResponse>({
-      ...requestParams,
-      maxOutputTokens: 900,
-    });
+    return await callStructuredOpenAI<SpiritualGuideResponse>(
+      {
+        ...requestParams,
+        maxOutputTokens: 900,
+      },
+      {
+        debugLogger: logLlmDebug,
+      },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const looksLikeTruncatedJson =
@@ -918,10 +806,15 @@ Constraint: Do not reproduce the reflection text itself—only reference its the
       message,
     });
 
-    return callStructuredOpenAI<SpiritualGuideResponse>({
-      ...requestParams,
-      maxOutputTokens: 1400,
-    });
+    return callStructuredOpenAI<SpiritualGuideResponse>(
+      {
+        ...requestParams,
+        maxOutputTokens: 1400,
+      },
+      {
+        debugLogger: logLlmDebug,
+      },
+    );
   }
 }
 
@@ -934,17 +827,22 @@ async function generateChatTitle({
   eventContent: string;
   userFeeling: string;
 }) {
-  const response = await callStructuredOpenAI<ChatTitleResponse>({
-    inputText: `Output language: ${detectedLanguageCode}
+  const response = await callStructuredOpenAI<ChatTitleResponse>(
+    {
+      inputText: `Output language: ${detectedLanguageCode}
 
 Event/Content: ${eventContent}
 
 User Feeling: ${userFeeling}`,
-    instructions: chatTitleSystemPrompt,
-    maxOutputTokens: 40,
-    schema: chatTitleResponseSchema,
-    schemaName: 'chat_title',
-  });
+      instructions: chatTitleSystemPrompt,
+      maxOutputTokens: 40,
+      schema: chatTitleResponseSchema,
+      schemaName: 'chat_title',
+    },
+    {
+      debugLogger: logLlmDebug,
+    },
+  );
 
   return response.title.trim() || 'Reflection';
 }
