@@ -31,6 +31,22 @@ function buildQuranRangeUrl(range: string) {
   return `https://quran.com/${range}`;
 }
 
+function formatRangeLabel(range: string) {
+  const match = /^(\d+):(\d+)-(\d+):(\d+)$/u.exec(range.trim());
+
+  if (!match) {
+    return range;
+  }
+
+  const [, startSurah, startAyah, endSurah, endAyah] = match;
+
+  if (startSurah === endSurah && startAyah === endAyah) {
+    return `${startSurah}:${startAyah}`;
+  }
+
+  return range;
+}
+
 export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const toast = useToast();
   const [isMounted, setIsMounted] = useState(false);
@@ -312,7 +328,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                             rel="noreferrer"
                             target="_blank"
                           >
-                            <span>{range}</span>
+                            <span>{formatRangeLabel(range)}</span>
                             <span aria-hidden="true" className="ml-2 text-(--ink-soft)">
                               ↗
                             </span>
