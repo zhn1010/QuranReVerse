@@ -149,7 +149,7 @@ export function ChatShell({
     <div className="min-h-screen bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,244,245,0.98))]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 h-screen w-[288px] -translate-x-full overflow-hidden border-r border-[rgba(63,63,70,0.08)] bg-[rgba(248,248,249,0.96)] backdrop-blur-xl transition-[width,transform] duration-300 ${
+          className={`fixed inset-y-0 left-0 z-40 h-screen w-[288px] -translate-x-full overflow-hidden border-r border-[var(--border-subtle)] bg-[var(--surface-sidebar)] backdrop-blur-xl transition-[width,transform] duration-300 ${
             isMobileSidebarOpen ? 'translate-x-0' : ''
           } ${
             isDesktopSidebarExpanded ? 'md:w-[288px]' : 'md:w-[72px] md:px-0'
@@ -236,7 +236,7 @@ export function ChatShell({
               {isSidebarExpanded ? (
                 <div className="flex h-full min-h-0 flex-col">
                   <div className="shrink-0 px-3">
-                    <div className="grid grid-cols-3 gap-1 border-b border-[rgba(63,63,70,0.08)] pb-2">
+                    <div className="grid grid-cols-3 gap-1 border-b border-[var(--border-subtle)] pb-2">
                       {SIDEBAR_TABS.map((tab) => {
                         const isActive = activeSidebarTab === tab.id;
 
@@ -275,7 +275,7 @@ export function ChatShell({
                                 <Link
                                   className={`block rounded-2xl px-3 py-3 transition ${
                                     isActive
-                                      ? 'bg-white text-(--ink-strong) shadow-[0_10px_24px_rgba(24,24,27,0.08)]'
+                                      ? 'bg-white text-(--ink-strong) shadow-[var(--shadow-pop)]'
                                       : 'text-(--ink-soft) hover:bg-white/70 hover:text-(--ink-strong)'
                                   }`}
                                   href={`/chat/${thread.id}`}
@@ -312,18 +312,18 @@ export function ChatShell({
         {isMobileSidebarOpen ? (
           <button
             aria-label="Close sidebar"
-            className="fixed inset-0 z-30 bg-[rgba(24,24,27,0.18)] md:hidden"
+            className="fixed inset-0 z-30 bg-[var(--surface-scrim-sidebar)] md:hidden"
             onClick={() => setIsMobileSidebarOpen(false)}
             type="button"
           />
         ) : null}
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-(--line) bg-[rgba(255,255,255,0.82)] backdrop-blur-xl">
+          <header className="sticky top-0 z-20 border-b border-(--line) bg-[var(--surface-card)] backdrop-blur-xl">
             <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">
                 <button
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-[rgba(244,244,245,0.8)] md:hidden"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-[var(--surface-subtle-strong)] md:hidden"
                   onClick={() => setIsMobileSidebarOpen(true)}
                   type="button"
                 >
@@ -341,7 +341,7 @@ export function ChatShell({
                   </svg>
                 </button>
                 <Link className="inline-flex items-center gap-3" href="/">
-                  <div className="relative h-10 w-10 overflow-hidden rounded-full shadow-[0_8px_20px_rgba(24,24,27,0.06)]">
+                  <div className="relative h-10 w-10 overflow-hidden rounded-full shadow-[var(--shadow-logo)]">
                     <Image
                       alt="Sakinah.now logo"
                       className="object-contain p-1.5"
@@ -366,7 +366,7 @@ export function ChatShell({
                 <button
                   aria-expanded={isMenuOpen}
                   aria-haspopup="menu"
-                  className="relative inline-flex h-11 w-11 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[rgba(82,82,91,0.12)] bg-white shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition hover:shadow-[0_12px_26px_rgba(24,24,27,0.12)]"
+                  className="relative inline-flex h-11 w-11 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[var(--border-accent-soft)] bg-white shadow-[var(--shadow-pop)] transition hover:shadow-[var(--shadow-pop-hover)]"
                   onClick={() => setIsMenuOpen((current) => !current)}
                   type="button"
                 >
@@ -398,7 +398,7 @@ export function ChatShell({
 
                 <div
                   aria-hidden={!isMenuOpen}
-                  className={`absolute right-0 top-full z-30 mt-2 w-64 origin-top-right rounded-2xl border border-[rgba(63,63,70,0.12)] bg-white/95 p-2 shadow-[0_20px_36px_rgba(24,24,27,0.14)] backdrop-blur-md transition duration-150 ease-out ${
+                  className={`absolute right-0 top-full z-30 mt-2 w-64 origin-top-right rounded-2xl border border-(--line) bg-[var(--surface-card-strong)] p-2 shadow-[var(--shadow-menu)] backdrop-blur-md transition duration-150 ease-out ${
                     isMenuOpen
                       ? 'translate-y-0 scale-100 opacity-100'
                       : 'pointer-events-none -translate-y-1 scale-95 opacity-0'
@@ -415,10 +415,10 @@ export function ChatShell({
                         : 'Not connected to Quran Foundation'}
                     </p>
                   </div>
-                  <div className="mt-1 border-t border-[rgba(63,63,70,0.08)] pt-1">
+                  <div className="mt-1 border-t border-[var(--border-subtle)] pt-1">
                     {auth.isAuthenticated ? (
                       <a
-                        className="flex rounded-xl px-3 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.9)]"
+                        className="flex rounded-xl px-3 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[var(--surface-subtle)]"
                         href="/api/qf/auth/logout"
                         role="menuitem"
                       >
@@ -426,7 +426,7 @@ export function ChatShell({
                       </a>
                     ) : (
                       <a
-                        className="flex rounded-xl px-3 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[rgba(244,244,245,0.9)]"
+                        className="flex rounded-xl px-3 py-2.5 text-sm font-medium text-(--ink-strong) transition hover:bg-[var(--surface-subtle)]"
                         href={`${APP_CANONICAL_ORIGIN}/api/qf/auth/login?next=${encodeURIComponent(pathname || '/')}`}
                         role="menuitem"
                       >

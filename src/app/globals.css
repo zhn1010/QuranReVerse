@@ -5,11 +5,47 @@
   --foreground: #18181b;
   --surface: rgba(200, 200, 200, 0.84);
   --surface-strong: rgba(255, 255, 255, 0.94);
+  --surface-card: rgba(255, 255, 255, 0.82);
+  --surface-card-soft: rgba(255, 255, 255, 0.7);
+  --surface-card-strong: rgba(255, 255, 255, 0.95);
+  --surface-sidebar: rgba(248, 248, 249, 0.96);
+  --surface-subtle: rgba(244, 244, 245, 0.72);
+  --surface-subtle-soft: rgba(244, 244, 245, 0.7);
+  --surface-subtle-strong: rgba(244, 244, 245, 0.8);
+  --surface-input: rgba(244, 244, 245, 0.5);
+  --surface-bubble: rgba(63, 63, 70, 0.08);
+  --surface-overlay: rgba(255, 255, 255, 0.96);
+  --surface-danger: rgba(140, 32, 32, 0.06);
+  --surface-scrim: rgba(0, 0, 0, 0.4);
+  --surface-scrim-soft: rgba(18, 18, 20, 0.32);
+  --surface-scrim-sidebar: rgba(24, 24, 27, 0.18);
   --line: rgba(63, 63, 70, 0.12);
+  --border-subtle: rgba(63, 63, 70, 0.08);
+  --border-soft: rgba(63, 63, 70, 0.1);
+  --border-default: rgba(63, 63, 70, 0.12);
+  --border-strong: rgba(63, 63, 70, 0.15);
+  --border-accent-soft: rgba(82, 82, 91, 0.12);
+  --border-accent-hover: rgba(63, 63, 70, 0.18);
+  --border-accent-strong: rgba(82, 82, 91, 0.28);
+  --border-focus: rgba(82, 82, 91, 0.4);
+  --border-danger: rgba(140, 32, 32, 0.18);
+  --border-success: rgba(24, 94, 58, 0.18);
+  --border-warning: rgba(146, 64, 14, 0.22);
   --accent: #52525b;
   --accent-strong: #27272a;
   --ink-soft: #71717a;
   --ink-strong: #18181b;
+  --focus-ring: rgba(113, 113, 122, 0.14);
+  --shadow-card-sm: 0 2px 8px rgba(24, 24, 27, 0.04);
+  --shadow-card: 0 2px 12px rgba(24, 24, 27, 0.06);
+  --shadow-logo: 0 8px 20px rgba(24, 24, 27, 0.06);
+  --shadow-pop: 0 10px 24px rgba(24, 24, 27, 0.08);
+  --shadow-pop-hover: 0 12px 26px rgba(24, 24, 27, 0.12);
+  --shadow-menu: 0 20px 36px rgba(24, 24, 27, 0.14);
+  --shadow-modal: 0 24px 80px rgba(24, 24, 27, 0.16);
+  --shadow-toast: 0 12px 40px rgba(24, 24, 27, 0.1);
+  --radius-field: 1.4rem;
+  --radius-panel: 1.8rem;
 }
 
 @theme inline {
@@ -45,7 +81,7 @@ body {
 
 code {
   border-radius: 999px;
-  background: rgba(63, 63, 70, 0.08);
+  background: var(--surface-bubble);
   padding: 0.15rem 0.5rem;
   font-family: 'SFMono-Regular', 'Menlo', monospace;
   font-size: 0.92em;

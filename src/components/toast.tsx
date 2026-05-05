@@ -108,20 +108,20 @@ const variantStyles: Record<
   { bg: string; border: string; text: string; icon: string }
 > = {
   success: {
-    bg: 'bg-[rgba(255,255,255,0.96)]',
-    border: 'border-[rgba(24,94,58,0.18)]',
+    bg: 'bg-[var(--surface-overlay)]',
+    border: 'border-[var(--border-success)]',
     text: 'text-[rgb(24,94,58)]',
     icon: 'M5 13l4 4L19 7',
   },
   error: {
-    bg: 'bg-[rgba(255,255,255,0.96)]',
-    border: 'border-[rgba(146,64,14,0.22)]',
+    bg: 'bg-[var(--surface-overlay)]',
+    border: 'border-[var(--border-warning)]',
     text: 'text-[rgb(146,64,14)]',
     icon: 'M6 18L18 6M6 6l12 12',
   },
   info: {
-    bg: 'bg-[rgba(255,255,255,0.96)]',
-    border: 'border-[rgba(82,82,91,0.18)]',
+    bg: 'bg-[var(--surface-overlay)]',
+    border: 'border-[var(--border-default)]',
     text: 'text-(--ink-strong)',
     icon: 'M13 16h-1v-4h-1m1-4h.01',
   },
@@ -132,7 +132,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
 
   return (
     <div
-      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-[0_12px_40px_rgba(24,24,27,0.10)] backdrop-blur-sm transition-all duration-300 ${style.bg} ${style.border} ${
+      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-[var(--shadow-toast)] backdrop-blur-sm transition-all duration-300 ${style.bg} ${style.border} ${
         toast.leaving
           ? 'translate-y-4 scale-95 opacity-0'
           : 'translate-y-0 scale-100 opacity-100 animate-[toast-in_0.32s_ease-out]'
