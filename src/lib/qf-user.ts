@@ -1502,53 +1502,31 @@ export async function listNotesInQfAccount() {
     throw new Error('You need to connect your Quran Foundation account first.');
   }
 
-  const allNotes: QfSavedNote[] = [];
-  let activeSession = session;
-  let after: string | null = null;
+  const { response, session: updatedSession } = await qfApiFetch(session, '/auth/v1/notes');
+  const payload = await readApiResponse<{
+    data?: unknown[] | { notes?: unknown[] };
+    success?: boolean;
+  }>(response);
 
-  while (true) {
-    const searchParams = new URLSearchParams({
-      first: '20',
-    });
+  const rawNotes = Array.isArray(payload.data)
+    ? payload.data
+    : Array.isArray(payload.data?.notes)
+      ? payload.data.notes
+      : [];
 
-    if (after) {
-      searchParams.set('after', after);
-    }
+  const notes = rawNotes
+    .map((note) => normalizeQfNote(note))
+    .filter((note): note is QfSavedNote => Boolean(note));
 
-    const { response, session: updatedSession } = await qfApiFetch(
-      activeSession,
-      `/auth/v1/notes?${searchParams.toString()}`,
-    );
-    const payload = await readApiResponse<{
-      data?: unknown[];
-      pagination?: QfPagination;
-      success?: boolean;
-    }>(response);
-
-    activeSession = updatedSession;
-
-    const normalizedNotes = (payload.data ?? [])
-      .map((note) => normalizeQfNote(note))
-      .filter((note): note is QfSavedNote => Boolean(note));
-
-    allNotes.push(...normalizedNotes);
-
-    if (!payload.pagination?.hasNextPage || !payload.pagination.endCursor) {
-      break;
-    }
-
-    after = payload.pagination.endCursor;
-  }
-
-  allNotes.sort(
+  notes.sort(
     (left, right) =>
       Date.parse(right.updatedAt ?? right.createdAt ?? '') -
       Date.parse(left.updatedAt ?? left.createdAt ?? ''),
   );
 
   return {
-    notes: allNotes,
-    session: activeSession,
+    notes,
+    session: updatedSession,
   };
 }
 
