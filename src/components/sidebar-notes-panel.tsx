@@ -3,11 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/components/toast';
-import {
-  detectTextDirection,
-  getDirectionStyles,
-  type TextDirection,
-} from '@/lib/reflection-ui';
+import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 import {
   getSidebarNotesServerSnapshot,
   getSidebarNotesSnapshot,
@@ -300,17 +296,13 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                     onClick={() => setActiveNote(null)}
                     type="button"
                   >
-                    <span className="sr-only">Close note</span>
-                    ×
+                    <span className="sr-only">Close note</span>×
                   </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-6 py-5">
                   {activeNote.note.ranges.length > 0 ? (
-                    <div className="mb-5 rounded-[1.4rem] border border-[rgba(63,63,70,0.08)] bg-[rgba(244,244,245,0.45)] px-4 py-4">
-                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-(--ink-soft)">
-                        Referenced ayahs
-                      </p>
+                    <div className="mb-5">
                       <div className="mt-3 flex flex-wrap gap-2">
                         {activeNote.note.ranges.map((range) => (
                           <a
