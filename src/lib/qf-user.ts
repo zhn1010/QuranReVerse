@@ -10,9 +10,27 @@ import {
 } from '@/lib/session';
 import { parseAyahSelection } from '@/lib/ayah';
 import { QF_BOOKMARK_COLLECTION_NAME } from '@/lib/app-constants';
+import {
+  buildBookmarkIdsByVerseNumber,
+  mapAyahBookmarks,
+  normalizeCollectionBookmark,
+  pickPreferredVerseCollection,
+} from '@/lib/qf/bookmarks';
 import { getQfConfig, isQfAuthDebugEnabled, maskIdentifier, qfAuthDebug } from '@/lib/qf/config';
+import { normalizeQfNote, normalizeQfNotesFromPayload } from '@/lib/qf/notes';
+import { deriveQfSessionSummaryFromProfilePayload } from '@/lib/qf/profile';
+import type {
+  QfAyahBookmark,
+  QfBookmark,
+  QfCollection,
+  QfNoteAttachedEntity,
+  QfPagination,
+  QfSavedNote,
+  QfSessionSummary,
+} from '@/lib/qf/types';
 
 export { QF_BOOKMARK_COLLECTION_NAME };
+export type { QfAyahBookmark, QfNoteAttachedEntity, QfSavedNote, QfSessionSummary };
 const QF_BOOKMARK_MUSHAF_ID = 5;
 const AUTH_FLOW_COOKIE_NAME = 'qf_oauth_flow';
 const USER_SESSION_COOKIE_NAME = 'qf_user_session';
@@ -49,155 +67,6 @@ type JwtScopePayload = {
   scope?: string;
   scp?: string | string[];
 };
-
-type QfCollection = {
-  id: string;
-  name: string;
-  updatedAt: string;
-};
-
-type QfPagination = {
-  endCursor?: string;
-  hasNextPage?: boolean;
-};
-
-type QfBookmark = {
-  createdAt: string;
-  group: string;
-  id: string;
-  isInDefaultCollection: boolean;
-  isReading: boolean | null;
-  key: number;
-  type: string;
-  verseNumber: number | null;
-};
-
-export type QfAyahBookmark = {
-  ayahNo: string;
-  bookmarkId: string;
-  createdAt: string;
-  surahNo: number;
-  verseNumber: number;
-};
-
-function normalizeCollectionBookmark(raw: unknown): QfBookmark | null {
-  if (!raw || typeof raw !== 'object') {
-    return null;
-  }
-
-  const record = raw as Record<string, unknown>;
-  const verseNumber = typeof record.verseNumber === 'number' ? record.verseNumber : null;
-  const nestedBookmarkType =
-    typeof record.bookmarkType === 'object' && record.bookmarkType
-      ? (record.bookmarkType as Record<string, unknown>).type
-      : undefined;
-  const nestedBookmarkGroup =
-    typeof record.bookmarkGroup === 'object' && record.bookmarkGroup
-      ? (record.bookmarkGroup as Record<string, unknown>).name
-      : undefined;
-  const bookmarkType =
-    typeof record.type === 'string'
-      ? record.type
-      : typeof record.bookmarkType === 'string'
-        ? record.bookmarkType
-        : typeof nestedBookmarkType === 'string'
-          ? nestedBookmarkType
-          : verseNumber !== null
-            ? 'ayah'
-            : undefined;
-  const bookmarkGroup =
-    typeof record.group === 'string'
-      ? record.group
-      : typeof record.bookmarkGroup === 'string'
-        ? record.bookmarkGroup
-        : typeof nestedBookmarkGroup === 'string'
-          ? nestedBookmarkGroup
-          : '';
-
-  if (typeof record.id !== 'string' || typeof record.createdAt !== 'string') {
-    return null;
-  }
-
-  if (typeof bookmarkType !== 'string') {
-    return null;
-  }
-
-  if (typeof record.key !== 'number') {
-    return null;
-  }
-
-  const isInDefaultCollection =
-    typeof record.isInDefaultCollection === 'boolean' ? record.isInDefaultCollection : false;
-  const isReading = typeof record.isReading === 'boolean' ? record.isReading : null;
-
-  return {
-    createdAt: record.createdAt,
-    group: bookmarkGroup,
-    id: record.id,
-    isInDefaultCollection,
-    isReading,
-    key: record.key,
-    type: bookmarkType,
-    verseNumber,
-  };
-}
-
-export type QfSessionSummary = {
-  avatarUrl: string | null;
-  collectionName: string;
-  displayName: string | null;
-  isAuthenticated: boolean;
-};
-
-type QfProfile = {
-  avatarUrl?: string;
-  avatarUrls?: {
-    large?: string;
-    medium?: string;
-    small?: string;
-  };
-  firstName?: string;
-  lastName?: string;
-  username?: string;
-};
-
-function getRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function readAvatarFromProfile(profileRecord: Record<string, unknown>) {
-  const profile = profileRecord as QfProfile;
-  const avatarUrlsRecord = getRecord(profile.avatarUrls);
-  const medium = typeof avatarUrlsRecord?.medium === 'string' ? avatarUrlsRecord.medium : null;
-  const small = typeof avatarUrlsRecord?.small === 'string' ? avatarUrlsRecord.small : null;
-  const large = typeof avatarUrlsRecord?.large === 'string' ? avatarUrlsRecord.large : null;
-  const directAvatar = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : null;
-  const snakeCaseAvatar =
-    typeof profileRecord.avatar_url === 'string' ? (profileRecord.avatar_url as string) : null;
-
-  const avatarUrl = medium ?? small ?? large ?? directAvatar ?? snakeCaseAvatar;
-  const avatarSource = medium
-    ? 'avatarUrls.medium'
-    : small
-      ? 'avatarUrls.small'
-      : large
-        ? 'avatarUrls.large'
-        : directAvatar
-          ? 'avatarUrl'
-          : snakeCaseAvatar
-            ? 'avatar_url'
-            : null;
-
-  return {
-    avatarUrl: avatarUrl ?? null,
-    avatarSource,
-    avatarUrlsKeys: avatarUrlsRecord ? Object.keys(avatarUrlsRecord) : [],
-  };
-}
 
 function getUtf8ByteLength(value: string) {
   return Buffer.byteLength(value, 'utf8');
@@ -667,15 +536,9 @@ async function createCollection(session: QfSessionCookie, name: string) {
   return { collection: payload.data, session: updatedSession };
 }
 
-function pickPreferredVerseCollection(collections: QfCollection[]) {
-  return collections
-    .filter((collection) => collection.name === QF_BOOKMARK_COLLECTION_NAME)
-    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
-}
-
 async function getExistingVerseCollection(session: QfSessionCookie) {
   const { collections, session: listedSession } = await listAyahCollections(session);
-  const existingCollection = pickPreferredVerseCollection(collections);
+  const existingCollection = pickPreferredVerseCollection(collections, QF_BOOKMARK_COLLECTION_NAME);
 
   return {
     collection: existingCollection ?? null,
@@ -1027,59 +890,17 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
       path: resolvedProfilePath,
     });
 
-    const payloadDataRecord = getRecord(payload.data);
-    const profileCandidateRecords: Array<{ label: string; record: Record<string, unknown> }> = [];
-
-    if (payloadDataRecord) {
-      profileCandidateRecords.push({ label: 'payload.data', record: payloadDataRecord });
-    }
-    profileCandidateRecords.push({ label: 'payload', record: payload });
-
-    const nestedKeys = ['profile', 'user', 'account'] as const;
-    for (const key of nestedKeys) {
-      const nestedRecord = getRecord(payloadDataRecord?.[key]);
-      if (nestedRecord) {
-        profileCandidateRecords.push({ label: `payload.data.${key}`, record: nestedRecord });
-      }
-    }
-
-    let avatarUrl: string | null = null;
-    let avatarSource: string | null = null;
-    let avatarFromRecordLabel: string | null = null;
-    let selectedProfileRecord: Record<string, unknown> = payloadDataRecord ?? payload;
-
-    for (const candidate of profileCandidateRecords) {
-      const avatar = readAvatarFromProfile(candidate.record);
-      if (avatar.avatarUrl) {
-        avatarUrl = avatar.avatarUrl;
-        avatarSource = avatar.avatarSource;
-        avatarFromRecordLabel = candidate.label;
-        selectedProfileRecord = candidate.record;
-        break;
-      }
-    }
-
-    const selectedProfile = selectedProfileRecord as QfProfile;
-    const displayName = [selectedProfile.firstName, selectedProfile.lastName]
-      .filter((value) => typeof value === 'string' && value.trim().length > 0)
-      .join(' ')
-      .trim();
+    const resolution = deriveQfSessionSummaryFromProfilePayload(
+      payload,
+      QF_BOOKMARK_COLLECTION_NAME,
+    );
 
     qfAuthDebug('profile payload inspected for avatar', {
-      avatarFromRecordLabel,
-      avatarSource,
-      hasAvatarUrl: Boolean(avatarUrl),
-      payloadDataKeys: payloadDataRecord ? Object.keys(payloadDataRecord) : null,
-      payloadKeys: Object.keys(payload),
-      selectedProfileKeys: Object.keys(selectedProfileRecord),
+      ...resolution.diagnostics,
+      hasAvatarUrl: Boolean(resolution.summary.avatarUrl),
     });
 
-    return {
-      avatarUrl,
-      collectionName: QF_BOOKMARK_COLLECTION_NAME,
-      displayName: displayName || selectedProfile.username || null,
-      isAuthenticated: true,
-    };
+    return resolution.summary;
   } catch (error) {
     qfAuthDebug('failed to load user profile summary', {
       message: error instanceof Error ? error.message : String(error),
@@ -1170,8 +991,6 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
     totalBookmarksLoaded: bookmarks.length,
   });
 
-  const idsByVerseNumber: Record<number, string> = {};
-
   for (const bookmark of bookmarks) {
     if (isQfAuthDebugEnabled()) {
       qfAuthDebug('bookmark status evaluating', {
@@ -1185,24 +1004,10 @@ export async function getAyahBookmarksInSakinahCollection(surahNo: number, ayahN
       });
     }
 
-    if (bookmark.type !== 'ayah') {
-      continue;
-    }
-
-    if (bookmark.key !== surahNo) {
-      continue;
-    }
-
-    if (!bookmark.verseNumber) {
-      continue;
-    }
-
-    if (bookmark.verseNumber < selection.from || bookmark.verseNumber > selection.to) {
-      continue;
-    }
-
-    idsByVerseNumber[bookmark.verseNumber] = bookmark.id;
+    // Keep per-bookmark debug logging before applying the shared mapper.
   }
+
+  const idsByVerseNumber = buildBookmarkIdsByVerseNumber(bookmarks, surahNo, selection);
 
   qfAuthDebug('bookmark status computed', {
     collectionId: collection.id,
@@ -1241,22 +1046,7 @@ export async function listAyahBookmarksInSakinahCollection() {
     collection.id,
   );
 
-  const ayahBookmarks = bookmarks
-    .filter(
-      (bookmark): bookmark is QfBookmark & { verseNumber: number } =>
-        bookmark.type === 'ayah' &&
-        Number.isInteger(bookmark.key) &&
-        Boolean(bookmark.verseNumber) &&
-        (bookmark.verseNumber ?? 0) > 0,
-    )
-    .map((bookmark) => ({
-      ayahNo: String(bookmark.verseNumber),
-      bookmarkId: bookmark.id,
-      createdAt: bookmark.createdAt,
-      surahNo: bookmark.key,
-      verseNumber: bookmark.verseNumber,
-    }))
-    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+  const ayahBookmarks = mapAyahBookmarks(bookmarks);
 
   return {
     bookmarks: ayahBookmarks,
@@ -1318,97 +1108,6 @@ export async function removeAyahBookmarksFromSakinahCollection(surahNo: number, 
   };
 }
 
-export type QfNoteAttachedEntity = {
-  entityId: string;
-  entityMetadata?: Record<string, unknown>;
-  entityType: 'reflection';
-};
-
-export type QfSavedNote = {
-  attachedEntities: QfNoteAttachedEntity[];
-  body: string;
-  createdAt: string | null;
-  id: string;
-  ranges: string[];
-  updatedAt: string | null;
-};
-
-function normalizeQfNote(raw: unknown): QfSavedNote | null {
-  if (!raw || typeof raw !== 'object') {
-    return null;
-  }
-
-  const record = raw as Record<string, unknown>;
-  const id =
-    typeof record.id === 'string'
-      ? record.id
-      : typeof record.id === 'number'
-        ? String(record.id)
-        : null;
-  const body = typeof record.body === 'string' ? record.body : '';
-
-  if (!id) {
-    return null;
-  }
-
-  const attachedEntities = Array.isArray(record.attachedEntities)
-    ? record.attachedEntities
-        .map((entity) => {
-          if (!entity || typeof entity !== 'object') {
-            return null;
-          }
-
-          const entityRecord = entity as Record<string, unknown>;
-          if (
-            typeof entityRecord.entityId !== 'string' ||
-            entityRecord.entityType !== 'reflection'
-          ) {
-            return null;
-          }
-
-          const normalizedEntity: QfNoteAttachedEntity = {
-            entityId: entityRecord.entityId,
-            entityMetadata:
-              entityRecord.entityMetadata && typeof entityRecord.entityMetadata === 'object'
-                ? (entityRecord.entityMetadata as Record<string, unknown>)
-                : undefined,
-            entityType: 'reflection' as const,
-          };
-
-          return normalizedEntity;
-        })
-        .filter((entity): entity is QfNoteAttachedEntity => Boolean(entity))
-    : [];
-
-  const ranges = Array.isArray(record.ranges)
-    ? record.ranges
-        .map((range) => {
-          if (typeof range === 'string') {
-            return range;
-          }
-
-          if (range && typeof range === 'object') {
-            const rangeRecord = range as Record<string, unknown>;
-            if (typeof rangeRecord.range === 'string') {
-              return rangeRecord.range;
-            }
-          }
-
-          return null;
-        })
-        .filter((range): range is string => Boolean(range))
-    : [];
-
-  return {
-    attachedEntities,
-    body,
-    createdAt: typeof record.createdAt === 'string' ? record.createdAt : null,
-    id,
-    ranges,
-    updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : null,
-  };
-}
-
 export async function listNotesInQfAccount() {
   const session = await getQfUserSession();
 
@@ -1421,22 +1120,7 @@ export async function listNotesInQfAccount() {
     data?: unknown[] | { notes?: unknown[] };
     success?: boolean;
   }>(response);
-
-  const rawNotes = Array.isArray(payload.data)
-    ? payload.data
-    : Array.isArray(payload.data?.notes)
-      ? payload.data.notes
-      : [];
-
-  const notes = rawNotes
-    .map((note) => normalizeQfNote(note))
-    .filter((note): note is QfSavedNote => Boolean(note));
-
-  notes.sort(
-    (left, right) =>
-      Date.parse(right.updatedAt ?? right.createdAt ?? '') -
-      Date.parse(left.updatedAt ?? left.createdAt ?? ''),
-  );
+  const notes = normalizeQfNotesFromPayload(payload);
 
   return {
     notes,
