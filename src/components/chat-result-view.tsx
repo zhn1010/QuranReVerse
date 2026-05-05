@@ -2,6 +2,7 @@
 
 import Script from 'next/script';
 import { useEffect, useMemo } from 'react';
+import { QuranEmbedBookmarkAction } from '@/components/reflection/quran-embed-bookmark-action';
 import { QuranEmbedCard } from '@/components/reflection/quran-embed-card';
 import { ReflectionBody } from '@/components/reflection/reflection-body';
 import { SaveNoteModal } from '@/components/reflection/save-note-modal';
@@ -142,60 +143,18 @@ export function ChatResultView({
                     label={embed.label}
                     overlayAction={
                       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-17.5 items-center justify-end pr-38">
-                        {auth.isAuthenticated ? (
-                          <button
-                            aria-label={
-                              bookmarkState.savedKeys[embed.label]
-                                ? 'Remove bookmark'
-                                : 'Bookmark ayah'
-                            }
-                            className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                            disabled={bookmarkState.savingKey === embed.label}
-                            onClick={() =>
-                              handleBookmarkToggle(
-                                embed.reference.chapterId,
-                                embed.label.split(':')[1] ?? '',
-                                embed.label,
-                              )
-                            }
-                            type="button"
-                          >
-                            {bookmarkState.savingKey === embed.label ? (
-                              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-(--border-accent-strong) border-t-(--accent)" />
-                            ) : (
-                              <svg
-                                className="h-4 w-4"
-                                fill={bookmarkState.savedKeys[embed.label] ? 'currentColor' : 'none'}
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1.8"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
-                              </svg>
-                            )}
-                          </button>
-                        ) : (
-                          <a
-                            aria-label="Connect to bookmark"
-                            className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white"
-                            href={loginHref}
-                            onClick={handleConnectClick}
-                          >
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.8"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
-                            </svg>
-                          </a>
-                        )}
+                        <QuranEmbedBookmarkAction
+                          ayahNo={embed.label.split(':')[1] ?? ''}
+                          href={loginHref}
+                          isAuthenticated={auth.isAuthenticated}
+                          isSaved={Boolean(bookmarkState.savedKeys[embed.label])}
+                          isSaving={bookmarkState.savingKey === embed.label}
+                          onConnectClick={handleConnectClick}
+                          onToggle={(surahNo, ayahNo) =>
+                            handleBookmarkToggle(surahNo, ayahNo, embed.label)
+                          }
+                          surahNo={embed.reference.chapterId}
+                        />
                       </div>
                     }
                     overlayClassName="pointer-events-none absolute inset-x-0 top-0 z-10"
@@ -213,64 +172,18 @@ export function ChatResultView({
               label={selectedEmbeds[0].label}
               overlayAction={
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-17.5 items-center justify-end pr-38">
-                  {auth.isAuthenticated ? (
-                    <button
-                      aria-label={
-                        bookmarkState.savedKeys[selectedEmbeds[0].label]
-                          ? 'Remove bookmark'
-                          : 'Bookmark ayah'
-                      }
-                      className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={bookmarkState.savingKey === selectedEmbeds[0].label}
-                      onClick={() =>
-                        handleBookmarkToggle(
-                          selectedEmbeds[0].reference.chapterId,
-                          selectedEmbeds[0].label.split(':')[1] ?? '',
-                          selectedEmbeds[0].label,
-                        )
-                      }
-                      type="button"
-                    >
-                      {bookmarkState.savingKey === selectedEmbeds[0].label ? (
-                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-(--border-accent-strong) border-t-(--accent)" />
-                      ) : (
-                        <svg
-                          className="h-4 w-4"
-                          fill={
-                            bookmarkState.savedKeys[selectedEmbeds[0].label]
-                              ? 'currentColor'
-                              : 'none'
-                          }
-                          stroke="currentColor"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="1.8"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
-                        </svg>
-                      )}
-                    </button>
-                  ) : (
-                    <a
-                      aria-label="Connect to bookmark"
-                      className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white"
-                      href={loginHref}
-                      onClick={handleConnectClick}
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="1.8"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75v14.19a.5.5 0 0 1-.79.407L12 15.5l-5.21 3.847A.5.5 0 0 1 6 18.94V4.75Z" />
-                      </svg>
-                    </a>
-                  )}
+                  <QuranEmbedBookmarkAction
+                    ayahNo={selectedEmbeds[0].label.split(':')[1] ?? ''}
+                    href={loginHref}
+                    isAuthenticated={auth.isAuthenticated}
+                    isSaved={Boolean(bookmarkState.savedKeys[selectedEmbeds[0].label])}
+                    isSaving={bookmarkState.savingKey === selectedEmbeds[0].label}
+                    onConnectClick={handleConnectClick}
+                    onToggle={(surahNo, ayahNo) =>
+                      handleBookmarkToggle(surahNo, ayahNo, selectedEmbeds[0].label)
+                    }
+                    surahNo={selectedEmbeds[0].reference.chapterId}
+                  />
                 </div>
               }
               overlayClassName="pointer-events-none absolute inset-x-0 top-0 z-10"

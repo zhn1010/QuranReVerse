@@ -1,27 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/components/toast';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
+import { useQfSidebarNoteEditor } from '@/hooks/use-qf-sidebar-note-editor';
+import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 import {
   getSidebarNotesServerSnapshot,
   getSidebarNotesSnapshot,
   prefetchSidebarNotes,
-  revalidateSidebarNotes,
   resetSidebarNotes,
   subscribeSidebarNotes,
 } from '@/lib/sidebar-notes-store';
-import type { QfSavedNote } from '@/lib/qf-user';
-
-type ActiveNoteState = {
-  confirmingDelete: boolean;
-  draftBody: string;
-  error: string | null;
-  isDeleting: boolean;
-  isSaving: boolean;
-  note: QfSavedNote;
-};
+import type { QfSavedNote } from '@/lib/qf/types';
 
 function buildNotePreview(note: QfSavedNote) {
   const normalized = note.body.replace(/\s+/gu, ' ').trim();
@@ -48,23 +39,39 @@ function formatRangeLabel(range: string) {
   return range;
 }
 
+function formatNoteDate(value: string | null | undefined, options?: Intl.DateTimeFormatOptions) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleDateString(undefined, options);
+}
+
 export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const toast = useToast();
-  const [isMounted, setIsMounted] = useState(false);
   const state = useSyncExternalStore(
     subscribeSidebarNotes,
     getSidebarNotesSnapshot,
     getSidebarNotesServerSnapshot,
   );
-  const [activeNote, setActiveNote] = useState<ActiveNoteState | null>(null);
-
-  useEffect(() => {
-    setIsMounted(true);
-
-    return () => {
-      setIsMounted(false);
-    };
-  }, []);
+  const {
+    activeNote,
+    handleDeleteConfirmationToggle,
+    handleDeleteNote,
+    handleSaveNote,
+    noteDirection,
+    openNote,
+    setActiveNote,
+  } = useQfSidebarNoteEditor({
+    toast,
+  });
+  const portalHost = typeof document === 'undefined' ? null : document.body;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -74,139 +81,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
     }
 
     void prefetchSidebarNotes();
-  }, [isAuthenticated]);
-
-  const noteDirection = useMemo<TextDirection>(
-    () => detectTextDirection(activeNote?.draftBody ?? ''),
-    [activeNote?.draftBody],
-  );
-
-  async function handleSaveNote() {
-    if (!activeNote) {
-      return;
-    }
-
-    const body = activeNote.draftBody.trim();
-    if (body.length < 6) {
-      setActiveNote((current) =>
-        current
-          ? {
-              ...current,
-              error: 'Note body must be at least 6 characters.',
-            }
-          : null,
-      );
-      return;
-    }
-
-    setActiveNote((current) =>
-      current
-        ? {
-            ...current,
-            error: null,
-            isSaving: true,
-          }
-        : null,
-    );
-
-    try {
-      const response = await fetch('/api/qf/note', {
-        body: JSON.stringify({
-          body,
-          id: activeNote.note.id,
-        }),
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'PATCH',
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not update the note.');
-      }
-
-      await revalidateSidebarNotes();
-      toast.success('Note updated.');
-      setActiveNote(null);
-    } catch (error) {
-      setActiveNote((current) =>
-        current
-          ? {
-              ...current,
-              error: error instanceof Error ? error.message : 'Could not update the note.',
-              isSaving: false,
-            }
-          : null,
-      );
-    }
-  }
-
-  async function handleDeleteNote() {
-    if (!activeNote) {
-      return;
-    }
-
-    setActiveNote((current) =>
-      current
-        ? {
-            ...current,
-            confirmingDelete: false,
-            error: null,
-            isDeleting: true,
-          }
-        : null,
-    );
-
-    try {
-      const response = await fetch('/api/qf/note', {
-        body: JSON.stringify({
-          id: activeNote.note.id,
-        }),
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'DELETE',
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not delete the note.');
-      }
-
-      await revalidateSidebarNotes();
-      toast.success('Note deleted.');
-      setActiveNote(null);
-    } catch (error) {
-      setActiveNote((current) =>
-        current
-          ? {
-              ...current,
-              error: error instanceof Error ? error.message : 'Could not delete the note.',
-              isDeleting: false,
-            }
-          : null,
-      );
-    }
-  }
-
-  function handleDeleteConfirmationToggle() {
-    setActiveNote((current) =>
-      current
-        ? {
-            ...current,
-            confirmingDelete: !current.confirmingDelete,
-            error: null,
-          }
-        : null,
-    );
-  }
+  }, [isAuthenticated, setActiveNote]);
 
   if (!isAuthenticated) {
     return (
@@ -255,26 +130,14 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
               <button
                 className="block w-full cursor-pointer rounded-5 border border-(--border-subtle) bg-(--surface-card-tint) px-4 py-3 text-left transition hover:bg-(--surface-card-hover)"
                 key={note.id}
-                onClick={() =>
-                  setActiveNote({
-                    confirmingDelete: false,
-                    draftBody: note.body,
-                    error: null,
-                    isDeleting: false,
-                    isSaving: false,
-                    note,
-                  })
-                }
+                onClick={() => openNote(note)}
                 type="button"
               >
                 <p className="text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
-                  {new Date(note.updatedAt ?? note.createdAt ?? Date.now()).toLocaleDateString(
-                    undefined,
-                    {
-                      day: 'numeric',
-                      month: 'short',
-                    },
-                  )}
+                  {formatNoteDate(note.updatedAt ?? note.createdAt, {
+                    day: 'numeric',
+                    month: 'short',
+                  }) ?? 'Unknown'}
                 </p>
                 <p
                   className={`mt-2 line-clamp-3 text-sm leading-6 text-(--ink-strong) ${getDirectionStyles(previewDirection)}`}
@@ -288,7 +151,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
         </div>
       )}
 
-      {isMounted && activeNote
+      {portalHost && activeNote
         ? createPortal(
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-(--surface-scrim-soft) px-4 py-6"
@@ -307,13 +170,11 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                   <div>
                     <p className="text-lg font-semibold text-(--ink-strong)">Saved note</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
-                      {new Date(
-                        activeNote.note.updatedAt ?? activeNote.note.createdAt ?? Date.now(),
-                      ).toLocaleDateString(undefined, {
+                      {formatNoteDate(activeNote.note.updatedAt ?? activeNote.note.createdAt, {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
-                      })}
+                      }) ?? 'Unknown date'}
                     </p>
                   </div>
                   <button
@@ -436,7 +297,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                 </div>
               </div>
             </div>,
-            document.body,
+            portalHost,
           )
         : null}
     </>

@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildQfLoginHref,
   buildQfNoteDraftPayload,
+  deleteQfNote,
   fetchQfBookmarkStates,
   saveQfNote,
   streamQfNoteDraft,
   toggleQfBookmark,
+  updateQfNote,
 } from '@/lib/qf-browser';
 import type { ApiResponse } from '@/lib/antidote-types';
 
@@ -212,6 +214,54 @@ describe('saveQfNote', () => {
       ],
       body: 'A saved note.',
       ranges: ['2:255-2:255'],
+    });
+  });
+});
+
+describe('updateQfNote', () => {
+  it('patches an existing note with the canonical payload', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => createJsonResponse({ success: true }));
+
+    await updateQfNote(
+      {
+        body: 'Updated note.',
+        id: 'note-1',
+      },
+      fetchImpl,
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/qf/note',
+      expect.objectContaining({
+        method: 'PATCH',
+      }),
+    );
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body))).toEqual({
+      body: 'Updated note.',
+      id: 'note-1',
+    });
+  });
+});
+
+describe('deleteQfNote', () => {
+  it('deletes an existing note through the canonical endpoint', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => createJsonResponse({ success: true }));
+
+    await deleteQfNote(
+      {
+        id: 'note-9',
+      },
+      fetchImpl,
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/qf/note',
+      expect.objectContaining({
+        method: 'DELETE',
+      }),
+    );
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body))).toEqual({
+      id: 'note-9',
     });
   });
 });

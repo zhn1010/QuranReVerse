@@ -183,3 +183,52 @@ export async function saveQfNote(
     throw new Error(payload.error || 'Could not save the note.');
   }
 }
+
+export async function updateQfNote(
+  {
+    body,
+    id,
+  }: {
+    body: string;
+    id: string;
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  const response = await fetchImpl('/api/qf/note', {
+    body: JSON.stringify({
+      body,
+      id,
+    }),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PATCH',
+  });
+  const payload = (await response.json()) as { error?: string };
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Could not update the note.');
+  }
+}
+
+export async function deleteQfNote(
+  {
+    id,
+  }: {
+    id: string;
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  const response = await fetchImpl('/api/qf/note', {
+    body: JSON.stringify({
+      id,
+    }),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'DELETE',
+  });
+  const payload = (await response.json()) as { error?: string };
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Could not delete the note.');
+  }
+}

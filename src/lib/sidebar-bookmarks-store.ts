@@ -1,4 +1,5 @@
 import { QF_BOOKMARK_COLLECTION_NAME } from '@/lib/app-constants';
+import { createResourceStore } from '@/lib/create-resource-store';
 
 type SidebarBookmark = {
   arabicText: string;
@@ -34,80 +35,44 @@ const INITIAL_SNAPSHOT: SidebarBookmarksSnapshot = {
   hasFetched: false,
   isLoading: false,
 };
+const store = createResourceStore({
+  fetchResource: async () => {
+    const response = await fetch('/api/qf/bookmark/collection', {
+      credentials: 'include',
+    });
+    const payload = (await response.json()) as SidebarBookmarksPayload;
 
-let snapshot: SidebarBookmarksSnapshot = INITIAL_SNAPSHOT;
-let inFlightRequest: Promise<void> | null = null;
-const listeners = new Set<() => void>();
-
-function emitChange() {
-  for (const listener of listeners) {
-    listener();
-  }
-}
-
-function setSnapshot(nextSnapshot: SidebarBookmarksSnapshot) {
-  snapshot = nextSnapshot;
-  emitChange();
-}
-
-async function requestSidebarBookmarks(force: boolean) {
-  if (inFlightRequest) {
-    return inFlightRequest;
-  }
-
-  if (!force && snapshot.hasFetched) {
-    return Promise.resolve();
-  }
-
-  setSnapshot({
-    ...snapshot,
-    error: null,
-    isLoading: true,
-  });
-
-  inFlightRequest = (async () => {
-    try {
-      const response = await fetch('/api/qf/bookmark/collection', {
-        credentials: 'include',
-      });
-      const payload = (await response.json()) as SidebarBookmarksPayload;
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Could not load bookmarks.');
-      }
-
-      setSnapshot({
-        bookmarks: Array.isArray(payload.bookmarks) ? payload.bookmarks : [],
-        collectionName: payload.collectionName?.trim() || QF_BOOKMARK_COLLECTION_NAME,
-        error: null,
-        hasFetched: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      setSnapshot({
-        ...snapshot,
-        error: error instanceof Error ? error.message : 'Could not load bookmarks.',
-        hasFetched: true,
-        isLoading: false,
-      });
-    } finally {
-      inFlightRequest = null;
+    if (!response.ok) {
+      throw new Error(payload.error || 'Could not load bookmarks.');
     }
-  })();
 
-  return inFlightRequest;
-}
+    return {
+      bookmarks: Array.isArray(payload.bookmarks) ? payload.bookmarks : [],
+      collectionName: payload.collectionName?.trim() || QF_BOOKMARK_COLLECTION_NAME,
+    };
+  },
+  getErrorMessage: (error) =>
+    error instanceof Error ? error.message : 'Could not load bookmarks.',
+  initialData: {
+    bookmarks: [],
+    collectionName: QF_BOOKMARK_COLLECTION_NAME,
+  },
+});
 
 export function subscribeSidebarBookmarks(listener: () => void) {
-  listeners.add(listener);
-
-  return () => {
-    listeners.delete(listener);
-  };
+  return store.subscribe(listener);
 }
 
 export function getSidebarBookmarksSnapshot() {
-  return snapshot;
+  const snapshot = store.getSnapshot();
+
+  return {
+    bookmarks: snapshot.data.bookmarks,
+    collectionName: snapshot.data.collectionName,
+    error: snapshot.error,
+    hasFetched: snapshot.hasFetched,
+    isLoading: snapshot.isLoading,
+  };
 }
 
 export function getSidebarBookmarksServerSnapshot() {
@@ -115,18 +80,13 @@ export function getSidebarBookmarksServerSnapshot() {
 }
 
 export function resetSidebarBookmarks() {
-  if (snapshot === INITIAL_SNAPSHOT) {
-    return;
-  }
-
-  inFlightRequest = null;
-  setSnapshot(INITIAL_SNAPSHOT);
+  store.reset();
 }
 
 export function prefetchSidebarBookmarks() {
-  return requestSidebarBookmarks(false);
+  return store.prefetch();
 }
 
 export function revalidateSidebarBookmarks() {
-  return requestSidebarBookmarks(true);
+  return store.revalidate();
 }
