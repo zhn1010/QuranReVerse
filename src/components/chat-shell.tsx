@@ -146,7 +146,7 @@ export function ChatShell({
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,244,245,0.98))]">
+    <div className="app-shell-gradient min-h-screen">
       <div className="mx-auto flex min-h-screen w-full max-w-400">
         <aside
           className={`fixed inset-y-0 left-0 z-40 h-screen w-72 -translate-x-full overflow-hidden border-r border-(--border-subtle) bg-(--surface-sidebar) backdrop-blur-xl transition-[width,transform] duration-300 ${

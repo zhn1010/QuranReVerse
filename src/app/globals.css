@@ -3,68 +3,68 @@
 :root {
   --background: #f4f4f5;
   --foreground: #18181b;
-  --surface: rgba(200, 200, 200, 0.84);
-  --surface-strong: rgba(255, 255, 255, 0.94);
-  --surface-card: rgba(255, 255, 255, 0.82);
-  --surface-card-muted: rgba(255, 255, 255, 0.6);
-  --surface-card-soft: rgba(255, 255, 255, 0.7);
-  --surface-card-tint: rgba(255, 255, 255, 0.68);
-  --surface-card-strong: rgba(255, 255, 255, 0.95);
-  --surface-card-hover: rgba(255, 255, 255, 0.92);
-  --surface-sidebar: rgba(248, 248, 249, 0.96);
-  --surface-subtle: rgba(244, 244, 245, 0.72);
-  --surface-subtle-soft: rgba(244, 244, 245, 0.7);
-  --surface-subtle-strong: rgba(244, 244, 245, 0.8);
-  --surface-input: rgba(244, 244, 245, 0.5);
-  --surface-bubble: rgba(63, 63, 70, 0.08);
-  --surface-overlay: rgba(255, 255, 255, 0.96);
-  --surface-danger: rgba(140, 32, 32, 0.06);
-  --surface-danger-soft: rgba(140, 32, 32, 0.05);
-  --surface-danger-strong: rgba(140, 32, 32, 0.08);
-  --surface-scrim: rgba(0, 0, 0, 0.4);
-  --surface-scrim-soft: rgba(18, 18, 20, 0.32);
-  --surface-scrim-sidebar: rgba(24, 24, 27, 0.18);
-  --surface-warm-panel-soft: rgba(255, 251, 245, 0.84);
-  --surface-warm-panel: rgba(255, 249, 241, 0.92);
-  --surface-warm-overlay: rgba(255, 252, 247, 0.72);
-  --surface-warm-chart: rgba(112, 75, 33, 0.06);
-  --line: rgba(63, 63, 70, 0.12);
-  --border-subtle: rgba(63, 63, 70, 0.08);
-  --border-soft: rgba(63, 63, 70, 0.1);
-  --border-default: rgba(63, 63, 70, 0.12);
-  --border-strong: rgba(63, 63, 70, 0.15);
-  --border-accent-soft: rgba(82, 82, 91, 0.12);
-  --border-accent-hover: rgba(63, 63, 70, 0.18);
-  --border-accent-strong: rgba(82, 82, 91, 0.28);
-  --border-focus: rgba(82, 82, 91, 0.4);
-  --border-danger: rgba(140, 32, 32, 0.18);
-  --border-danger-strong: rgba(140, 32, 32, 0.3);
-  --border-success: rgba(24, 94, 58, 0.18);
-  --border-warning: rgba(146, 64, 14, 0.22);
+  --surface: rgb(200 200 200 / 0.84);
+  --surface-strong: rgb(255 255 255 / 0.94);
+  --surface-card: rgb(255 255 255 / 0.82);
+  --surface-card-muted: rgb(255 255 255 / 0.6);
+  --surface-card-soft: rgb(255 255 255 / 0.7);
+  --surface-card-tint: rgb(255 255 255 / 0.68);
+  --surface-card-strong: rgb(255 255 255 / 0.95);
+  --surface-card-hover: rgb(255 255 255 / 0.92);
+  --surface-sidebar: rgb(248 248 249 / 0.96);
+  --surface-subtle: rgb(244 244 245 / 0.72);
+  --surface-subtle-soft: rgb(244 244 245 / 0.7);
+  --surface-subtle-strong: rgb(244 244 245 / 0.8);
+  --surface-input: rgb(244 244 245 / 0.5);
+  --surface-bubble: rgb(63 63 70 / 0.08);
+  --surface-overlay: rgb(255 255 255 / 0.96);
+  --surface-danger: rgb(140 32 32 / 0.06);
+  --surface-danger-soft: rgb(140 32 32 / 0.05);
+  --surface-danger-strong: rgb(140 32 32 / 0.08);
+  --surface-scrim: rgb(0 0 0 / 0.4);
+  --surface-scrim-soft: rgb(18 18 20 / 0.32);
+  --surface-scrim-sidebar: rgb(24 24 27 / 0.18);
+  --surface-warm-panel-soft: rgb(255 251 245 / 0.84);
+  --surface-warm-panel: rgb(255 249 241 / 0.92);
+  --surface-warm-overlay: rgb(255 252 247 / 0.72);
+  --surface-warm-chart: rgb(112 75 33 / 0.06);
+  --line: rgb(63 63 70 / 0.12);
+  --border-subtle: rgb(63 63 70 / 0.08);
+  --border-soft: rgb(63 63 70 / 0.1);
+  --border-default: rgb(63 63 70 / 0.12);
+  --border-strong: rgb(63 63 70 / 0.15);
+  --border-accent-soft: rgb(82 82 91 / 0.12);
+  --border-accent-hover: rgb(63 63 70 / 0.18);
+  --border-accent-strong: rgb(82 82 91 / 0.28);
+  --border-focus: rgb(82 82 91 / 0.4);
+  --border-danger: rgb(140 32 32 / 0.18);
+  --border-danger-strong: rgb(140 32 32 / 0.3);
+  --border-success: rgb(24 94 58 / 0.18);
+  --border-warning: rgb(146 64 14 / 0.22);
   --accent: #52525b;
   --accent-strong: #27272a;
   --ink-soft: #71717a;
   --ink-strong: #18181b;
-  --ink-placeholder: rgba(113, 113, 122, 0.55);
+  --ink-placeholder: rgb(113 113 122 / 0.55);
   --ink-danger: rgb(110 28 28);
   --ink-success: rgb(24 94 58);
   --ink-warning: rgb(146 64 14);
-  --focus-ring: rgba(113, 113, 122, 0.14);
-  --shadow-card-sm: 0 2px 8px rgba(24, 24, 27, 0.04);
-  --shadow-card: 0 2px 12px rgba(24, 24, 27, 0.06);
-  --shadow-card-lg: 0 16px 44px rgba(24, 24, 27, 0.06);
-  --shadow-logo: 0 8px 20px rgba(24, 24, 27, 0.06);
-  --shadow-pop: 0 10px 24px rgba(24, 24, 27, 0.08);
-  --shadow-pop-hover: 0 12px 26px rgba(24, 24, 27, 0.12);
-  --shadow-menu: 0 20px 36px rgba(24, 24, 27, 0.14);
-  --shadow-modal: 0 24px 80px rgba(24, 24, 27, 0.16);
-  --shadow-modal-soft: 0 30px 80px rgba(24, 24, 27, 0.18);
-  --shadow-toast: 0 12px 40px rgba(24, 24, 27, 0.1);
-  --shadow-warm: 0 18px 44px rgba(70, 45, 14, 0.08);
-  --shadow-warm-panel: 0 30px 120px rgba(43, 27, 8, 0.12);
-  --shadow-warm-hero: 0 30px 120px rgba(43, 27, 8, 0.16);
-  --underline-soft: rgba(82, 82, 91, 0.25);
-  --underline-strong: rgba(82, 82, 91, 0.3);
+  --focus-ring: rgb(113 113 122 / 0.14);
+  --shadow-card-sm: 0 2px 8px rgb(24 24 27 / 0.04);
+  --shadow-card: 0 2px 12px rgb(24 24 27 / 0.06);
+  --shadow-card-lg: 0 16px 44px rgb(24 24 27 / 0.06);
+  --shadow-logo: 0 8px 20px rgb(24 24 27 / 0.06);
+  --shadow-pop: 0 10px 24px rgb(24 24 27 / 0.08);
+  --shadow-pop-hover: 0 12px 26px rgb(24 24 27 / 0.12);
+  --shadow-menu: 0 20px 36px rgb(24 24 27 / 0.14);
+  --shadow-modal: 0 24px 80px rgb(24 24 27 / 0.16);
+  --shadow-modal-soft: 0 30px 80px rgb(24 24 27 / 0.18);
+  --shadow-toast: 0 12px 40px rgb(24 24 27 / 0.1);
+  --shadow-warm: 0 18px 44px rgb(70 45 14 / 0.08);
+  --shadow-warm-panel: 0 30px 120px rgb(43 27 8 / 0.12);
+  --shadow-warm-hero: 0 30px 120px rgb(43 27 8 / 0.16);
+  --underline-soft: rgb(82 82 91 / 0.25);
+  --underline-strong: rgb(82 82 91 / 0.3);
   --radius-field: 1.4rem;
   --radius-panel: 1.8rem;
 }
@@ -89,9 +89,9 @@ body {
   color: var(--foreground);
   font-family: 'Avenir Next', 'Segoe UI', sans-serif;
   background-image:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 38%),
-    radial-gradient(circle at top right, rgba(212, 212, 216, 0.34), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(244, 244, 245, 0.96));
+    radial-gradient(circle at top left, rgb(255 255 255 / 0.95), transparent 38%),
+    radial-gradient(circle at top right, rgb(212 212 216 / 0.34), transparent 30%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.7), rgb(244 244 245 / 0.96));
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-size:
@@ -112,9 +112,9 @@ code {
   position: relative;
   border: 1px solid var(--line);
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.94), transparent 38%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.9)), var(--surface);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    radial-gradient(circle at top left, rgb(255 255 255 / 0.94), transparent 38%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.98), rgb(244 244 245 / 0.9)), var(--surface);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
 }
 
 .hero-panel::after {
@@ -124,7 +124,7 @@ code {
   width: 18rem;
   height: 18rem;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(161, 161, 170, 0.18), transparent 65%);
+  background: radial-gradient(circle, rgb(161 161 170 / 0.18), transparent 65%);
   pointer-events: none;
 }
 
@@ -135,8 +135,12 @@ code {
   width: 20rem;
   height: 20rem;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.8), transparent 60%);
+  background: radial-gradient(circle, rgb(255 255 255 / 0.8), transparent 60%);
   pointer-events: none;
+}
+
+.app-shell-gradient {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.88), rgb(244 244 245 / 0.98));
 }
 
 .eyebrow {
@@ -150,7 +154,7 @@ code {
 .stat-card {
   border: 1px solid var(--line);
   border-radius: 1.25rem;
-  background: rgba(230, 230, 230, 0.72);
+  background: rgb(230 230 230 / 0.72);
   padding: 1rem;
 }
 
@@ -173,7 +177,7 @@ code {
   border-radius: 1.5rem;
   background: var(--surface-strong);
   padding: 1.5rem;
-  box-shadow: 0 18px 44px rgba(24, 24, 27, 0.06);
+  box-shadow: 0 18px 44px rgb(24 24 27 / 0.06);
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -182,8 +186,8 @@ code {
 
 .chapter-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(82, 82, 91, 0.28);
-  box-shadow: 0 26px 64px rgba(24, 24, 27, 0.1);
+  border-color: rgb(82 82 91 / 0.28);
+  box-shadow: 0 26px 64px rgb(24 24 27 / 0.1);
 }
 
 @keyframes toast-in {
@@ -224,9 +228,9 @@ code {
 .shimmer-bar {
   background: linear-gradient(
     90deg,
-    rgba(228, 228, 231, 0.6) 0%,
-    rgba(250, 250, 250, 0.95) 50%,
-    rgba(228, 228, 231, 0.6) 100%
+    rgb(228 228 231 / 0.6) 0%,
+    rgb(250 250 250 / 0.95) 50%,
+    rgb(228 228 231 / 0.6) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.35s ease-in-out infinite;
@@ -236,9 +240,9 @@ code {
   color: transparent;
   background: linear-gradient(
     90deg,
-    rgba(113, 113, 122, 0.72) 0%,
-    rgba(24, 24, 27, 0.95) 50%,
-    rgba(113, 113, 122, 0.72) 100%
+    rgb(113 113 122 / 0.72) 0%,
+    rgb(24 24 27 / 0.95) 50%,
+    rgb(113 113 122 / 0.72) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
@@ -277,11 +281,11 @@ code {
 .shimmer-text-soft {
   background: linear-gradient(
     90deg,
-    rgba(161, 161, 170, 0.55) 0%,
-    rgba(161, 161, 170, 0.55) 35%,
-    rgba(24, 24, 27, 1) 50%,
-    rgba(161, 161, 170, 0.55) 65%,
-    rgba(161, 161, 170, 0.55) 100%
+    rgb(161 161 170 / 0.55) 0%,
+    rgb(161 161 170 / 0.55) 35%,
+    rgb(24 24 27 / 1) 50%,
+    rgb(161 161 170 / 0.55) 65%,
+    rgb(161 161 170 / 0.55) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
