@@ -15,6 +15,7 @@ import {
 import type { QfSavedNote } from '@/lib/qf-user';
 
 type ActiveNoteState = {
+  confirmingDelete: boolean;
   draftBody: string;
   error: string | null;
   isDeleting: boolean;
@@ -149,15 +150,11 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
       return;
     }
 
-    const shouldDelete = window.confirm('Delete this note from your Quran Foundation account?');
-    if (!shouldDelete) {
-      return;
-    }
-
     setActiveNote((current) =>
       current
         ? {
             ...current,
+            confirmingDelete: false,
             error: null,
             isDeleting: true,
           }
@@ -197,6 +194,18 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
           : null,
       );
     }
+  }
+
+  function handleDeleteConfirmationToggle() {
+    setActiveNote((current) =>
+      current
+        ? {
+            ...current,
+            confirmingDelete: !current.confirmingDelete,
+            error: null,
+          }
+        : null,
+    );
   }
 
   if (!isAuthenticated) {
@@ -248,6 +257,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                 key={note.id}
                 onClick={() =>
                   setActiveNote({
+                    confirmingDelete: false,
                     draftBody: note.body,
                     error: null,
                     isDeleting: false,
@@ -347,6 +357,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                         current
                           ? {
                               ...current,
+                              confirmingDelete: false,
                               draftBody: event.target.value,
                               error: null,
                             }
@@ -368,27 +379,60 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                   ) : null}
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[rgba(63,63,70,0.08)] px-6 py-4">
-                  <button
-                    className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.18)] px-4 py-2.5 text-sm font-semibold text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.05)] disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={activeNote.isSaving || activeNote.isDeleting}
-                    onClick={handleDeleteNote}
-                    type="button"
-                  >
-                    {activeNote.isDeleting ? 'Deleting...' : 'Delete note'}
-                  </button>
-                  <button
-                    className="inline-flex cursor-pointer items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={
-                      activeNote.isSaving ||
-                      activeNote.isDeleting ||
-                      activeNote.draftBody.trim().length < 6
-                    }
-                    onClick={handleSaveNote}
-                    type="button"
-                  >
-                    {activeNote.isSaving ? 'Saving...' : 'Save changes'}
-                  </button>
+                <div className="border-t border-[rgba(63,63,70,0.08)] px-6 py-4">
+                  {activeNote.confirmingDelete ? (
+                    <div className="mb-4 flex items-center justify-between rounded-[1.2rem] border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-4 py-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[rgb(110,28,28)]">
+                          Delete this note?
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-[rgb(110,28,28)]">
+                          This removes it from your Quran Foundation account.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.28)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.08)] disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={activeNote.isSaving || activeNote.isDeleting}
+                          onClick={handleDeleteNote}
+                          type="button"
+                        >
+                          {activeNote.isDeleting ? 'Deleting...' : 'Yes'}
+                        </button>
+                        <button
+                          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(63,63,70,0.16)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={activeNote.isSaving || activeNote.isDeleting}
+                          onClick={handleDeleteConfirmationToggle}
+                          type="button"
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center justify-between">
+                    <button
+                      className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.18)] px-4 py-2.5 text-sm font-semibold text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.05)] disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={activeNote.isSaving || activeNote.isDeleting}
+                      onClick={handleDeleteConfirmationToggle}
+                      type="button"
+                    >
+                      {activeNote.confirmingDelete ? 'Cancel delete' : 'Delete note'}
+                    </button>
+                    <button
+                      className="inline-flex cursor-pointer items-center justify-center rounded-full bg-(--ink-strong) px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-(--accent) disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={
+                        activeNote.isSaving ||
+                        activeNote.isDeleting ||
+                        activeNote.draftBody.trim().length < 6
+                      }
+                      onClick={handleSaveNote}
+                      type="button"
+                    >
+                      {activeNote.isSaving ? 'Saving...' : 'Save changes'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>,
