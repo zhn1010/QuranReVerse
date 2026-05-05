@@ -367,9 +367,9 @@ The Chosen Reflection (for context only): ${selectedReflection.reflection.body}
 Task:
 Generate two pieces of text to wrap around the selected reflection.
 
-intro_text: Validate the user's feeling about the event. Gently point out how the materialistic view is affecting their heart. Then naturally bridge into the chosen reflection by mentioning its core theme, the author's name (if available in the reflection), or the insight it carries—so the reader feels the reflection is a continuation of your words, not a separate block.
+intro_text: Validate the user's feeling about the event. Gently point out how the materialistic view is affecting their heart. Then naturally bridge into the chosen reflection by mentioning its core theme, the insight it carries—so the reader feels the reflection is a continuation of your words, not a separate block.
 
-conclusion_text: Pick up where the reflection leaves off. Echo a specific phrase, image, or idea from the reflection to create continuity. Then distill the grounding lesson into a short, practical heart-action or dua focus based on the God-centric reframe.
+conclusion_text: Pick up where the reflection leaves off by echoing a specific phrase, keyword, or central metaphor from it to ensure a seamless transition. Using that insight as a bridge, reframe the user's original event—not through a list of actions, but by describing how this Quranic perspective transforms the 'heavy' weight of their situation into something 'purposeful' or 'light.' Close with a quiet, contemplative thought on how Allah’s Presence and Wisdom are uniquely manifesting in their specific situation right now.
 
 Constraint: Do not reproduce the reflection text itself—only reference its themes. The intro should flow into the reflection and the conclusion should flow out of it, as one integrated reading experience. Only return the JSON.`;
   const requestParams = {
