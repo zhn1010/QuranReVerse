@@ -37,7 +37,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
 
   if (!isAuthenticated) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+      <div className="rounded-7 border border-dashed border-(--line) bg-white/55 px-4 py-5">
         <p className="text-sm font-semibold text-(--ink-strong)">Bookmarks</p>
         <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
           Connect your Quran Foundation account to load bookmarked ayahs from your Sakinah.now
@@ -52,7 +52,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, index) => (
           <div
-            className="rounded-[1.75rem] border border-[rgba(63,63,70,0.08)] bg-white/60 px-4 py-4"
+            className="rounded-7 border border-(--border-subtle) bg-(--surface-card-muted) px-4 py-4"
             key={index}
           >
             <div className="shimmer-bar h-3 w-24 rounded-full" />
@@ -67,16 +67,16 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
 
   if (state.error) {
     return (
-      <div className="rounded-[1.75rem] border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-4 py-5">
-        <p className="text-sm font-semibold text-[rgb(110,28,28)]">Could not load bookmarks</p>
-        <p className="mt-2 text-sm leading-6 text-[rgb(110,28,28)]">{state.error}</p>
+      <div className="rounded-7 border border-(--border-danger) bg-(--surface-danger-soft) px-4 py-5">
+        <p className="text-sm font-semibold text-(--ink-danger)">Could not load bookmarks</p>
+        <p className="mt-2 text-sm leading-6 text-(--ink-danger)">{state.error}</p>
       </div>
     );
   }
 
   if (visibleBookmarks.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+      <div className="rounded-7 border border-dashed border-(--line) bg-white/55 px-4 py-5">
         <p className="text-sm font-semibold text-(--ink-strong)">Bookmarks</p>
         <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
           No ayahs have been saved in your {state.collectionName} collection yet.
@@ -133,13 +133,13 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
   return (
     <div className="space-y-3">
       {deleteError ? (
-        <p className="rounded-2xl border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-3 py-2 text-xs text-[rgb(110,28,28)]">
+        <p className="rounded-2xl border border-(--border-danger) bg-(--surface-danger-soft) px-3 py-2 text-xs text-(--ink-danger)">
           {deleteError}
         </p>
       ) : null}
       {visibleBookmarks.map((bookmark) => (
         <div
-          className="rounded-[1.25rem] border border-[rgba(63,63,70,0.08)] bg-white/68 px-4 py-3 transition hover:bg-white/92"
+          className="rounded-5 border border-(--border-subtle) bg-(--surface-card-tint) px-4 py-3 transition hover:bg-(--surface-card-hover)"
           key={bookmark.bookmarkId}
         >
           <div className="flex items-start justify-between gap-3">
@@ -157,7 +157,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
               ) : null}
               <button
                 aria-label={`Delete bookmark ${bookmark.verseKey}`}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-[rgba(140,32,32,0.1)] hover:text-[rgb(140,32,32)] disabled:cursor-not-allowed disabled:opacity-55"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-(--surface-danger-strong) hover:text-(--ink-danger) disabled:cursor-not-allowed disabled:opacity-55"
                 disabled={Boolean(deletingBookmarkId)}
                 onClick={() =>
                   setConfirmingBookmarkId((current) =>
@@ -187,11 +187,11 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
             </div>
           </div>
           {confirmingBookmarkId === bookmark.bookmarkId ? (
-            <div className="mt-2 flex items-center justify-between rounded-xl border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-3 py-2">
-              <p className="text-xs text-[rgb(110,28,28)]">Confirm?</p>
+            <div className="mt-2 flex items-center justify-between rounded-xl border border-(--border-danger) bg-(--surface-danger-soft) px-3 py-2">
+              <p className="text-xs text-(--ink-danger)">Confirm?</p>
               <div className="flex items-center gap-2">
                 <button
-                  className="rounded-full border border-[rgba(140,32,32,0.3)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.08)] disabled:cursor-not-allowed disabled:opacity-55"
+                  className="rounded-full border border-(--border-danger-strong) px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-danger) transition hover:bg-(--surface-danger-strong) disabled:cursor-not-allowed disabled:opacity-55"
                   disabled={Boolean(deletingBookmarkId)}
                   onClick={() => void handleDeleteBookmark(bookmark)}
                   type="button"
@@ -199,7 +199,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
                   Yes
                 </button>
                 <button
-                  className="rounded-full border border-[rgba(63,63,70,0.16)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white"
+                  className="rounded-full border border-(--border-strong) px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white"
                   onClick={() => setConfirmingBookmarkId(null)}
                   type="button"
                 >

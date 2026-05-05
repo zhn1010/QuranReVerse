@@ -88,7 +88,7 @@ export function ChatResultView({
 
   if (!result.selected_reflection?.reflection) {
     return (
-      <div className="rounded-[2rem] border border-dashed border-(--line) bg-[var(--surface-card-soft)] p-8 text-sm leading-7 text-(--ink-soft)">
+      <div className="rounded-4xl border border-dashed border-(--line) bg-(--surface-card-soft) p-8 text-sm leading-7 text-(--ink-soft)">
         No reflection could be selected for this request.
       </div>
     );
@@ -99,7 +99,7 @@ export function ChatResultView({
       <Script defer src="https://quran.com/widget/embed-widget.js" strategy="afterInteractive" />
 
       {/* AI response bubble */}
-      <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-[var(--border-strong)] bg-[var(--surface-subtle-soft)] px-5 py-5 sm:max-w-[75%] sm:px-6">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-(--border-strong) bg-(--surface-subtle-soft) px-5 py-5 sm:max-w-[75%] sm:px-6">
         <div className="space-y-6">
           {result.reflection_guide ? (
             <p
@@ -112,7 +112,7 @@ export function ChatResultView({
             </p>
           ) : null}
 
-          <div className="border-t border-[var(--border-subtle)] pt-4">
+          <div className="border-t border-(--border-subtle) pt-4">
             <ReflectionBody
               authorName={result.selected_reflection.reflection.authorName}
               body={result.selected_reflection.reflection.body}
@@ -128,7 +128,7 @@ export function ChatResultView({
           </div>
 
           {selectedEmbeds.length > 1 ? (
-            <details className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card-soft)] p-3 text-sm text-(--ink-soft)">
+            <details className="rounded-xl border border-(--border-subtle) bg-(--surface-card-soft) p-3 text-sm text-(--ink-soft)">
               <summary className="cursor-pointer font-medium text-(--ink-strong)">
                 Show referenced ayahs ({selectedEmbeds.length})
               </summary>
@@ -136,12 +136,12 @@ export function ChatResultView({
                 {selectedEmbeds.map((embed) => (
                   <QuranEmbedCard
                     ayahNo={embed.label.split(':')[1] ?? ''}
-                    containerClassName="rounded-xl border border-[var(--border-subtle)] bg-white"
+                    containerClassName="rounded-xl border border-(--border-subtle) bg-white"
                     frameClassName="rounded-xl bg-white"
                     key={embed.label}
                     label={embed.label}
                     overlayAction={
-                      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[70px] items-center justify-end pr-[9.5rem]">
+                      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-17.5 items-center justify-end pr-38">
                         {auth.isAuthenticated ? (
                           <button
                             aria-label={
@@ -149,7 +149,7 @@ export function ChatResultView({
                                 ? 'Remove bookmark'
                                 : 'Bookmark ayah'
                             }
-                            className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card-strong)] text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                            className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={bookmarkState.savingKey === embed.label}
                             onClick={() =>
                               handleBookmarkToggle(
@@ -161,7 +161,7 @@ export function ChatResultView({
                             type="button"
                           >
                             {bookmarkState.savingKey === embed.label ? (
-                              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[rgba(63,63,70,0.25)] border-t-[var(--accent)]" />
+                              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-(--border-accent-strong) border-t-(--accent)" />
                             ) : (
                               <svg
                                 className="h-4 w-4"
@@ -179,7 +179,7 @@ export function ChatResultView({
                         ) : (
                           <a
                             aria-label="Connect to bookmark"
-                            className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card-strong)] text-(--ink-soft) transition hover:bg-white"
+                            className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white"
                             href={loginHref}
                             onClick={handleConnectClick}
                           >
@@ -208,11 +208,11 @@ export function ChatResultView({
           ) : selectedEmbeds.length === 1 ? (
             <QuranEmbedCard
               ayahNo={selectedEmbeds[0].label.split(':')[1] ?? ''}
-              containerClassName="rounded-xl border border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card-sm)]"
+              containerClassName="rounded-xl border border-(--border-subtle) bg-white shadow-(--shadow-card-sm)"
               frameClassName="rounded-xl bg-white"
               label={selectedEmbeds[0].label}
               overlayAction={
-                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[70px] items-center justify-end pr-[9.5rem]">
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-17.5 items-center justify-end pr-38">
                   {auth.isAuthenticated ? (
                     <button
                       aria-label={
@@ -220,7 +220,7 @@ export function ChatResultView({
                           ? 'Remove bookmark'
                           : 'Bookmark ayah'
                       }
-                      className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card-strong)] text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] cursor-pointer items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={bookmarkState.savingKey === selectedEmbeds[0].label}
                       onClick={() =>
                         handleBookmarkToggle(
@@ -232,7 +232,7 @@ export function ChatResultView({
                       type="button"
                     >
                       {bookmarkState.savingKey === selectedEmbeds[0].label ? (
-                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[rgba(63,63,70,0.25)] border-t-[var(--accent)]" />
+                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-(--border-accent-strong) border-t-(--accent)" />
                       ) : (
                         <svg
                           className="h-4 w-4"
@@ -254,7 +254,7 @@ export function ChatResultView({
                   ) : (
                     <a
                       aria-label="Connect to bookmark"
-                      className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card-strong)] text-(--ink-soft) transition hover:bg-white"
+                      className="pointer-events-auto inline-flex h-[2.115rem] w-[2.115rem] items-center justify-center rounded-xl border border-(--border-soft) bg-(--surface-card-strong) text-(--ink-soft) transition hover:bg-white"
                       href={loginHref}
                       onClick={handleConnectClick}
                     >
@@ -280,7 +280,7 @@ export function ChatResultView({
           ) : null}
 
           {result.reflection_guide ? (
-            <div className="border-t border-[var(--border-subtle)] pt-4">
+            <div className="border-t border-(--border-subtle) pt-4">
               <p
                 className={`text-base leading-8 text-(--ink-strong) ${getDirectionStyles(
                   detectTextDirection(
@@ -304,7 +304,7 @@ export function ChatResultView({
       <div className="flex gap-3 pl-2">
         {auth.isAuthenticated ? (
           <button
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
+            className="inline-flex items-center gap-2 rounded-full border border-(--border-soft) bg-(--surface-card) px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
             onClick={() =>
               setNoteState({
                 body: '',
@@ -331,7 +331,7 @@ export function ChatResultView({
           </button>
         ) : (
           <a
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
+            className="inline-flex items-center gap-2 rounded-full border border-(--border-soft) bg-(--surface-card) px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
             href={loginHref}
             onClick={handleConnectClick}
           >
@@ -353,7 +353,7 @@ export function ChatResultView({
 
       {/* Note saved success message */}
       {noteSaved ? (
-        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-[var(--surface-subtle-soft)] px-5 py-4 sm:max-w-[75%]">
+        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-(--surface-subtle-soft) px-5 py-4 sm:max-w-[75%]">
           <p className="text-sm leading-7 text-(--ink-strong)">
             Your note has been saved to your Quran Foundation account.
           </p>

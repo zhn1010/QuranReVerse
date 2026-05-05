@@ -210,7 +210,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
 
   if (!isAuthenticated) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+      <div className="rounded-7 border border-dashed border-(--line) bg-white/55 px-4 py-5">
         <p className="text-sm font-semibold text-(--ink-strong)">Notes</p>
         <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
           Connect your Quran Foundation account to load and manage saved notes.
@@ -225,7 +225,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <div
-              className="rounded-[1.4rem] border border-[rgba(63,63,70,0.08)] bg-white/60 px-4 py-4"
+              className="rounded-[1.4rem] border border-(--border-subtle) bg-(--surface-card-muted) px-4 py-4"
               key={index}
             >
               <div className="shimmer-bar h-3 w-20 rounded-full" />
@@ -235,12 +235,12 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
           ))}
         </div>
       ) : state.error ? (
-        <div className="rounded-[1.75rem] border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-4 py-5">
-          <p className="text-sm font-semibold text-[rgb(110,28,28)]">Could not load notes</p>
-          <p className="mt-2 text-sm leading-6 text-[rgb(110,28,28)]">{state.error}</p>
+        <div className="rounded-7 border border-(--border-danger) bg-(--surface-danger-soft) px-4 py-5">
+          <p className="text-sm font-semibold text-(--ink-danger)">Could not load notes</p>
+          <p className="mt-2 text-sm leading-6 text-(--ink-danger)">{state.error}</p>
         </div>
       ) : state.notes.length === 0 ? (
-        <div className="rounded-[1.75rem] border border-dashed border-(--line) bg-white/55 px-4 py-5">
+        <div className="rounded-7 border border-dashed border-(--line) bg-white/55 px-4 py-5">
           <p className="text-sm font-semibold text-(--ink-strong)">Notes</p>
           <p className="mt-2 text-sm leading-6 text-(--ink-soft)">
             Saved reflection notes will appear here once you create them.
@@ -253,7 +253,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
 
             return (
               <button
-                className="block w-full cursor-pointer rounded-[1.25rem] border border-[rgba(63,63,70,0.08)] bg-white/68 px-4 py-3 text-left transition hover:bg-white/92"
+                className="block w-full cursor-pointer rounded-5 border border-(--border-subtle) bg-(--surface-card-tint) px-4 py-3 text-left transition hover:bg-(--surface-card-hover)"
                 key={note.id}
                 onClick={() =>
                   setActiveNote({
@@ -291,7 +291,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
       {isMounted && activeNote
         ? createPortal(
             <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(24,24,27,0.28)] px-4 py-6"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-(--surface-scrim-soft) px-4 py-6"
               onClick={(event) => {
                 if (
                   event.target === event.currentTarget &&
@@ -302,8 +302,8 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                 }
               }}
             >
-              <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-[rgba(63,63,70,0.12)] bg-[rgba(255,255,255,0.96)] shadow-[0_30px_80px_rgba(24,24,27,0.18)] backdrop-blur-md">
-                <div className="flex items-center justify-between border-b border-[rgba(63,63,70,0.08)] px-6 py-4">
+              <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-4xl border border-(--border-default) bg-(--surface-overlay) shadow-(--shadow-modal-soft) backdrop-blur-md">
+                <div className="flex items-center justify-between border-b border-(--border-subtle) px-6 py-4">
                   <div>
                     <p className="text-lg font-semibold text-(--ink-strong)">Saved note</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
@@ -317,7 +317,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                     </p>
                   </div>
                   <button
-                    className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white"
+                    className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-(--surface-card) text-(--ink-soft) transition hover:bg-white"
                     disabled={activeNote.isSaving || activeNote.isDeleting}
                     onClick={() => setActiveNote(null)}
                     type="button"
@@ -332,7 +332,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                       <div className="mt-3 flex flex-wrap gap-2">
                         {activeNote.note.ranges.map((range) => (
                           <a
-                            className="inline-flex items-center rounded-full border border-[rgba(63,63,70,0.12)] bg-white px-3 py-1.5 text-sm font-medium text-(--ink-strong) transition hover:border-[rgba(63,63,70,0.22)] hover:bg-[rgba(255,255,255,0.96)]"
+                            className="inline-flex items-center rounded-full border border-(--border-default) bg-white px-3 py-1.5 text-sm font-medium text-(--ink-strong) transition hover:border-(--border-accent-hover) hover:bg-(--surface-overlay)"
                             href={buildQuranRangeUrl(range)}
                             key={range}
                             rel="noreferrer"
@@ -349,7 +349,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                   ) : null}
 
                   <textarea
-                    className={`min-h-72 w-full resize-none rounded-[1.4rem] border border-(--line) bg-[rgba(244,244,245,0.52)] px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-[rgba(82,82,91,0.4)] focus:ring-4 focus:ring-[rgba(113,113,122,0.14)] ${getDirectionStyles(noteDirection)}`}
+                    className={`min-h-72 w-full resize-none rounded-[1.4rem] border border-(--line) bg-(--surface-input) px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-(--border-focus) focus:ring-4 focus:ring-(--focus-ring) ${getDirectionStyles(noteDirection)}`}
                     dir={noteDirection}
                     disabled={activeNote.isSaving || activeNote.isDeleting}
                     onChange={(event) =>
@@ -369,7 +369,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
 
                   {activeNote.error ? (
                     <p
-                      className={`mt-3 text-sm text-[rgb(146,64,14)] ${getDirectionStyles(
+                      className={`mt-3 text-sm text-(--ink-danger) ${getDirectionStyles(
                         detectTextDirection(activeNote.error, noteDirection),
                       )}`}
                       dir={detectTextDirection(activeNote.error, noteDirection)}
@@ -379,20 +379,20 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                   ) : null}
                 </div>
 
-                <div className="border-t border-[rgba(63,63,70,0.08)] px-6 py-4">
+                <div className="border-t border-(--border-subtle) px-6 py-4">
                   {activeNote.confirmingDelete ? (
-                    <div className="mb-4 flex items-center justify-between rounded-[1.2rem] border border-[rgba(140,32,32,0.18)] bg-[rgba(140,32,32,0.05)] px-4 py-3">
+                    <div className="mb-4 flex items-center justify-between rounded-[1.2rem] border border-(--border-danger) bg-(--surface-danger-soft) px-4 py-3">
                       <div>
-                        <p className="text-sm font-semibold text-[rgb(110,28,28)]">
+                        <p className="text-sm font-semibold text-(--ink-danger)">
                           Delete this note?
                         </p>
-                        <p className="mt-1 text-xs leading-5 text-[rgb(110,28,28)]">
+                        <p className="mt-1 text-xs leading-5 text-(--ink-danger)">
                           This removes it from your Quran Foundation account.
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.28)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.08)] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-(--border-danger-strong) px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-(--ink-danger) transition hover:bg-(--surface-danger-strong) disabled:cursor-not-allowed disabled:opacity-50"
                           disabled={activeNote.isSaving || activeNote.isDeleting}
                           onClick={handleDeleteNote}
                           type="button"
@@ -400,7 +400,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
                           {activeNote.isDeleting ? 'Deleting...' : 'Yes'}
                         </button>
                         <button
-                          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(63,63,70,0.16)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-(--border-strong) px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                           disabled={activeNote.isSaving || activeNote.isDeleting}
                           onClick={handleDeleteConfirmationToggle}
                           type="button"
@@ -413,7 +413,7 @@ export function SidebarNotesPanel({ isAuthenticated }: { isAuthenticated: boolea
 
                   <div className="flex items-center justify-between">
                     <button
-                      className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[rgba(140,32,32,0.18)] px-4 py-2.5 text-sm font-semibold text-[rgb(110,28,28)] transition hover:bg-[rgba(140,32,32,0.05)] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex cursor-pointer items-center justify-center rounded-full border border-(--border-danger) px-4 py-2.5 text-sm font-semibold text-(--ink-danger) transition hover:bg-(--surface-danger-soft) disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={activeNote.isSaving || activeNote.isDeleting}
                       onClick={handleDeleteConfirmationToggle}
                       type="button"

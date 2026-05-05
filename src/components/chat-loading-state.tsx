@@ -40,7 +40,7 @@ export function ChatLoadingState({
   const total = LOADING_STEPS.length;
 
   return (
-    <div className="inline-flex items-center gap-4 rounded-full border border-[var(--border-accent-soft)] bg-[var(--surface-card)] px-4 py-2">
+    <div className="inline-flex items-center gap-4 rounded-full border border-(--border-accent-soft) bg-(--surface-card) px-4 py-2">
       <div className="relative h-9 w-9 overflow-hidden rounded-full">
         <Image
           alt="Sakinah.now logo"

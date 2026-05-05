@@ -127,7 +127,7 @@ export default async function ReflectionsHistogramPage() {
   if (!dataset || dataset.stats.length === 0) {
     return (
       <main className="min-h-screen px-5 py-10 sm:px-8 lg:px-12">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-4xl border border-(--line) bg-[rgba(255,251,245,0.84)] p-8 shadow-[0_30px_120px_rgba(43,27,8,0.12)]">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-4xl border border-(--line) bg-(--surface-warm-panel-soft) p-8 shadow-(--shadow-warm-panel)">
           <p className="eyebrow">Reflections Histogram</p>
           <h1 className="text-4xl font-semibold tracking-[-0.04em] text-(--ink-strong)">
             No all-ayah dataset yet
@@ -135,7 +135,7 @@ export default async function ReflectionsHistogramPage() {
           <p className="max-w-2xl text-base leading-8 text-(--ink-soft)">
             Generate the full Quran Reflect count dataset first, then reload this page.
           </p>
-          <pre className="overflow-x-auto rounded-3xl border border-(--line) bg-[rgba(255,252,247,0.72)] p-4 text-sm text-(--ink-strong)">
+          <pre className="overflow-x-auto rounded-3xl border border-(--line) bg-(--surface-warm-overlay) p-4 text-sm text-(--ink-strong)">
             pnpm reflections:generate -- --concurrency 6
           </pre>
           <Link className="text-sm font-medium text-(--accent-strong)" href="/">
@@ -160,7 +160,7 @@ export default async function ReflectionsHistogramPage() {
   return (
     <main className="min-h-screen px-5 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10">
-        <section className="hero-panel overflow-hidden rounded-4xl px-6 py-8 shadow-[0_30px_120px_rgba(43,27,8,0.16)] sm:px-8 sm:py-10">
+        <section className="hero-panel overflow-hidden rounded-4xl px-6 py-8 shadow-(--shadow-warm-hero) sm:px-8 sm:py-10">
           <div className="flex flex-col gap-5">
             <p className="eyebrow">Reflections Histogram</p>
             <div className="space-y-4">
@@ -199,7 +199,7 @@ export default async function ReflectionsHistogramPage() {
         </section>
 
         <section className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-          <article className="rounded-4xl border border-(--line) bg-[rgba(255,249,241,0.92)] p-6 shadow-[0_18px_44px_rgba(70,45,14,0.08)] sm:p-8">
+          <article className="rounded-4xl border border-(--line) bg-(--surface-warm-panel) p-6 shadow-(--shadow-warm) sm:p-8">
             <div className="flex flex-col gap-2">
               <p className="eyebrow">Histogram</p>
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)">
@@ -212,11 +212,11 @@ export default async function ReflectionsHistogramPage() {
             </div>
 
             <div className="mt-8 overflow-x-auto">
-              <div className="flex min-w-[720px] items-end gap-4">
+              <div className="flex min-w-180 items-end gap-4">
                 {histogram.map((bin) => (
                   <div key={bin.label} className="flex min-w-0 flex-1 flex-col items-center gap-3">
                     <p className="text-sm font-medium text-(--ink-strong)">{bin.count}</p>
-                    <div className="flex h-80 w-full items-end rounded-3xl bg-[rgba(112,75,33,0.06)] p-2">
+                    <div className="flex h-80 w-full items-end rounded-3xl bg-(--surface-warm-chart) p-2">
                       <div
                         className="w-full rounded-2xl bg-[linear-gradient(180deg,#c66d1f_0%,#9b4d11_100%)] transition-[height] duration-500"
                         style={{
@@ -233,7 +233,7 @@ export default async function ReflectionsHistogramPage() {
             </div>
           </article>
 
-          <aside className="rounded-4xl border border-(--line) bg-[rgba(255,249,241,0.92)] p-6 shadow-[0_18px_44px_rgba(70,45,14,0.08)] sm:p-8">
+          <aside className="rounded-4xl border border-(--line) bg-(--surface-warm-panel) p-6 shadow-(--shadow-warm) sm:p-8">
             <div className="flex flex-col gap-2">
               <p className="eyebrow">Top Ayahs</p>
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)">
@@ -245,7 +245,7 @@ export default async function ReflectionsHistogramPage() {
               {topAyahs.map((entry, index) => (
                 <div
                   key={entry.ayahKey}
-                  className="flex items-center justify-between rounded-3xl border border-(--line) bg-[rgba(255,252,247,0.72)] px-4 py-3"
+                  className="flex items-center justify-between rounded-3xl border border-(--line) bg-(--surface-warm-overlay) px-4 py-3"
                 >
                   <div>
                     <p className="text-sm uppercase tracking-[0.22em] text-(--accent-strong)">

@@ -13,7 +13,7 @@ export function PromptSummaryCard({
   const feelingDirection = detectTextDirection(userFeeling);
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-(--line) bg-white shadow-[0_16px_44px_rgba(24,24,27,0.06)]">
+    <section className="overflow-hidden rounded-4xl border border-(--line) bg-white shadow-(--shadow-card-lg)">
       <div className="grid gap-0 md:grid-cols-2">
         <div className="border-b border-(--line) px-5 py-5 md:border-b-0 md:border-r md:px-6">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">

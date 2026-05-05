@@ -165,10 +165,10 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
             router.push(`/chat/${chatId}`);
           }}
         >
-          <div className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-white shadow-[var(--shadow-card)]">
+          <div className="overflow-hidden rounded-2xl border border-(--border-soft) bg-white shadow-(--shadow-card)">
             <div className="px-5 pt-4 pb-2 sm:px-6">
               <textarea
-                className={`min-h-24 w-full resize-none bg-transparent text-base leading-7 text-(--ink-strong) outline-none placeholder:text-[rgba(113,113,122,0.55)] ${getDirectionStyles(
+                className={`min-h-24 w-full resize-none bg-transparent text-base leading-7 text-(--ink-strong) outline-none placeholder:text-(--ink-placeholder) ${getDirectionStyles(
                   detectTextDirection(eventContent),
                 )}`}
                 dir={detectTextDirection(eventContent)}
@@ -178,9 +178,9 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
               />
             </div>
 
-            <div className="flex items-center gap-3 border-t border-[var(--border-subtle)] px-5 py-3 sm:px-6">
+            <div className="flex items-center gap-3 border-t border-(--border-subtle) px-5 py-3 sm:px-6">
               <input
-                className={`min-w-0 flex-1 bg-transparent text-sm leading-6 text-(--ink-strong) outline-none placeholder:text-[rgba(113,113,122,0.55)] ${getDirectionStyles(
+                className={`min-w-0 flex-1 bg-transparent text-sm leading-6 text-(--ink-strong) outline-none placeholder:text-(--ink-placeholder) ${getDirectionStyles(
                   detectTextDirection(userFeeling),
                 )}`}
                 dir={detectTextDirection(userFeeling)}
@@ -216,10 +216,10 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
 
         <div className="relative mt-6 w-full">
           {canScrollLeft ? (
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[var(--background)] to-transparent transition-opacity" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-linear-to-r from-(--background) to-transparent transition-opacity" />
           ) : null}
           {canScrollRight ? (
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[var(--background)] to-transparent transition-opacity" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-linear-to-l from-(--background) to-transparent transition-opacity" />
           ) : null}
           <div
             ref={(el) => {
@@ -237,7 +237,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
             {EXAMPLES.map((example) => (
               <button
                 key={example.label}
-                className="shrink-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card-soft)] px-4 py-3 text-left transition hover:border-[var(--border-accent-hover)] hover:bg-white hover:shadow-[var(--shadow-card)]"
+                className="shrink-0 rounded-xl border border-(--border-subtle) bg-(--surface-card-soft) px-4 py-3 text-left transition hover:border-(--border-accent-hover) hover:bg-white hover:shadow-(--shadow-card)"
                 dir={example.dir}
                 onClick={() => {
                   setEventContent(example.event);
@@ -259,11 +259,11 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
       </section>
 
       {isHeroVisible ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-scrim-soft)] p-4 sm:p-6">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-[var(--shadow-modal)] sm:p-10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--surface-scrim-soft) p-4 sm:p-6">
+          <div className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-(--shadow-modal) sm:p-10">
             <button
               aria-label="Close intro"
-              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg text-(--ink-soft) transition hover:bg-[var(--surface-subtle-strong)] hover:text-(--ink-strong)"
+              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg text-(--ink-soft) transition hover:bg-(--surface-subtle-strong) hover:text-(--ink-strong)"
               onClick={() => {
                 setIsHeroVisible(false);
                 try {
@@ -287,7 +287,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
                   src="/LogoSakinah.now.png"
                 />
               </div>
-              <div className="relative h-6 w-[140px]">
+              <div className="relative h-6 w-35">
                 <Image
                   alt="Sakinah.now"
                   className="object-contain object-left"
@@ -307,7 +307,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
 
             <div className="mt-6 space-y-4">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-xs font-semibold text-(--ink-soft)">
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-(--surface-subtle) text-xs font-semibold text-(--ink-soft)">
                   1
                 </span>
                 <div>
@@ -316,7 +316,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-xs font-semibold text-(--ink-soft)">
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-(--surface-subtle) text-xs font-semibold text-(--ink-soft)">
                   2
                 </span>
                 <div>
@@ -327,7 +327,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-xs font-semibold text-(--ink-soft)">
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-(--surface-subtle) text-xs font-semibold text-(--ink-soft)">
                   3
                 </span>
                 <div>

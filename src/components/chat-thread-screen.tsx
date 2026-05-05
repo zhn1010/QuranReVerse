@@ -99,7 +99,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-16">
         {!thread ? (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-[var(--surface-subtle-soft)] px-5 py-4 text-sm leading-7 text-(--ink-soft)">
+            <div className="rounded-2xl bg-(--surface-subtle-soft) px-5 py-4 text-sm leading-7 text-(--ink-soft)">
               This local reflection thread could not be found.{' '}
               <Link className="underline" href="/">
                 Start a new one
@@ -111,7 +111,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
           <>
             {/* User message — right aligned */}
             <div className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--surface-bubble)] px-5 py-4 sm:max-w-[75%]">
+              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-(--surface-bubble) px-5 py-4 sm:max-w-[75%]">
                 <p
                   className={`text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
                     detectTextDirection(thread.eventContent),
@@ -122,7 +122,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
                 </p>
                 {thread.userFeeling ? (
                   <p
-                    className={`mt-2 border-t border-[var(--border-subtle)] pt-2 text-sm leading-7 text-(--ink-soft) ${getDirectionStyles(
+                    className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-soft) ${getDirectionStyles(
                       detectTextDirection(thread.userFeeling),
                     )}`}
                     dir={detectTextDirection(thread.userFeeling)}
@@ -142,11 +142,11 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
               </div>
             ) : thread.status === 'error' ? (
               <div className="flex justify-start">
-                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-[var(--border-danger)] bg-[var(--surface-danger)] px-5 py-4 sm:max-w-[75%]">
-                  <p className="text-sm font-semibold text-[rgb(110,28,28)]">
+                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-(--border-danger) bg-(--surface-danger) px-5 py-4 sm:max-w-[75%]">
+                  <p className="text-sm font-semibold text-(--ink-danger)">
                     Could not prepare this reading.
                   </p>
-                  <p className="mt-2 text-sm leading-7 text-[rgb(110,28,28)]">{thread.error}</p>
+                  <p className="mt-2 text-sm leading-7 text-(--ink-danger)">{thread.error}</p>
                   <button
                     className="mt-4 inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--accent)"
                     onClick={() => {

@@ -53,7 +53,7 @@ export function ReflectionBody({
 
       {shouldCollapse ? (
         <button
-          className="mt-3 text-sm font-medium text-(--accent-strong) underline decoration-[rgba(82,82,91,0.3)] underline-offset-4"
+          className="mt-3 text-sm font-medium text-(--accent-strong) underline decoration-(--underline-strong) underline-offset-4"
           onClick={() => setExpanded((current) => !current)}
           type="button"
         >
@@ -69,7 +69,7 @@ export function ReflectionBody({
             ))}
             {postId ? (
               <a
-                className="underline decoration-[rgba(82,82,91,0.25)] underline-offset-4 transition hover:text-(--ink-strong)"
+                className="underline decoration-(--underline-soft) underline-offset-4 transition hover:text-(--ink-strong)"
                 href={`https://quranreflect.com/posts/${postId}`}
                 rel="noopener noreferrer"
                 target="_blank"
@@ -81,7 +81,7 @@ export function ReflectionBody({
         ) : null
       ) : postId ? (
         <a
-          className="mt-3 inline-block text-xs text-(--ink-soft) underline decoration-[rgba(82,82,91,0.25)] underline-offset-4 transition hover:text-(--ink-strong)"
+          className="mt-3 inline-block text-xs text-(--ink-soft) underline decoration-(--underline-soft) underline-offset-4 transition hover:text-(--ink-strong)"
           href={`https://quranreflect.com/posts/${postId}`}
           rel="noopener noreferrer"
           target="_blank"

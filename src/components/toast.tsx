@@ -85,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex flex-col items-center gap-3 px-4 pb-6"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-9999 flex flex-col items-center gap-3 px-4 pb-6"
       >
         {toasts.map((toast) => (
           <ToastCard key={toast.id} toast={toast} onDismiss={dismiss} />
@@ -108,20 +108,20 @@ const variantStyles: Record<
   { bg: string; border: string; text: string; icon: string }
 > = {
   success: {
-    bg: 'bg-[var(--surface-overlay)]',
-    border: 'border-[var(--border-success)]',
-    text: 'text-[rgb(24,94,58)]',
+    bg: 'bg-(--surface-overlay)',
+    border: 'border-(--border-success)',
+    text: 'text-(--ink-success)',
     icon: 'M5 13l4 4L19 7',
   },
   error: {
-    bg: 'bg-[var(--surface-overlay)]',
-    border: 'border-[var(--border-warning)]',
-    text: 'text-[rgb(146,64,14)]',
+    bg: 'bg-(--surface-overlay)',
+    border: 'border-(--border-warning)',
+    text: 'text-(--ink-warning)',
     icon: 'M6 18L18 6M6 6l12 12',
   },
   info: {
-    bg: 'bg-[var(--surface-overlay)]',
-    border: 'border-[var(--border-default)]',
+    bg: 'bg-(--surface-overlay)',
+    border: 'border-(--border-default)',
     text: 'text-(--ink-strong)',
     icon: 'M13 16h-1v-4h-1m1-4h.01',
   },
@@ -132,7 +132,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
 
   return (
     <div
-      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-[var(--shadow-toast)] backdrop-blur-sm transition-all duration-300 ${style.bg} ${style.border} ${
+      className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-(--shadow-toast) backdrop-blur-sm transition-all duration-300 ${style.bg} ${style.border} ${
         toast.leaving
           ? 'translate-y-4 scale-95 opacity-0'
           : 'translate-y-0 scale-100 opacity-100 animate-[toast-in_0.32s_ease-out]'
