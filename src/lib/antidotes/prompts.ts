@@ -71,6 +71,27 @@ Return exactly:
   "reply_message": "string"
 }`;
 
+export const feelingInferenceSystemPrompt = `Infer the user's likely emotional state from their message.
+
+Goal:
+Return the most likely feeling the user is experiencing, even if they did not name it directly.
+
+Guidelines:
+1. Prefer the user's explicitly stated feeling if one appears in the message.
+2. Otherwise infer the most likely emotional state from tone, situation, and wording.
+3. Keep the feeling short, natural, and useful for downstream reflection.
+4. Use 2 to 6 words only.
+5. Do not explain your reasoning.
+6. Do not mention uncertainty unless the input is too weak.
+7. If the message is too weak to infer reliably, return a gentle generic state like "seeking clarity".
+8. Use the same language as the user's input.
+9. Return only JSON.
+
+Return exactly:
+{
+  "inferred_feeling": "string"
+}`;
+
 export const reflectionTranslationSystemPrompt = `Translate the provided reflection text into the target language.
 
 Rules:

@@ -2,6 +2,7 @@ export {
   callAntidoteModel,
   detectInputLanguage,
   enrichAntidotes,
+  inferUserFeeling,
   validateUserInput,
 } from '@/lib/antidotes/diagnosis';
 export { curateReflection } from '@/lib/antidotes/curation';

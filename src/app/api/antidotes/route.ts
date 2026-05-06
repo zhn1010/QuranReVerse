@@ -10,6 +10,7 @@ import {
   detectInputLanguage,
   enrichAntidotes,
   generateChatTitle,
+  inferUserFeeling,
   translateSelectedReflectionIfNeeded,
 } from '@/lib/antidotes/service';
 import type {
@@ -150,14 +151,20 @@ export async function POST(request: Request) {
       };
 
       try {
+        const effectiveUserFeeling =
+          userFeeling ||
+          (await inferUserFeeling(eventContent, {
+            debugLogger: logLlmDebug,
+          }));
+
         send(createPipelineStep('language_detection', 'in_progress'));
-        const detectedLanguageCode = await detectInputLanguage(eventContent, userFeeling, {
+        const detectedLanguageCode = await detectInputLanguage(eventContent, effectiveUserFeeling, {
           debugLogger: logLlmDebug,
         });
         send(createPipelineStep('language_detection', 'completed'));
 
         send(createPipelineStep('ayah_selection', 'in_progress'));
-        const response = await callAntidoteModel(eventContent, userFeeling, {
+        const response = await callAntidoteModel(eventContent, effectiveUserFeeling, {
           debugLogger: logLlmDebug,
         });
         send(createPipelineStep('ayah_selection', 'completed'));
@@ -202,7 +209,7 @@ export async function POST(request: Request) {
               diagnosis: response.diagnosis,
               eventContent,
               selectedReflection: localizedSelectedReflection,
-              userFeeling,
+              userFeeling: effectiveUserFeeling,
             },
             {
               debugLogger: logLlmDebug,
@@ -212,7 +219,7 @@ export async function POST(request: Request) {
             {
               detectedLanguageCode,
               eventContent,
-              userFeeling,
+              userFeeling: effectiveUserFeeling,
             },
             {
               debugLogger: logLlmDebug,

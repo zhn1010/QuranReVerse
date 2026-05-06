@@ -81,6 +81,18 @@ export const inputValidationResponseSchema = {
   type: 'object',
 } as const;
 
+export const feelingInferenceResponseSchema = {
+  additionalProperties: false,
+  properties: {
+    inferred_feeling: {
+      maxLength: 40,
+      type: 'string',
+    },
+  },
+  required: ['inferred_feeling'],
+  type: 'object',
+} as const;
+
 export const reflectionTranslationResponseSchema = {
   additionalProperties: false,
   properties: {

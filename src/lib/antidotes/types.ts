@@ -32,6 +32,10 @@ export type InputValidationResponse = {
   reply_message: string;
 };
 
+export type FeelingInferenceResponse = {
+  inferred_feeling: string;
+};
+
 export type ReflectionTranslationResponse = {
   translated_text: string;
 };

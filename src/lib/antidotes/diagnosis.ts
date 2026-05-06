@@ -5,17 +5,20 @@ import {
 } from '@/lib/antidotes/language';
 import {
   antidoteSystemPrompt,
+  feelingInferenceSystemPrompt,
   inputValidationSystemPrompt,
   languageDetectionSystemPrompt,
 } from '@/lib/antidotes/prompts';
 import {
   antidoteResponseSchema,
+  feelingInferenceResponseSchema,
   inputValidationResponseSchema,
   languageDetectionResponseSchema,
 } from '@/lib/antidotes/schemas';
 import type {
   AntidoteResponse,
   EnrichedAntidote,
+  FeelingInferenceResponse,
   InputValidationResponse,
   LanguageDetectionResponse,
   OpenAIAntidote,
@@ -57,6 +60,31 @@ export async function validateUserInput(
       debugLogger,
     },
   );
+}
+
+export async function inferUserFeeling(
+  eventText: string,
+  {
+    debugLogger = noopDebugLogger,
+    structuredOpenAICaller = callStructuredOpenAI,
+  }: OpenAIServiceDeps = {},
+) {
+  const response = await structuredOpenAICaller<FeelingInferenceResponse>(
+    {
+      inputText: `User message: "${eventText}"`,
+      instructions: feelingInferenceSystemPrompt,
+      maxOutputTokens: 30,
+      schema: feelingInferenceResponseSchema,
+      schemaName: 'feeling_inference',
+    },
+    {
+      debugLogger,
+    },
+  );
+
+  const inferredFeeling = response.inferred_feeling.trim();
+
+  return inferredFeeling.length > 0 ? inferredFeeling : 'seeking clarity';
 }
 
 export async function callAntidoteModel(

@@ -7,6 +7,7 @@ import {
   detectInputLanguage,
   enrichAntidotes,
   generateChatTitle,
+  inferUserFeeling,
   looksLikeTruncatedJsonError,
   translateSelectedReflectionIfNeeded,
   validateUserInput,
@@ -150,6 +151,38 @@ describe('validateUserInput', () => {
       maxOutputTokens: 90,
       schemaName: 'reflection_input_validation',
     });
+  });
+});
+
+describe('inferUserFeeling', () => {
+  it('delegates to the structured OpenAI caller with a compact inference schema', async () => {
+    const structuredOpenAICallerMock = createStructuredOpenAIResultMock({
+      inferred_feeling: 'overwhelmed and restless',
+    });
+
+    await expect(
+      inferUserFeeling('event', {
+        structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+      }),
+    ).resolves.toBe('overwhelmed and restless');
+
+    expect(structuredOpenAICallerMock).toHaveBeenCalledTimes(1);
+    expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
+      maxOutputTokens: 30,
+      schemaName: 'feeling_inference',
+    });
+  });
+
+  it('falls back to a generic feeling when the model returns blank text', async () => {
+    const structuredOpenAICallerMock = createStructuredOpenAIResultMock({
+      inferred_feeling: '   ',
+    });
+
+    await expect(
+      inferUserFeeling('event', {
+        structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+      }),
+    ).resolves.toBe('seeking clarity');
   });
 });
 
