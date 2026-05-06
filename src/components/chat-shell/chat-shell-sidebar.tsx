@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useId, useRef } from 'react';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import { SidebarNotesPanel } from '@/components/sidebar-notes-panel';
@@ -42,10 +43,23 @@ export function ChatShellSidebar({
   const railButtonClass =
     'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white';
   const railSectionClass = 'px-4.5';
+  const tabListId = useId();
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const { dialogRef, titleId } = useAccessibleDialog<HTMLElement>({
     isOpen: isMobileSidebarOpen,
     onClose: onSidebarCollapse,
   });
+
+  const focusTabByIndex = (nextIndex: number) => {
+    const normalizedIndex = (nextIndex + SIDEBAR_TABS.length) % SIDEBAR_TABS.length;
+    const nextTab = SIDEBAR_TABS[normalizedIndex];
+    if (!nextTab) {
+      return;
+    }
+
+    setActiveSidebarTab(nextTab.id);
+    tabRefs.current[normalizedIndex]?.focus();
+  };
 
   return (
     <aside
@@ -140,20 +154,58 @@ export function ChatShellSidebar({
           {isSidebarExpanded ? (
             <div className="flex h-full min-h-0 flex-col">
               <div className="shrink-0 px-3">
-                <div className="grid grid-cols-3 gap-1 border-b border-(--border-subtle) pb-2">
-                  {SIDEBAR_TABS.map((tab) => {
+                <div
+                  aria-label="Sidebar sections"
+                  className="grid grid-cols-3 gap-1 border-b border-(--border-subtle) pb-2"
+                  id={tabListId}
+                  role="tablist"
+                >
+                  {SIDEBAR_TABS.map((tab, index) => {
                     const isActive = activeSidebarTab === tab.id;
+                    const tabId = `${tabListId}-${tab.id}-tab`;
+                    const panelId = `${tabListId}-${tab.id}-panel`;
 
                     return (
                       <button
-                        aria-pressed={isActive}
+                        aria-controls={panelId}
+                        aria-selected={isActive}
                         className={`cursor-pointer rounded-full px-2 py-1.5 text-xs font-medium transition ${
                           isActive
                             ? 'bg-white/90 text-(--ink-strong)'
                             : 'text-(--ink-soft) hover:text-(--ink-strong)'
                         }`}
+                        id={tabId}
                         key={tab.id}
+                        onKeyDown={(event) => {
+                          if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                            event.preventDefault();
+                            focusTabByIndex(index + 1);
+                            return;
+                          }
+
+                          if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                            event.preventDefault();
+                            focusTabByIndex(index - 1);
+                            return;
+                          }
+
+                          if (event.key === 'Home') {
+                            event.preventDefault();
+                            focusTabByIndex(0);
+                            return;
+                          }
+
+                          if (event.key === 'End') {
+                            event.preventDefault();
+                            focusTabByIndex(SIDEBAR_TABS.length - 1);
+                          }
+                        }}
                         onClick={() => setActiveSidebarTab(tab.id)}
+                        ref={(element) => {
+                          tabRefs.current[index] = element;
+                        }}
+                        role="tab"
+                        tabIndex={isActive ? 0 : -1}
                         type="button"
                       >
                         {tab.label}
@@ -164,17 +216,45 @@ export function ChatShellSidebar({
               </div>
 
               <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-                {activeSidebarTab === 'chats' ? (
-                  <ChatHistoryList
-                    activeChatId={activeChatId}
-                    history={history}
-                    onNavigate={onSidebarNavigation}
-                  />
-                ) : activeSidebarTab === 'notes' ? (
-                  <SidebarNotesPanel isAuthenticated={authIsAuthenticated} />
-                ) : (
-                  <SidebarBookmarksPanel isAuthenticated={authIsAuthenticated} />
-                )}
+                <div
+                  aria-labelledby={`${tabListId}-chats-tab`}
+                  hidden={activeSidebarTab !== 'chats'}
+                  id={`${tabListId}-chats-panel`}
+                  role="tabpanel"
+                  tabIndex={activeSidebarTab === 'chats' ? 0 : -1}
+                >
+                  {activeSidebarTab === 'chats' ? (
+                    <ChatHistoryList
+                      activeChatId={activeChatId}
+                      history={history}
+                      onNavigate={onSidebarNavigation}
+                    />
+                  ) : null}
+                </div>
+
+                <div
+                  aria-labelledby={`${tabListId}-notes-tab`}
+                  hidden={activeSidebarTab !== 'notes'}
+                  id={`${tabListId}-notes-panel`}
+                  role="tabpanel"
+                  tabIndex={activeSidebarTab === 'notes' ? 0 : -1}
+                >
+                  {activeSidebarTab === 'notes' ? (
+                    <SidebarNotesPanel isAuthenticated={authIsAuthenticated} />
+                  ) : null}
+                </div>
+
+                <div
+                  aria-labelledby={`${tabListId}-bookmarks-tab`}
+                  hidden={activeSidebarTab !== 'bookmarks'}
+                  id={`${tabListId}-bookmarks-panel`}
+                  role="tabpanel"
+                  tabIndex={activeSidebarTab === 'bookmarks' ? 0 : -1}
+                >
+                  {activeSidebarTab === 'bookmarks' ? (
+                    <SidebarBookmarksPanel isAuthenticated={authIsAuthenticated} />
+                  ) : null}
+                </div>
               </div>
             </div>
           ) : null}
