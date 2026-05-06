@@ -7,6 +7,7 @@ import {
   ChatBubbleIcon,
   ChevronLeftPanelIcon,
   HamburgerIcon,
+  HeartHandsIcon,
   NotePenIcon,
   PlusIcon,
 } from '@/components/icons';
@@ -260,6 +261,21 @@ export function ChatShellSidebar({
             </div>
           ) : null}
         </div>
+
+        {!isSidebarExpanded ? (
+          <div className={`${railSectionClass} mt-auto pb-6`}>
+            <a
+              aria-label="Donate to Quran Foundation"
+              className={railButtonClass}
+              href="https://donate.quran.foundation/"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <HeartHandsIcon className="h-5 w-5" />
+              <span className="sr-only">Donate to Quran Foundation</span>
+            </a>
+          </div>
+        ) : null}
       </div>
     </aside>
   );
