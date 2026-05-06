@@ -32,7 +32,6 @@ export function useQfNoteComposer({
     isSaving: false,
     open: false,
   });
-  const [noteSaved, setNoteSaved] = useState(false);
 
   async function handleNoteDraftGenerate() {
     setNoteState((prev) => ({ ...prev, body: '', error: null, isGenerating: true }));
@@ -86,7 +85,6 @@ export function useQfNoteComposer({
         open: false,
       });
       void revalidateSidebarNotes();
-      setNoteSaved(true);
       toast.success('Note saved to your Quran Foundation account.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save the note.';
@@ -100,9 +98,7 @@ export function useQfNoteComposer({
   }
 
   return {
-    noteSaved,
     noteState,
-    setNoteSaved,
     setNoteState,
     handleNoteDraftGenerate,
     handleNoteSave,

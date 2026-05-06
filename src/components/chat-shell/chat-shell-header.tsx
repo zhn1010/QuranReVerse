@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { HamburgerIcon } from '@/components/icons';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { ChatShellMenu } from './chat-shell-menu';
 
@@ -34,17 +35,7 @@ export function ChatShellHeader({
             type="button"
           >
             <span className="sr-only">Open sidebar</span>
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <HamburgerIcon className="h-5 w-5" />
           </button>
           <Link className="inline-flex items-center gap-3" href="/">
             <div className="relative h-10 w-10 overflow-hidden rounded-full shadow-(--shadow-logo)">

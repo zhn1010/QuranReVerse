@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { CheckIcon, CloseIcon, InfoIcon, XIcon } from '@/components/icons';
 import type { ToastContextValue, ToastOptions } from '@/components/toast-public';
 
 type ToastVariant = 'success' | 'error' | 'info';
@@ -102,30 +103,31 @@ export function useToast(): ToastContextValue {
 
 const variantStyles: Record<
   ToastVariant,
-  { bg: string; border: string; text: string; icon: string }
+  { bg: string; border: string; text: string; Icon: typeof CheckIcon }
 > = {
   success: {
     bg: 'bg-(--surface-overlay)',
     border: 'border-(--border-success)',
     text: 'text-(--ink-success)',
-    icon: 'M5 13l4 4L19 7',
+    Icon: CheckIcon,
   },
   error: {
     bg: 'bg-(--surface-overlay)',
     border: 'border-(--border-warning)',
     text: 'text-(--ink-warning)',
-    icon: 'M6 18L18 6M6 6l12 12',
+    Icon: XIcon,
   },
   info: {
     bg: 'bg-(--surface-overlay)',
     border: 'border-(--border-default)',
     text: 'text-(--ink-strong)',
-    icon: 'M13 16h-1v-4h-1m1-4h.01',
+    Icon: InfoIcon,
   },
 };
 
 function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
   const style = variantStyles[toast.variant];
+  const { Icon } = style;
   const liveProps =
     toast.variant === 'error'
       ? { 'aria-live': 'assertive' as const, role: 'alert' as const }
@@ -141,17 +143,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
       }`}
       {...liveProps}
     >
-      <svg
-        className={`mt-0.5 size-5 shrink-0 ${style.text}`}
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d={style.icon} />
-      </svg>
+      <Icon className={`mt-0.5 size-5 shrink-0 ${style.text}`} />
       <p className={`flex-1 text-sm leading-6 font-medium ${style.text}`}>{toast.message}</p>
       <button
         aria-label="Dismiss"
@@ -159,17 +151,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
         onClick={() => onDismiss(toast.id)}
         type="button"
       >
-        <svg
-          className="size-4"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="M18 6 6 18M6 6l12 12" />
-        </svg>
+        <CloseIcon className="size-4" />
       </button>
     </div>
   );

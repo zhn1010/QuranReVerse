@@ -76,13 +76,12 @@ export function ChatResultView({
     selectedEmbeds,
     toast,
   });
-  const { noteSaved, noteState, setNoteState, handleNoteDraftGenerate, handleNoteSave } =
-    useQfNoteComposer({
-      eventContent,
-      result,
-      toast,
-      userFeeling,
-    });
+  const { noteState, setNoteState, handleNoteDraftGenerate, handleNoteSave } = useQfNoteComposer({
+    eventContent,
+    result,
+    toast,
+    userFeeling,
+  });
 
   if (!result.selected_reflection?.reflection) {
     return (
@@ -114,7 +113,6 @@ export function ChatResultView({
         handleNoteSave={handleNoteSave}
         isAuthenticated={auth.isAuthenticated}
         loginHref={loginHref}
-        noteSaved={noteSaved}
         noteState={noteState}
         setNoteState={setNoteState}
       />

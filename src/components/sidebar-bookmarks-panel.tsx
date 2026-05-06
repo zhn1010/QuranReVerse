@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { TrashIcon } from '@/components/icons';
 import {
   getSidebarBookmarksServerSnapshot,
   getSidebarBookmarksSnapshot,
@@ -166,23 +167,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
                 }
                 type="button"
               >
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.8"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M3 6h18" />
-                  <path d="M8 6V4h8v2" />
-                  <path d="M8 10v8" />
-                  <path d="M12 10v8" />
-                  <path d="M16 10v8" />
-                  <path d="M6 6l1 14h10l1-14" />
-                </svg>
+                <TrashIcon aria-hidden="true" className="h-4 w-4" strokeWidth="1.8" />
               </button>
             </div>
           </div>

@@ -2,6 +2,14 @@
 
 import Link from 'next/link';
 import { useId, useRef } from 'react';
+import {
+  BookmarkIcon,
+  ChatBubbleIcon,
+  ChevronLeftPanelIcon,
+  HamburgerIcon,
+  NotePenIcon,
+  PlusIcon,
+} from '@/components/icons';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import { SidebarNotesPanel } from '@/components/sidebar-notes-panel';
@@ -9,9 +17,9 @@ import { ChatHistoryList } from './chat-history-list';
 import type { LocalChatThread } from '@/lib/chat-store';
 
 const SIDEBAR_TABS = [
-  { id: 'chats', label: 'Chats' },
-  { id: 'notes', label: 'Notes' },
-  { id: 'bookmarks', label: 'Bookmarks' },
+  { id: 'chats', label: 'Chats', Icon: ChatBubbleIcon, className: 'h-4.5 w-4.5' },
+  { id: 'notes', label: 'Notes', Icon: NotePenIcon, className: 'h-5 w-5' },
+  { id: 'bookmarks', label: 'Bookmarks', Icon: BookmarkIcon, className: 'h-4.5 w-4.5' },
 ] as const;
 
 export type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
@@ -49,6 +57,21 @@ export function ChatShellSidebar({
     isOpen: isMobileSidebarOpen,
     onClose: onSidebarCollapse,
   });
+  const railTabButtons = SIDEBAR_TABS.map(({ id, label, Icon, className }) => (
+    <button
+      aria-label={`Open ${label.toLowerCase()}`}
+      className={railButtonClass}
+      key={id}
+      onClick={() => {
+        setActiveSidebarTab(id);
+        onSidebarToggle();
+      }}
+      type="button"
+    >
+      <Icon aria-hidden="true" className={className} />
+      <span className="sr-only">{label}</span>
+    </button>
+  ));
 
   const focusTabByIndex = (nextIndex: number) => {
     const normalizedIndex = (nextIndex + SIDEBAR_TABS.length) % SIDEBAR_TABS.length;
@@ -84,17 +107,7 @@ export function ChatShellSidebar({
             onClick={onSidebarToggle}
             type="button"
           >
-            <svg
-              className="h-4.5 w-4.5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <HamburgerIcon className="h-4.5 w-4.5" />
           </button>
           {isSidebarExpanded ? (
             <button
@@ -103,18 +116,7 @@ export function ChatShellSidebar({
               onClick={onSidebarCollapse}
               type="button"
             >
-              <svg
-                className="h-4.5 w-4.5"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M18 6v12" />
-                <path d="M14 8l-4 4 4 4" />
-              </svg>
+              <ChevronLeftPanelIcon className="h-4.5 w-4.5" />
             </button>
           ) : null}
         </div>
@@ -122,23 +124,15 @@ export function ChatShellSidebar({
         <div className={`${railSectionClass} mt-6`}>
           <Link
             className={`inline-flex items-center overflow-hidden transition ${
-              isSidebarExpanded ? 'w-full gap-4 rounded-full pr-4 hover:bg-white/70' : 'h-9 w-9 justify-center'
+              isSidebarExpanded
+                ? 'w-full gap-4 rounded-full pr-4 hover:bg-white/70'
+                : 'h-9 w-9 justify-center'
             }`}
             href="/"
             onClick={onSidebarNavigation}
           >
             <span className={railButtonClass}>
-              <svg
-                className="h-4.5 w-4.5"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <PlusIcon className="h-4.5 w-4.5" />
             </span>
             {isSidebarExpanded ? (
               <span className="shrink-0 whitespace-nowrap text-sm font-medium text-(--ink-strong)">
@@ -148,6 +142,11 @@ export function ChatShellSidebar({
               <span className="sr-only">New chat</span>
             )}
           </Link>
+          {!isSidebarExpanded ? (
+            <div className="mt-3 flex flex-col items-center gap-3 md:items-start">
+              {railTabButtons}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 min-h-0 flex-1">
@@ -164,14 +163,15 @@ export function ChatShellSidebar({
                     const isActive = activeSidebarTab === tab.id;
                     const tabId = `${tabListId}-${tab.id}-tab`;
                     const panelId = `${tabListId}-${tab.id}-panel`;
+                    const { Icon } = tab;
 
                     return (
                       <button
                         aria-controls={panelId}
                         aria-selected={isActive}
-                        className={`cursor-pointer rounded-full px-2 py-1.5 text-xs font-medium transition ${
+                        className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition ${
                           isActive
-                            ? 'bg-white/90 text-(--ink-strong)'
+                            ? 'bg-white text-(--ink-strong)'
                             : 'text-(--ink-soft) hover:text-(--ink-strong)'
                         }`}
                         id={tabId}
@@ -208,7 +208,8 @@ export function ChatShellSidebar({
                         tabIndex={isActive ? 0 : -1}
                         type="button"
                       >
-                        {tab.label}
+                        <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                        <span>{tab.label}</span>
                       </button>
                     );
                   })}

@@ -1,6 +1,7 @@
 'use client';
 
 import type { Dispatch, MouseEvent, SetStateAction } from 'react';
+import { NotePenIcon } from '@/components/icons';
 import { SaveNoteModal } from '@/components/reflection/save-note-modal';
 
 type NoteState = {
@@ -16,7 +17,6 @@ export function ReflectionResultActions({
   handleNoteDraftGenerate,
   handleNoteSave,
   loginHref,
-  noteSaved,
   noteState,
   setNoteState,
   isAuthenticated,
@@ -25,7 +25,6 @@ export function ReflectionResultActions({
   handleNoteDraftGenerate: () => void;
   handleNoteSave: () => void;
   loginHref: string;
-  noteSaved: boolean;
   noteState: NoteState;
   setNoteState: Dispatch<SetStateAction<NoteState>>;
   isAuthenticated: boolean;
@@ -47,17 +46,7 @@ export function ReflectionResultActions({
             }
             type="button"
           >
-            <svg
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
+            <NotePenIcon className="h-3.5 w-3.5" />
             Save a note
           </button>
         ) : (
@@ -66,17 +55,7 @@ export function ReflectionResultActions({
             href={loginHref}
             onClick={handleConnectClick}
           >
-            <svg
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
+            <NotePenIcon className="h-3.5 w-3.5" />
             Connect to save as a note
           </a>
         )}

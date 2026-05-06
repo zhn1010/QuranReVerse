@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SendArrowIcon } from '@/components/icons';
 import { validateAntidoteInput } from '@/lib/antidotes/browser';
 import { createPendingChatThread } from '@/lib/chat-store';
 import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
@@ -117,17 +118,7 @@ export function ChatHomeForm({
             {isSubmitting ? (
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
             ) : (
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+              <SendArrowIcon className="h-4 w-4" />
             )}
           </button>
         </div>
