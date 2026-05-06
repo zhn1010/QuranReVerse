@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { guardMeaningfulReflectionInput } from '@/lib/antidotes/input-guard';
 import { checkAntidoteRateLimit } from '@/lib/antidotes/rate-limit';
 import { createLlmDebugLogger, inferUserFeeling } from '@/lib/antidotes/service';
 
@@ -38,6 +39,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    const invalidInput = await guardMeaningfulReflectionInput(eventContent, {
+      debugLogger: logLlmDebug,
+    });
+
+    if (invalidInput) {
+      return NextResponse.json(invalidInput, { status: invalidInput.status });
+    }
+
     const inferredFeeling = await inferUserFeeling(eventContent, {
       debugLogger: logLlmDebug,
     });
