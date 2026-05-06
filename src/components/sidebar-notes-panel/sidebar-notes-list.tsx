@@ -79,7 +79,7 @@ export function SidebarNotesList({
             onClick={() => onOpenNote(note)}
             type="button"
           >
-            <p className="text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+            <p className="text-[0.74rem] font-medium uppercase tracking-[0.14em] text-(--ink-soft)">
               {formatNoteDate(note.updatedAt ?? note.createdAt, {
                 day: 'numeric',
                 month: 'short',

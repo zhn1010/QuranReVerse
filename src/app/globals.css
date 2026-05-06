@@ -304,6 +304,42 @@ code {
   display: none;
 }
 
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(161 161 170 / 0.65) transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar {
+  height: 0.5rem;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgb(161 161 170 / 0.65);
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .chapter-card,
+  .gentle-rotate,
+  .shimmer-bar,
+  .shimmer-text,
+  .shimmer-text-soft,
+  .subtle-pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 @media (max-width: 640px) {
   .chapter-card {
     padding: 1.2rem;

@@ -99,8 +99,43 @@ export function ChatHomeExamples({ onSelect }: { onSelect: (example: ChatHomeExa
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }, []);
 
+  const scrollByAmount = useCallback((direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+
+    el.scrollBy({
+      behavior: 'smooth',
+      left: direction === 'left' ? -220 : 220,
+    });
+  }, []);
+
   return (
     <div className="relative mt-6 w-full">
+      <div className="mb-2 flex items-center justify-between gap-3 px-1">
+        <p className="text-xs font-medium text-(--ink-soft)">Browse example prompts</p>
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Scroll examples left"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--border-subtle) bg-(--surface-card-soft) text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong) disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!canScrollLeft}
+            onClick={() => scrollByAmount('left')}
+            type="button"
+          >
+            <span aria-hidden="true">←</span>
+          </button>
+          <button
+            aria-label="Scroll examples right"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--border-subtle) bg-(--surface-card-soft) text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong) disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!canScrollRight}
+            onClick={() => scrollByAmount('right')}
+            type="button"
+          >
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
       {canScrollLeft ? (
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-linear-to-r from-(--background) to-transparent transition-opacity" />
       ) : null}
@@ -117,7 +152,8 @@ export function ChatHomeExamples({ onSelect }: { onSelect: (example: ChatHomeExa
             });
           }
         }}
-        className="scrollbar-hide flex gap-3 overflow-x-auto px-1 py-1"
+        aria-label="Example prompts"
+        className="scrollbar-subtle flex gap-3 overflow-x-auto px-1 py-1 pb-3"
         onScroll={handleScroll}
       >
         {EXAMPLES.map((example) => (

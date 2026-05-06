@@ -145,7 +145,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-(--ink-strong)">{bookmark.surahName}</p>
-              <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+              <p className="mt-1 text-[0.74rem] font-medium uppercase tracking-[0.14em] text-(--ink-soft)">
                 {bookmark.verseKey}
               </p>
             </div>
@@ -191,7 +191,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
               <p className="text-xs text-(--ink-danger)">Confirm?</p>
               <div className="flex items-center gap-2">
                 <button
-                  className="rounded-full border border-(--border-danger-strong) px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-danger) transition hover:bg-(--surface-danger-strong) disabled:cursor-not-allowed disabled:opacity-55"
+                  className="rounded-full border border-(--border-danger-strong) px-2.5 py-1 text-xs font-medium uppercase tracking-widest text-(--ink-danger) transition hover:bg-(--surface-danger-strong) disabled:cursor-not-allowed disabled:opacity-55"
                   disabled={Boolean(deletingBookmarkId)}
                   onClick={() => void handleDeleteBookmark(bookmark)}
                   type="button"
@@ -199,7 +199,7 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
                   Yes
                 </button>
                 <button
-                  className="rounded-full border border-(--border-strong) px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.12em] text-(--ink-soft) transition hover:bg-white"
+                  className="rounded-full border border-(--border-strong) px-2.5 py-1 text-xs font-medium uppercase tracking-widest text-(--ink-soft) transition hover:bg-white"
                   onClick={() => setConfirmingBookmarkId(null)}
                   type="button"
                 >
@@ -217,13 +217,14 @@ export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: bo
           </p>
 
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-[0.68rem] font-medium uppercase tracking-[0.16em] text-(--ink-soft)">
+            <p className="text-[0.74rem] font-medium uppercase tracking-[0.14em] text-(--ink-soft)">
               {new Date(bookmark.createdAt).toLocaleDateString(undefined, {
                 day: 'numeric',
                 month: 'short',
               })}
             </p>
             <a
+              aria-label={`Open ${bookmark.verseKey} on Quran.com`}
               className="text-(--ink-soft) transition hover:text-(--ink-strong)"
               href={`https://quran.com/${bookmark.verseKey}`}
               rel="noreferrer"
