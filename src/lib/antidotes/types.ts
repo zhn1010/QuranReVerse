@@ -24,6 +24,14 @@ export type LanguageDetectionResponse = {
   language_code: string;
 };
 
+export type InputValidationDecision = 'invalid' | 'needs_clarification' | 'valid';
+
+export type InputValidationResponse = {
+  decision: InputValidationDecision;
+  reason_code: 'link_only' | 'meaningful' | 'noise' | 'prompt_injection' | 'too_vague';
+  reply_message: string;
+};
+
 export type ReflectionTranslationResponse = {
   translated_text: string;
 };

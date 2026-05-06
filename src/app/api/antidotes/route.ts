@@ -133,11 +133,11 @@ export async function POST(request: Request) {
   }
 
   const eventContent = body.eventContent?.trim();
-  const userFeeling = body.userFeeling?.trim();
+  const userFeeling = body.userFeeling?.trim() ?? '';
 
-  if (!eventContent || !userFeeling) {
+  if (!eventContent) {
     return NextResponse.json(
-      { error: 'Both eventContent and userFeeling are required.' },
+      { error: 'Please describe what happened in a sentence or two.' },
       { status: 400 },
     );
   }

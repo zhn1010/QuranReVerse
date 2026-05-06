@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { validateAntidoteInput } from '@/lib/antidotes/browser';
 import { createPendingChatThread } from '@/lib/chat-store';
 import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 
@@ -16,13 +17,14 @@ export function ChatHomeForm({
   const [eventContent, setEventContent] = useState(initialEvent);
   const [userFeeling, setUserFeeling] = useState(initialFeeling);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
   const eventFieldId = useId();
   const feelingFieldId = useId();
 
   return (
     <form
       className="w-full"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
 
         if (isSubmitting) {
@@ -33,10 +35,27 @@ export function ChatHomeForm({
         const normalizedFeeling = userFeeling.trim();
 
         if (!normalizedEvent) {
+          setValidationMessage('Please describe what happened in a sentence or two.');
           return;
         }
 
         setIsSubmitting(true);
+        setValidationMessage('');
+
+        try {
+          await validateAntidoteInput({
+            eventContent: normalizedEvent,
+            userFeeling: normalizedFeeling,
+          });
+        } catch (error) {
+          setValidationMessage(
+            error instanceof Error
+              ? error.message
+              : 'Please share a bit more context so the reflection can be meaningful.',
+          );
+          setIsSubmitting(false);
+          return;
+        }
 
         const chatId = crypto.randomUUID();
         createPendingChatThread({
@@ -58,7 +77,12 @@ export function ChatHomeForm({
             )}`}
             dir={detectTextDirection(eventContent)}
             id={eventFieldId}
-            onChange={(inputEvent) => setEventContent(inputEvent.target.value)}
+            onChange={(inputEvent) => {
+              setEventContent(inputEvent.target.value);
+              if (validationMessage) {
+                setValidationMessage('');
+              }
+            }}
             placeholder="Describe the event, post, or conversation that pulled you off-center..."
             value={eventContent}
           />
@@ -74,7 +98,12 @@ export function ChatHomeForm({
             )}`}
             dir={detectTextDirection(userFeeling)}
             id={feelingFieldId}
-            onChange={(inputEvent) => setUserFeeling(inputEvent.target.value)}
+            onChange={(inputEvent) => {
+              setUserFeeling(inputEvent.target.value);
+              if (validationMessage) {
+                setValidationMessage('');
+              }
+            }}
             placeholder="How are you feeling? (optional)"
             type="text"
             value={userFeeling}
@@ -103,6 +132,11 @@ export function ChatHomeForm({
           </button>
         </div>
       </div>
+      {validationMessage ? (
+        <p aria-live="polite" className="px-1 pt-3 text-sm leading-6 text-(--ink-soft)">
+          {validationMessage}
+        </p>
+      ) : null}
     </form>
   );
 }

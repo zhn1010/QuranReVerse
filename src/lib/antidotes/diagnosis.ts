@@ -5,15 +5,18 @@ import {
 } from '@/lib/antidotes/language';
 import {
   antidoteSystemPrompt,
+  inputValidationSystemPrompt,
   languageDetectionSystemPrompt,
 } from '@/lib/antidotes/prompts';
 import {
   antidoteResponseSchema,
+  inputValidationResponseSchema,
   languageDetectionResponseSchema,
 } from '@/lib/antidotes/schemas';
 import type {
   AntidoteResponse,
   EnrichedAntidote,
+  InputValidationResponse,
   LanguageDetectionResponse,
   OpenAIAntidote,
 } from '@/lib/antidotes/types';
@@ -23,6 +26,38 @@ import {
   type OpenAIServiceDeps,
   type ReflectionServiceDeps,
 } from '@/lib/antidotes/service-shared';
+
+function formatUserInputContext(eventText: string, feelingText: string) {
+  const sections = [`Event/Content: "${eventText}"`];
+
+  if (feelingText.trim().length > 0) {
+    sections.push(`User Feeling: "${feelingText}"`);
+  }
+
+  return sections.join('\n\n');
+}
+
+export async function validateUserInput(
+  eventText: string,
+  feelingText: string,
+  {
+    debugLogger = noopDebugLogger,
+    structuredOpenAICaller = callStructuredOpenAI,
+  }: OpenAIServiceDeps = {},
+) {
+  return structuredOpenAICaller<InputValidationResponse>(
+    {
+      inputText: formatUserInputContext(eventText, feelingText),
+      instructions: inputValidationSystemPrompt,
+      maxOutputTokens: 90,
+      schema: inputValidationResponseSchema,
+      schemaName: 'reflection_input_validation',
+    },
+    {
+      debugLogger,
+    },
+  );
+}
 
 export async function callAntidoteModel(
   eventText: string,
@@ -34,7 +69,10 @@ export async function callAntidoteModel(
 ) {
   return structuredOpenAICaller<AntidoteResponse>(
     {
-      inputText: `User Input:\n\nEvent/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"\n\nTask:\nProvide only the most relevant Quranic grounding passages. Each suggestion must include the Surah name, Surah number, Ayah number, and a short spiritual reframing rationale.`,
+      inputText: `User Input:\n\n${formatUserInputContext(
+        eventText,
+        feelingText,
+      )}\n\nTask:\nProvide only the most relevant Quranic grounding passages. Each suggestion must include the Surah name, Surah number, Ayah number, and a short spiritual reframing rationale.`,
       instructions: antidoteSystemPrompt,
       maxOutputTokens: 350,
       schema: antidoteResponseSchema,
@@ -56,7 +94,7 @@ export async function detectInputLanguage(
 ) {
   const response = await structuredOpenAICaller<LanguageDetectionResponse>(
     {
-      inputText: `Event/Content: "${eventText}"\n\nUser Feeling: "${feelingText}"`,
+      inputText: formatUserInputContext(eventText, feelingText),
       instructions: languageDetectionSystemPrompt,
       maxOutputTokens: 40,
       schema: languageDetectionResponseSchema,

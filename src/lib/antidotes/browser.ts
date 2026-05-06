@@ -1,8 +1,52 @@
 import type { ApiResponse } from '@/lib/antidote-types';
+import type { InputValidationResponse } from '@/lib/antidotes/types';
 import type { PipelineErrorEvent, PipelineResultEvent, PipelineStepEvent } from '@/lib/antidotes/types';
 import { readNdjsonStream } from '@/lib/stream-utils';
 
 export type PipelineStreamEvent = PipelineErrorEvent | PipelineResultEvent | PipelineStepEvent;
+
+async function readErrorMessage(response: Response) {
+  const payload = (await response.json().catch(() => ({ error: 'Request failed.' }))) as {
+    error?: string;
+  };
+
+  return payload.error || 'Request failed.';
+}
+
+export async function validateAntidoteInput(
+  {
+    eventContent,
+    userFeeling,
+  }: {
+    eventContent: string;
+    userFeeling: string;
+  },
+  {
+    fetchImpl = fetch,
+    signal,
+  }: {
+    fetchImpl?: typeof fetch;
+    signal?: AbortSignal;
+  } = {},
+) {
+  const response = await fetchImpl('/api/antidotes/validate', {
+    body: JSON.stringify({
+      eventContent,
+      userFeeling,
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  return (await response.json()) as InputValidationResponse;
+}
 
 export async function requestAntidoteStream(
   {
@@ -43,11 +87,7 @@ export async function requestAntidoteStream(
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({ error: 'Request failed.' }))) as {
-      error?: string;
-    };
-
-    throw new Error(payload.error || 'Request failed.');
+    throw new Error(await readErrorMessage(response));
   }
 
   if (!response.body) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { requestAntidoteStream } from '@/lib/antidotes/browser';
+import { requestAntidoteStream, validateAntidoteInput } from '@/lib/antidotes/browser';
 
 function createJsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
   return new Response(JSON.stringify(body), {
@@ -107,5 +107,52 @@ describe('requestAntidoteStream', () => {
         { fetchImpl },
       ),
     ).rejects.toThrow('Blocked.');
+  });
+});
+
+describe('validateAntidoteInput', () => {
+  it('returns the validation payload for accepted input', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      createJsonResponse({
+        decision: 'valid',
+        reason_code: 'meaningful',
+        reply_message: '',
+      }),
+    );
+
+    await expect(
+      validateAntidoteInput(
+        {
+          eventContent: 'event',
+          userFeeling: '',
+        },
+        { fetchImpl },
+      ),
+    ).resolves.toEqual({
+      decision: 'valid',
+      reason_code: 'meaningful',
+      reply_message: '',
+    });
+  });
+
+  it('throws the server guidance for inputs that need improvement', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      createJsonResponse(
+        {
+          error: 'Please share what happened and how it affected you.',
+        },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      ),
+    );
+
+    await expect(
+      validateAntidoteInput(
+        {
+          eventContent: 'help',
+          userFeeling: '',
+        },
+        { fetchImpl },
+      ),
+    ).rejects.toThrow('Please share what happened and how it affected you.');
   });
 });

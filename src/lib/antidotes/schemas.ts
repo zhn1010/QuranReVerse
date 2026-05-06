@@ -61,6 +61,26 @@ export const languageDetectionResponseSchema = {
   type: 'object',
 } as const;
 
+export const inputValidationResponseSchema = {
+  additionalProperties: false,
+  properties: {
+    decision: {
+      enum: ['valid', 'needs_clarification', 'invalid'],
+      type: 'string',
+    },
+    reason_code: {
+      enum: ['meaningful', 'too_vague', 'noise', 'prompt_injection', 'link_only'],
+      type: 'string',
+    },
+    reply_message: {
+      maxLength: 140,
+      type: 'string',
+    },
+  },
+  required: ['decision', 'reason_code', 'reply_message'],
+  type: 'object',
+} as const;
+
 export const reflectionTranslationResponseSchema = {
   additionalProperties: false,
   properties: {

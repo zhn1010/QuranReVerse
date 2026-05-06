@@ -9,6 +9,7 @@ import {
   generateChatTitle,
   looksLikeTruncatedJsonError,
   translateSelectedReflectionIfNeeded,
+  validateUserInput,
 } from '@/lib/antidotes/service';
 import type { CuratedReflectionCandidate, Diagnosis, SelectedReflection } from '@/lib/antidotes/types';
 
@@ -129,6 +130,26 @@ describe('detectInputLanguage', () => {
         structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
       }),
     ).resolves.toBe('tr');
+  });
+});
+
+describe('validateUserInput', () => {
+  it('delegates to the structured OpenAI caller with a compact validation schema', async () => {
+    const structuredOpenAICallerMock = createStructuredOpenAIResultMock({
+      decision: 'valid',
+      reason_code: 'meaningful',
+      reply_message: '',
+    });
+
+    await validateUserInput('event', '', {
+      structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+    });
+
+    expect(structuredOpenAICallerMock).toHaveBeenCalledTimes(1);
+    expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
+      maxOutputTokens: 90,
+      schemaName: 'reflection_input_validation',
+    });
   });
 });
 
