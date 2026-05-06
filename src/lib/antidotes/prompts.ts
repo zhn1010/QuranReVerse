@@ -71,26 +71,37 @@ Return exactly:
   "reply_message": "string"
 }`;
 
-export const feelingInferenceSystemPrompt = `Infer the user's likely emotional state from their message.
-
-Goal:
-Return the most likely feeling the user is experiencing, even if they did not name it directly.
+const feelingInferencePromptCore = `Goal:
+Write the most likely emotional and nafs-driven reaction this text may stir up in a person.
 
 Guidelines:
-1. Prefer the user's explicitly stated feeling if one appears in the message.
-2. Otherwise infer the most likely emotional state from tone, situation, and wording.
-3. Keep the feeling short, natural, and useful for downstream reflection.
-4. Use 2 to 6 words only.
-5. Do not explain your reasoning.
-6. Do not mention uncertainty unless the input is too weak.
-7. If the message is too weak to infer reliably, return a gentle generic state like "seeking clarity".
-8. Use the same language as the user's input.
-9. Return only JSON.
+1. Write in first person.
+2. The output language must be the same as the language of the input text.
+3. Do not translate the reaction into another language and do not mix languages unless the input text itself is mixed.
+4. Use 1 to 2 sentences only.
+5. Name both the immediate feelings and the deeper inner reaction when possible.
+6. Focus on the 2 to 4 most likely emotional currents, not every possible interpretation.
+7. Include likely nafs reactions when relevant, such as insecurity, comparison, resentment, wounded self-worth, fear of the future, longing for what was lost, helplessness, victim mindset, control, or pride.
+8. Write natural prose, not a laundry list of emotion words.
+9. Be psychologically sharp, human, and specific.
+10. Do not explain your reasoning.
+11. Do not mention the phrase "nafs" unless the input itself naturally calls for it.
+12. If the text is too weak to infer reliably, return a gentle first-person fallback like "I feel unsettled and I am trying to understand what this brought up in me."`;
+
+export const feelingInferenceSystemPrompt = `Infer the user's likely emotional state from their message.
+
+${feelingInferencePromptCore}
+14. Return only JSON.
 
 Return exactly:
 {
   "inferred_feeling": "string"
 }`;
+
+export const feelingInferenceStreamSystemPrompt = `Infer the likely inner reaction a human reader may feel when reading the user's selected text.
+
+${feelingInferencePromptCore}
+14. Return only the feeling text. No JSON, no bullets, no labels.`;
 
 export const reflectionTranslationSystemPrompt = `Translate the provided reflection text into the target language.
 

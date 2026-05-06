@@ -1,7 +1,7 @@
 import type { ApiResponse } from '@/lib/antidote-types';
 import type { InputValidationResponse } from '@/lib/antidotes/types';
 import type { PipelineErrorEvent, PipelineResultEvent, PipelineStepEvent } from '@/lib/antidotes/types';
-import { readNdjsonStream } from '@/lib/stream-utils';
+import { readNdjsonStream, readTextStream } from '@/lib/stream-utils';
 
 export type PipelineStreamEvent = PipelineErrorEvent | PipelineResultEvent | PipelineStepEvent;
 
@@ -119,4 +119,46 @@ export async function requestAntidoteStream(
   }
 
   return finalResult;
+}
+
+export async function streamInferredFeeling(
+  {
+    eventContent,
+  }: {
+    eventContent: string;
+  },
+  {
+    fetchImpl = fetch,
+    onChunk,
+    signal,
+  }: {
+    fetchImpl?: typeof fetch;
+    onChunk?: (text: string) => void;
+    signal?: AbortSignal;
+  } = {},
+) {
+  const response = await fetchImpl('/api/antidotes/feeling/stream', {
+    body: JSON.stringify({
+      eventContent,
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  if (!response.body) {
+    throw new Error('No stream received from server.');
+  }
+
+  return readTextStream(response.body, {
+    onChunk: (_chunk, aggregatedText) => {
+      onChunk?.(aggregatedText);
+    },
+  });
 }

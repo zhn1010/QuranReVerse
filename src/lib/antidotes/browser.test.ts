@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { requestAntidoteStream, validateAntidoteInput } from '@/lib/antidotes/browser';
+import {
+  requestAntidoteStream,
+  streamInferredFeeling,
+  validateAntidoteInput,
+} from '@/lib/antidotes/browser';
 
 function createJsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
   return new Response(JSON.stringify(body), {
@@ -27,6 +31,28 @@ function createNdjsonResponse(chunks: string[], init?: ResponseInit) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'application/x-ndjson',
+    },
+    status: 200,
+    ...init,
+  });
+}
+
+function createTextResponse(chunks: string[], init?: ResponseInit) {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const encoder = new TextEncoder();
+
+      for (const chunk of chunks) {
+        controller.enqueue(encoder.encode(chunk));
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain',
     },
     status: 200,
     ...init,
@@ -154,5 +180,45 @@ describe('validateAntidoteInput', () => {
         { fetchImpl },
       ),
     ).rejects.toThrow('Please share what happened and how it affected you.');
+  });
+});
+
+describe('streamInferredFeeling', () => {
+  it('streams and aggregates the inferred feeling text', async () => {
+    const onChunk = vi.fn();
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      createTextResponse(['I feel small', ' and defensive.']),
+    );
+
+    await expect(
+      streamInferredFeeling(
+        {
+          eventContent: 'event',
+        },
+        { fetchImpl, onChunk },
+      ),
+    ).resolves.toBe('I feel small and defensive.');
+
+    expect(onChunk).toHaveBeenLastCalledWith('I feel small and defensive.');
+  });
+
+  it('throws the server error payload when streaming fails', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      createJsonResponse(
+        {
+          error: 'Could not detect the feeling.',
+        },
+        { status: 503, statusText: 'Service Unavailable' },
+      ),
+    );
+
+    await expect(
+      streamInferredFeeling(
+        {
+          eventContent: 'event',
+        },
+        { fetchImpl },
+      ),
+    ).rejects.toThrow('Could not detect the feeling.');
   });
 });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
 import { createPipelineStep, toJsonLine } from '@/lib/antidotes/events';
 import { buildReflectionCandidates } from '@/lib/antidotes/reflections';
+import { checkAntidoteRateLimit } from '@/lib/antidotes/rate-limit';
 import {
   buildReflectionGuide,
   callAntidoteModel,
@@ -17,99 +17,12 @@ import type {
   PipelineEvent,
   PipelineResultEvent,
 } from '@/lib/antidotes/types';
-import { getSession } from '@/lib/session';
-
-// Initialize Redis client for rate limiting (uses same KV env vars)
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-});
-
-function readDailyLimitFromEnv(key: string, fallback: number) {
-  const raw = process.env[key]?.trim();
-
-  if (!raw) {
-    return fallback;
-  }
-
-  const parsed = Number.parseInt(raw, 10);
-
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  return parsed;
-}
-
-const ANONYMOUS_DAILY_LIMIT = readDailyLimitFromEnv('ANONYMOUS_DAILY_LIMIT', 4);
-const AUTHENTICATED_DAILY_LIMIT = readDailyLimitFromEnv('AUTHENTICATED_DAILY_LIMIT', 10);
-
-async function checkRateLimit(
-  request: Request,
-): Promise<{ allowed: true } | { allowed: false; reason: string; limit: number }> {
-  const session = await getSession();
-  const isAuthenticated = Boolean(session?.data?.quranFoundationId);
-  const userId = session?.data?.quranFoundationId;
-
-  // Get today's date string for the key
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-  if (isAuthenticated && userId) {
-    if (AUTHENTICATED_DAILY_LIMIT < 0) {
-      return { allowed: true };
-    }
-
-    const key = `rate_limit:user:${userId}:${today}`;
-    const current = await redis.incr(key);
-
-    // Set expiry on first request of the day
-    if (current === 1) {
-      await redis.expire(key, 60 * 60 * 24); // 24 hours
-    }
-
-    if (current > AUTHENTICATED_DAILY_LIMIT) {
-      return {
-        allowed: false,
-        limit: AUTHENTICATED_DAILY_LIMIT,
-        reason: `You have reached your daily limit of ${AUTHENTICATED_DAILY_LIMIT} reflections. Please try again tomorrow.`,
-      };
-    }
-  } else {
-    if (ANONYMOUS_DAILY_LIMIT < 0) {
-      return { allowed: true };
-    }
-
-    // Anonymous user - use browser fingerprint for more reliable tracking
-    const fingerprint =
-      request.headers.get('x-browser-fingerprint') ||
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
-    const key = `rate_limit:fingerprint:${fingerprint}:${today}`;
-    const current = await redis.incr(key);
-
-    // Set expiry on first request of the day
-    if (current === 1) {
-      await redis.expire(key, 60 * 60 * 24); // 24 hours
-    }
-
-    if (current > ANONYMOUS_DAILY_LIMIT) {
-      return {
-        allowed: false,
-        limit: ANONYMOUS_DAILY_LIMIT,
-        reason: `You have reached your daily limit of ${ANONYMOUS_DAILY_LIMIT} reflections. Sign in with Quran Foundation for ${AUTHENTICATED_DAILY_LIMIT} reflections per day.`,
-      };
-    }
-  }
-
-  return { allowed: true };
-}
 
 const logLlmDebug = createLlmDebugLogger();
 
 export async function POST(request: Request) {
   // Check rate limit first
-  const rateLimitCheck = await checkRateLimit(request);
+  const rateLimitCheck = await checkAntidoteRateLimit(request);
   if (!rateLimitCheck.allowed) {
     return NextResponse.json({ error: rateLimitCheck.reason }, { status: 429 });
   }

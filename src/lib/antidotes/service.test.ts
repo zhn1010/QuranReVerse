@@ -168,7 +168,7 @@ describe('inferUserFeeling', () => {
 
     expect(structuredOpenAICallerMock).toHaveBeenCalledTimes(1);
     expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
-      maxOutputTokens: 30,
+      maxOutputTokens: 140,
       schemaName: 'feeling_inference',
     });
   });
@@ -183,6 +183,50 @@ describe('inferUserFeeling', () => {
         structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
       }),
     ).resolves.toBe('seeking clarity');
+  });
+
+  it('retries with a larger token budget after truncated JSON', async () => {
+    const structuredOpenAICallerMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Unexpected end of JSON input'))
+      .mockResolvedValueOnce({
+        inferred_feeling: 'confused and tense',
+      });
+    const warnLogger = { warn: vi.fn() };
+
+    await expect(
+      inferUserFeeling('event', {
+        structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+        warnLogger,
+      }),
+    ).resolves.toBe('confused and tense');
+
+    expect(structuredOpenAICallerMock).toHaveBeenCalledTimes(2);
+    expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
+      maxOutputTokens: 140,
+      schemaName: 'feeling_inference',
+    });
+    expect(structuredOpenAICallerMock.mock.calls[1]?.[0]).toMatchObject({
+      maxOutputTokens: 220,
+      schemaName: 'feeling_inference',
+    });
+    expect(warnLogger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to a generic feeling when inference fails', async () => {
+    const structuredOpenAICallerMock = vi.fn(async () => {
+      throw new Error('OpenAI request failed: 500 boom');
+    });
+    const warnLogger = { warn: vi.fn() };
+
+    await expect(
+      inferUserFeeling('event', {
+        structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+        warnLogger,
+      }),
+    ).resolves.toBe('seeking clarity');
+
+    expect(warnLogger.warn).toHaveBeenCalledTimes(1);
   });
 });
 

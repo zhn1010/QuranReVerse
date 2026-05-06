@@ -85,7 +85,7 @@ export const feelingInferenceResponseSchema = {
   additionalProperties: false,
   properties: {
     inferred_feeling: {
-      maxLength: 40,
+      maxLength: 260,
       type: 'string',
     },
   },

@@ -1,8 +1,5 @@
 import { callStructuredOpenAI } from '@/lib/openai-client';
-import {
-  normalizeAyahNo,
-  normalizeLanguageCode,
-} from '@/lib/antidotes/language';
+import { normalizeAyahNo, normalizeLanguageCode } from '@/lib/antidotes/language';
 import {
   antidoteSystemPrompt,
   feelingInferenceSystemPrompt,
@@ -25,6 +22,7 @@ import type {
 } from '@/lib/antidotes/types';
 import { getRelatedReflectionsForAyah, type RelatedReflection } from '@/lib/quran-reflect';
 import {
+  looksLikeTruncatedJsonError,
   noopDebugLogger,
   type OpenAIServiceDeps,
   type ReflectionServiceDeps,
@@ -67,24 +65,65 @@ export async function inferUserFeeling(
   {
     debugLogger = noopDebugLogger,
     structuredOpenAICaller = callStructuredOpenAI,
+    warnLogger = console,
   }: OpenAIServiceDeps = {},
 ) {
-  const response = await structuredOpenAICaller<FeelingInferenceResponse>(
-    {
-      inputText: `User message: "${eventText}"`,
-      instructions: feelingInferenceSystemPrompt,
-      maxOutputTokens: 30,
-      schema: feelingInferenceResponseSchema,
-      schemaName: 'feeling_inference',
-    },
-    {
-      debugLogger,
-    },
-  );
+  const requestParams = {
+    inputText: `User message: "${eventText}"`,
+    instructions: feelingInferenceSystemPrompt,
+    schema: feelingInferenceResponseSchema,
+    schemaName: 'feeling_inference',
+  } as const;
 
-  const inferredFeeling = response.inferred_feeling.trim();
+  try {
+    const response = await structuredOpenAICaller<FeelingInferenceResponse>(
+      {
+        ...requestParams,
+        maxOutputTokens: 140,
+      },
+      {
+        debugLogger,
+      },
+    );
 
-  return inferredFeeling.length > 0 ? inferredFeeling : 'seeking clarity';
+    const inferredFeeling = response.inferred_feeling.trim();
+
+    return inferredFeeling.length > 0 ? inferredFeeling : 'seeking clarity';
+  } catch (error) {
+    if (looksLikeTruncatedJsonError(error)) {
+      warnLogger.warn('[feeling-inference] retrying after likely truncated JSON', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+
+      try {
+        const retryResponse = await structuredOpenAICaller<FeelingInferenceResponse>(
+          {
+            ...requestParams,
+            maxOutputTokens: 220,
+          },
+          {
+            debugLogger,
+          },
+        );
+
+        const retryFeeling = retryResponse.inferred_feeling.trim();
+
+        return retryFeeling.length > 0 ? retryFeeling : 'seeking clarity';
+      } catch (retryError) {
+        warnLogger.warn('[feeling-inference] falling back after retry failure', {
+          message: retryError instanceof Error ? retryError.message : String(retryError),
+        });
+
+        return 'seeking clarity';
+      }
+    }
+
+    warnLogger.warn('[feeling-inference] falling back after inference failure', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    return 'seeking clarity';
+  }
 }
 
 export async function callAntidoteModel(
