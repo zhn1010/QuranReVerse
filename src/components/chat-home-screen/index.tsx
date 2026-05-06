@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { ChatShell } from '@/components/chat-shell';
+import {
+  createExtensionHandoffResultMessage,
+  parseExtensionReflectPayload,
+  stripExtensionRequestParams,
+  type ExtensionReflectPayload,
+} from '@/lib/extension-handoff';
 import { HOME_TITLE_INDEX_STORAGE_KEY } from '@/lib/app-constants';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { ChatHomeExamples, type ChatHomeExample } from './chat-home-examples';
@@ -26,6 +32,7 @@ const HOME_TITLES = [
 export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
   const [selectedExample, setSelectedExample] = useState<ChatHomeExample | null>(null);
   const [homeTitle, setHomeTitle] = useState<(typeof HOME_TITLES)[number]>(HOME_TITLES[0]);
+  const [extensionRequest, setExtensionRequest] = useState<ExtensionReflectPayload | null>(null);
 
   useEffect(() => {
     try {
@@ -42,6 +49,52 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
     }
   }, []);
 
+  useEffect(() => {
+    const acceptedRequestIds = new Set<string>();
+
+    const handleWindowMessage = (event: MessageEvent) => {
+      if (event.source !== window) {
+        return;
+      }
+
+      const payload = parseExtensionReflectPayload(event.data);
+
+      if (!payload) {
+        return;
+      }
+
+      const ackStatus = acceptedRequestIds.has(payload.requestId) ? 'ignored' : 'accepted';
+
+      window.postMessage(
+        createExtensionHandoffResultMessage({
+          requestId: payload.requestId,
+          status: ackStatus,
+        }),
+        window.location.origin,
+      );
+
+      if (ackStatus === 'ignored') {
+        return;
+      }
+
+      acceptedRequestIds.add(payload.requestId);
+
+      const currentUrl = new URL(window.location.href);
+
+      if (stripExtensionRequestParams(currentUrl)) {
+        window.history.replaceState({}, '', currentUrl.toString());
+      }
+
+      setExtensionRequest(payload);
+    };
+
+    window.addEventListener('message', handleWindowMessage);
+
+    return () => {
+      window.removeEventListener('message', handleWindowMessage);
+    };
+  }, []);
+
   return (
     <ChatShell auth={auth}>
       <section className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-3xl flex-col items-start justify-center px-4 pb-[16vh] sm:px-6">
@@ -55,6 +108,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
         </div>
 
         <ChatHomeForm
+          extensionRequest={extensionRequest}
           key={selectedExample?.label ?? 'empty'}
           initialEvent={selectedExample?.event}
           initialFeeling={selectedExample?.feeling}

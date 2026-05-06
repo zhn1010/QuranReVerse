@@ -76,6 +76,16 @@ export function InfoIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function MagicStarsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...iconStrokeProps} {...props}>
+      <path d="M12 3.5 13.4 7.6 17.5 9l-4.1 1.4L12 14.5l-1.4-4.1L6.5 9l4.1-1.4L12 3.5Z" />
+      <path d="m18.5 14 .67 1.83L21 16.5l-1.83.67L18.5 19l-.67-1.83L16 16.5l1.83-.67L18.5 14Z" />
+      <path d="m5.5 14 .67 1.83L8 16.5l-1.83.67L5.5 19l-.67-1.83L3 16.5l1.83-.67L5.5 14Z" />
+    </svg>
+  );
+}
+
 export function NotePenIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg fill="currentColor" viewBox="0 -960 960 960" {...props}>
