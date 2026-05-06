@@ -38,9 +38,16 @@ export function ChatLoadingState({
   const displayIndex = Math.max(0, Math.min(activeIndex, LOADING_STEPS.length - 1));
   const currentStep = LOADING_STEPS[displayIndex];
   const total = LOADING_STEPS.length;
+  const loadingLabel = `${displayIndex + 1} of ${total}: ${currentStep.label}`;
 
   return (
-    <div className="inline-flex items-center gap-4 rounded-full border border-(--border-accent-soft) bg-(--surface-card) px-4 py-2">
+    <div
+      aria-atomic="true"
+      aria-live="polite"
+      aria-label={`Preparing your guided reading. ${loadingLabel}.`}
+      className="inline-flex items-center gap-4 rounded-full border border-(--border-accent-soft) bg-(--surface-card) px-4 py-2"
+      role="status"
+    >
       <div className="relative h-9 w-9 overflow-hidden rounded-full">
         <Image
           alt="Sakinah.now logo"

@@ -48,6 +48,11 @@ export function SidebarNoteModal({
   const errorId = useId();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const handleClose = () => setActiveNote(null);
+  const statusMessage = activeNote.isDeleting
+    ? 'Deleting note...'
+    : activeNote.isSaving
+      ? 'Saving note...'
+      : '';
   const { descriptionId, dialogRef, titleId } = useAccessibleDialog<HTMLDivElement>({
     initialFocusRef: textareaRef,
     isOpen: true,
@@ -78,6 +83,7 @@ export function SidebarNoteModal({
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
+        aria-busy={activeNote.isSaving || activeNote.isDeleting}
         className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-4xl border border-(--border-default) bg-(--surface-overlay) shadow-(--shadow-modal-soft) backdrop-blur-md"
         ref={dialogRef}
         role="dialog"
@@ -96,6 +102,11 @@ export function SidebarNoteModal({
               }) ?? 'Unknown date'}
             </p>
           </div>
+          {statusMessage ? (
+            <p aria-atomic="true" aria-live="polite" className="sr-only" role="status">
+              {statusMessage}
+            </p>
+          ) : null}
           <button
             className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-(--surface-card) text-(--ink-soft) transition hover:bg-white"
             disabled={activeNote.isSaving || activeNote.isDeleting}

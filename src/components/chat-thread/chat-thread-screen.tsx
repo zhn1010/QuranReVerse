@@ -99,7 +99,10 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-16">
         {!thread ? (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-(--surface-subtle-soft) px-5 py-4 text-sm leading-7 text-(--ink-soft)">
+            <div
+              className="rounded-2xl bg-(--surface-subtle-soft) px-5 py-4 text-sm leading-7 text-(--ink-soft)"
+              role="status"
+            >
               This local reflection thread could not be found.{' '}
               <Link className="underline" href="/">
                 Start a new one
@@ -142,7 +145,11 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
               </div>
             ) : thread.status === 'error' ? (
               <div className="flex justify-start">
-                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-(--border-danger) bg-(--surface-danger) px-5 py-4 sm:max-w-[75%]">
+                <div
+                  aria-live="assertive"
+                  className="max-w-[85%] rounded-2xl rounded-bl-md border border-(--border-danger) bg-(--surface-danger) px-5 py-4 sm:max-w-[75%]"
+                  role="alert"
+                >
                   <p className="text-sm font-semibold text-(--ink-danger)">
                     Could not prepare this reading.
                   </p>

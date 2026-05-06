@@ -83,10 +83,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={ctx}>
       {children}
-      <div
-        aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-9999 flex flex-col items-center gap-3 px-4 pb-6"
-      >
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-9999 flex flex-col items-center gap-3 px-4 pb-6">
         {toasts.map((toast) => (
           <ToastCard key={toast.id} toast={toast} onDismiss={dismiss} />
         ))}
@@ -129,14 +126,20 @@ const variantStyles: Record<
 
 function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
   const style = variantStyles[toast.variant];
+  const liveProps =
+    toast.variant === 'error'
+      ? { 'aria-live': 'assertive' as const, role: 'alert' as const }
+      : { 'aria-live': 'polite' as const, role: 'status' as const };
 
   return (
     <div
+      aria-atomic="true"
       className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-(--shadow-toast) backdrop-blur-sm transition-all duration-300 ${style.bg} ${style.border} ${
         toast.leaving
           ? 'translate-y-4 scale-95 opacity-0'
           : 'translate-y-0 scale-100 opacity-100 animate-[toast-in_0.32s_ease-out]'
       }`}
+      {...liveProps}
     >
       <svg
         className={`mt-0.5 size-5 shrink-0 ${style.text}`}

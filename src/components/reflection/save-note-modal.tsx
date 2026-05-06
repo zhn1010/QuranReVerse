@@ -48,6 +48,7 @@ export function SaveNoteModal({
   const textareaId = useId();
   const errorId = useId();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const statusMessage = isGenerating ? generatingLabel : isSaving ? savingLabel : '';
   const { descriptionId, dialogRef, titleId } = useAccessibleDialog<HTMLDivElement>({
     initialFocusRef: textareaRef,
     isOpen,
@@ -71,6 +72,7 @@ export function SaveNoteModal({
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
+        aria-busy={isGenerating || isSaving}
         className="flex w-full max-w-2xl flex-col rounded-(--radius-panel) border border-(--line) bg-white p-6 shadow-(--shadow-modal) sm:p-8"
         ref={dialogRef}
         role="dialog"
@@ -82,6 +84,11 @@ export function SaveNoteModal({
         <p className="mt-1 text-sm leading-7 text-(--ink-soft)" id={descriptionId}>
           {description}
         </p>
+        {statusMessage ? (
+          <p aria-atomic="true" aria-live="polite" className="sr-only" role="status">
+            {statusMessage}
+          </p>
+        ) : null}
         <div className="relative mt-4">
           <label className="sr-only" htmlFor={textareaId}>
             {title}
