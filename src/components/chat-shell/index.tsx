@@ -159,15 +159,20 @@ export function ChatShell({
             aria-label="Close sidebar"
             className="fixed inset-0 z-30 bg-(--surface-scrim-sidebar) md:hidden"
             onClick={() => setIsMobileSidebarOpen(false)}
+            tabIndex={-1}
             type="button"
           />
         ) : null}
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div
+          aria-hidden={isMobileSidebarOpen ? true : undefined}
+          className="flex min-h-screen min-w-0 flex-1 flex-col"
+        >
           <div ref={menuContainerRef}>
             <ChatShellHeader
               auth={auth}
               avatarLabel={avatarLabel}
+              isMobileSidebarOpen={isMobileSidebarOpen}
               isMenuOpen={isMenuOpen}
               pathname={pathname || '/'}
               setIsMenuOpen={setIsMenuOpen}

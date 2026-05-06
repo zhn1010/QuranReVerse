@@ -2,7 +2,8 @@
 
 import { createPortal } from 'react-dom';
 import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
-import type { Dispatch, SetStateAction } from 'react';
+import { useId, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import type { ActiveSidebarNoteState } from '@/hooks/use-qf-sidebar-note-editor';
 import { formatNoteDate } from './sidebar-notes-list';
 
@@ -43,6 +44,19 @@ export function SidebarNoteModal({
   handleDeleteNote: () => void;
   handleSaveNote: () => void;
 }) {
+  const textareaId = useId();
+  const errorId = useId();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const handleClose = () => setActiveNote(null);
+  const { descriptionId, dialogRef, titleId } = useAccessibleDialog<HTMLDivElement>({
+    initialFocusRef: textareaRef,
+    isOpen: true,
+    onClose:
+      activeNote.isSaving || activeNote.isDeleting
+        ? undefined
+        : handleClose,
+  });
+
   if (!portalHost) {
     return null;
   }
@@ -56,15 +70,25 @@ export function SidebarNoteModal({
           !activeNote.isSaving &&
           !activeNote.isDeleting
         ) {
-          setActiveNote(null);
+          handleClose();
         }
       }}
     >
-      <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-4xl border border-(--border-default) bg-(--surface-overlay) shadow-(--shadow-modal-soft) backdrop-blur-md">
+      <div
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col overflow-hidden rounded-4xl border border-(--border-default) bg-(--surface-overlay) shadow-(--shadow-modal-soft) backdrop-blur-md"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         <div className="flex items-center justify-between border-b border-(--border-subtle) px-6 py-4">
           <div>
-            <p className="text-lg font-semibold text-(--ink-strong)">Saved note</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)">
+            <p className="text-lg font-semibold text-(--ink-strong)" id={titleId}>
+              Saved note
+            </p>
+            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-(--ink-soft)" id={descriptionId}>
               {formatNoteDate(activeNote.note.updatedAt ?? activeNote.note.createdAt, {
                 day: 'numeric',
                 month: 'long',
@@ -75,7 +99,7 @@ export function SidebarNoteModal({
           <button
             className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-(--surface-card) text-(--ink-soft) transition hover:bg-white"
             disabled={activeNote.isSaving || activeNote.isDeleting}
-            onClick={() => setActiveNote(null)}
+            onClick={handleClose}
             type="button"
           >
             <span className="sr-only">Close note</span>×
@@ -104,10 +128,15 @@ export function SidebarNoteModal({
             </div>
           ) : null}
 
+          <label className="sr-only" htmlFor={textareaId}>
+            Edit saved note
+          </label>
           <textarea
+            aria-describedby={activeNote.error ? `${descriptionId} ${errorId}` : descriptionId}
             className={`min-h-72 w-full resize-none rounded-[1.4rem] border border-(--line) bg-(--surface-input) px-5 py-4 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-(--border-focus) focus:ring-4 focus:ring-(--focus-ring) ${getDirectionStyles(noteDirection)}`}
             dir={noteDirection}
             disabled={activeNote.isSaving || activeNote.isDeleting}
+            id={textareaId}
             onChange={(event) =>
               setActiveNote((current) =>
                 current
@@ -120,6 +149,7 @@ export function SidebarNoteModal({
                   : null,
               )
             }
+            ref={textareaRef}
             value={activeNote.draftBody}
           />
 
@@ -129,6 +159,8 @@ export function SidebarNoteModal({
                 detectTextDirection(activeNote.error, noteDirection),
               )}`}
               dir={detectTextDirection(activeNote.error, noteDirection)}
+              id={errorId}
+              role="alert"
             >
               {activeNote.error}
             </p>

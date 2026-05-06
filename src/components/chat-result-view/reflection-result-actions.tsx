@@ -58,7 +58,7 @@ export function ReflectionResultActions({
             >
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
-            Save as note to Quran.com
+            Save a note
           </button>
         ) : (
           <a
@@ -81,14 +81,6 @@ export function ReflectionResultActions({
           </a>
         )}
       </div>
-
-      {noteSaved ? (
-        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-(--surface-subtle-soft) px-5 py-4 sm:max-w-[75%]">
-          <p className="text-sm leading-7 text-(--ink-strong)">
-            Your note has been saved to your Quran Foundation account.
-          </p>
-        </div>
-      ) : null}
 
       <SaveNoteModal
         body={noteState.body}

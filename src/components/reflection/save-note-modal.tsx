@@ -1,6 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
+import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 
 export function SaveNoteModal({
@@ -44,6 +45,15 @@ export function SaveNoteModal({
   savingLabel?: string;
   title: string;
 }) {
+  const textareaId = useId();
+  const errorId = useId();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const { descriptionId, dialogRef, titleId } = useAccessibleDialog<HTMLDivElement>({
+    initialFocusRef: textareaRef,
+    isOpen,
+    onClose: isSaving ? undefined : onClose,
+  });
+
   if (!isOpen) {
     return null;
   }
@@ -57,18 +67,36 @@ export function SaveNoteModal({
         }
       }}
     >
-      <div className="flex w-full max-w-2xl flex-col rounded-(--radius-panel) border border-(--line) bg-white p-6 shadow-(--shadow-modal) sm:p-8">
-        <h2 className="text-lg font-semibold text-(--ink-strong)">{title}</h2>
-        <p className="mt-1 text-sm leading-7 text-(--ink-soft)">{description}</p>
+      <div
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="flex w-full max-w-2xl flex-col rounded-(--radius-panel) border border-(--line) bg-white p-6 shadow-(--shadow-modal) sm:p-8"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
+        <h2 className="text-lg font-semibold text-(--ink-strong)" id={titleId}>
+          {title}
+        </h2>
+        <p className="mt-1 text-sm leading-7 text-(--ink-soft)" id={descriptionId}>
+          {description}
+        </p>
         <div className="relative mt-4">
+          <label className="sr-only" htmlFor={textareaId}>
+            {title}
+          </label>
           <textarea
+            aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId}
             className={`min-h-64 w-full rounded-(--radius-field) border border-(--line) bg-(--surface-input) px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-(--border-focus) focus:ring-4 focus:ring-(--focus-ring) sm:min-h-80 ${
               bodyDirection ? getDirectionStyles(bodyDirection) : ''
             }`}
             disabled={isSaving || isGenerating}
             dir={bodyDirection}
+            id={textareaId}
             onChange={(inputEvent) => onBodyChange(inputEvent.target.value)}
             placeholder={placeholder}
+            ref={textareaRef}
             value={body}
           />
           <div className="absolute bottom-3 left-3">
@@ -88,6 +116,8 @@ export function SaveNoteModal({
               feedbackDirection ? getDirectionStyles(feedbackDirection) : ''
             }`}
             dir={feedbackDirection}
+            id={errorId}
+            role="alert"
           >
             {error}
           </p>

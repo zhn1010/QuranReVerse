@@ -8,6 +8,7 @@ import { ChatShellMenu } from './chat-shell-menu';
 export function ChatShellHeader({
   auth,
   avatarLabel,
+  isMobileSidebarOpen,
   isMenuOpen,
   pathname,
   setIsMenuOpen,
@@ -15,6 +16,7 @@ export function ChatShellHeader({
 }: {
   auth: QfSessionSummary;
   avatarLabel: string;
+  isMobileSidebarOpen: boolean;
   isMenuOpen: boolean;
   pathname: string;
   setIsMenuOpen: (value: boolean | ((current: boolean) => boolean)) => void;
@@ -25,6 +27,8 @@ export function ChatShellHeader({
       <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <button
+            aria-expanded={isMobileSidebarOpen}
+            aria-haspopup="dialog"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full text-(--ink-soft) transition hover:bg-(--surface-subtle-strong) md:hidden"
             onClick={() => setIsMobileSidebarOpen(true)}
             type="button"

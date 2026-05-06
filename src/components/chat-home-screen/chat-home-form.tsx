@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPendingChatThread } from '@/lib/chat-store';
 import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
@@ -16,6 +16,8 @@ export function ChatHomeForm({
   const [eventContent, setEventContent] = useState(initialEvent);
   const [userFeeling, setUserFeeling] = useState(initialFeeling);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const eventFieldId = useId();
+  const feelingFieldId = useId();
 
   return (
     <form
@@ -47,11 +49,15 @@ export function ChatHomeForm({
     >
       <div className="overflow-hidden rounded-2xl border border-(--border-soft) bg-white shadow-(--shadow-card)">
         <div className="px-5 pt-4 pb-2 sm:px-6">
+          <label className="sr-only" htmlFor={eventFieldId}>
+            Describe what happened
+          </label>
           <textarea
             className={`min-h-24 w-full resize-none bg-transparent text-base leading-7 text-(--ink-strong) outline-none placeholder:text-(--ink-placeholder) ${getDirectionStyles(
               detectTextDirection(eventContent),
             )}`}
             dir={detectTextDirection(eventContent)}
+            id={eventFieldId}
             onChange={(inputEvent) => setEventContent(inputEvent.target.value)}
             placeholder="Describe the event, post, or conversation that pulled you off-center..."
             value={eventContent}
@@ -59,17 +65,22 @@ export function ChatHomeForm({
         </div>
 
         <div className="flex items-center gap-3 border-t border-(--border-subtle) px-5 py-3 sm:px-6">
+          <label className="sr-only" htmlFor={feelingFieldId}>
+            How are you feeling
+          </label>
           <input
             className={`min-w-0 flex-1 bg-transparent text-sm leading-6 text-(--ink-strong) outline-none placeholder:text-(--ink-placeholder) ${getDirectionStyles(
               detectTextDirection(userFeeling),
             )}`}
             dir={detectTextDirection(userFeeling)}
+            id={feelingFieldId}
             onChange={(inputEvent) => setUserFeeling(inputEvent.target.value)}
             placeholder="How are you feeling? (optional)"
             type="text"
             value={userFeeling}
           />
           <button
+            aria-label={isSubmitting ? 'Preparing reflection' : 'Start reflection'}
             className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-(--ink-strong) text-white transition hover:bg-(--accent) active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             disabled={!eventContent.trim() || isSubmitting}
             type="submit"

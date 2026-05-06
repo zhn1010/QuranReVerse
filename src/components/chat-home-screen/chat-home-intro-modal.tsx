@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { HERO_HIDDEN_STORAGE_KEY } from '@/lib/app-constants';
 
 export function ChatHomeIntroModal() {
@@ -22,18 +23,40 @@ export function ChatHomeIntroModal() {
       // ignore localStorage failures
     }
   };
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const { descriptionId, dialogRef, titleId } = useAccessibleDialog<HTMLDivElement>({
+    initialFocusRef: closeButtonRef,
+    isOpen: isVisible,
+    onClose: hideModal,
+  });
 
   if (!isVisible) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--surface-scrim-soft) p-4 sm:p-6">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-(--shadow-modal) sm:p-10">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-(--surface-scrim-soft) p-4 sm:p-6"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          hideModal();
+        }
+      }}
+    >
+      <div
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-(--shadow-modal) sm:p-10"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         <button
           aria-label="Close intro"
           className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg text-(--ink-soft) transition hover:bg-(--surface-subtle-strong) hover:text-(--ink-strong)"
           onClick={hideModal}
+          ref={closeButtonRef}
           type="button"
         >
           ×
@@ -60,10 +83,13 @@ export function ChatHomeIntroModal() {
           </div>
         </div>
 
-        <h2 className="mt-6 text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)">
+        <h2
+          className="mt-6 text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)"
+          id={titleId}
+        >
           Return to inner calm through Quranic reflection
         </h2>
-        <p className="mt-3 text-sm leading-7 text-(--ink-soft)">
+        <p className="mt-3 text-sm leading-7 text-(--ink-soft)" id={descriptionId}>
           Share what shook your heart, and receive a grounded reading path back to sakinah.
         </p>
 

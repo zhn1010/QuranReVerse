@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import { SidebarNotesPanel } from '@/components/sidebar-notes-panel';
 import { ChatHistoryList } from './chat-history-list';
@@ -41,14 +42,26 @@ export function ChatShellSidebar({
   const railButtonClass =
     'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-(--line) bg-white/80 text-(--ink-soft) transition hover:bg-white';
   const railSectionClass = 'px-4.5';
+  const { dialogRef, titleId } = useAccessibleDialog<HTMLElement>({
+    isOpen: isMobileSidebarOpen,
+    onClose: onSidebarCollapse,
+  });
 
   return (
     <aside
+      aria-labelledby={isMobileSidebarOpen ? titleId : undefined}
+      aria-modal={isMobileSidebarOpen ? 'true' : undefined}
       className={`fixed inset-y-0 left-0 z-40 h-screen w-72 -translate-x-full overflow-hidden border-r border-(--border-subtle) bg-(--surface-sidebar) backdrop-blur-xl transition-[width,transform] duration-300 ${
         isMobileSidebarOpen ? 'translate-x-0' : ''
       } ${isDesktopSidebarExpanded ? 'md:w-72' : 'md:w-18 md:px-0'} md:sticky md:top-0 md:translate-x-0`}
+      ref={dialogRef}
+      role={isMobileSidebarOpen ? 'dialog' : undefined}
+      tabIndex={isMobileSidebarOpen ? -1 : undefined}
     >
       <div className="flex h-full min-h-0 flex-col pt-4">
+        <h2 className="sr-only" id={titleId}>
+          Navigation sidebar
+        </h2>
         <div className={`${railSectionClass} flex items-center justify-between pt-2`}>
           <span className="sr-only">Conversations</span>
           <button
