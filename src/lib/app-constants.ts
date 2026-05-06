@@ -6,3 +6,4 @@ export const QF_BOOKMARK_COLLECTION_NAME = APP_NAME;
 export const CHAT_HISTORY_STORAGE_KEY = 'sakinah:chat-history';
 export const CHAT_HISTORY_UPDATED_EVENT = 'sakinah:history-updated';
 export const HERO_HIDDEN_STORAGE_KEY = 'sakinah:hero-hidden';
+export const HOME_TITLE_INDEX_STORAGE_KEY = 'sakinah:home-title-index';

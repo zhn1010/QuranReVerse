@@ -84,7 +84,7 @@ export function ChatHomeForm({
                 setValidationMessage('');
               }
             }}
-            placeholder="Describe the event, post, or conversation that pulled you off-center..."
+            placeholder="Describe what happened, what you read, or what has been sitting heavily on your heart..."
             value={eventContent}
           />
         </div>
@@ -105,7 +105,7 @@ export function ChatHomeForm({
                 setValidationMessage('');
               }
             }}
-            placeholder="How are you feeling? (optional)"
+            placeholder="If you can name the feeling, add it here (optional)"
             type="text"
             value={userFeeling}
           />
@@ -128,6 +128,10 @@ export function ChatHomeForm({
           {validationMessage}
         </p>
       ) : null}
+      <p className="px-1 pt-3 text-xs leading-6 text-(--ink-soft)">
+        Human-written reflections are translated when needed. Your reflection history stays on
+        this device and is not sent to our servers.
+      </p>
     </form>
   );
 }

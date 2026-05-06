@@ -114,7 +114,7 @@ export function ChatHomeExamples({ onSelect }: { onSelect: (example: ChatHomeExa
   return (
     <div className="relative mt-6 w-full">
       <div className="mb-2 flex items-center justify-between gap-3 px-1">
-        <p className="text-xs font-medium text-(--ink-soft)">Browse example prompts</p>
+        <p className="text-xs font-medium text-(--ink-soft)">Not sure how to begin?</p>
         <div className="flex items-center gap-2">
           <button
             aria-label="Scroll examples left"

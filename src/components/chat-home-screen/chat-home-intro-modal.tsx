@@ -87,10 +87,11 @@ export function ChatHomeIntroModal() {
           className="mt-6 text-2xl font-semibold tracking-[-0.03em] text-(--ink-strong)"
           id={titleId}
         >
-          Return to inner calm through Quranic reflection
+          Return to sakinah through Quranic reflection
         </h2>
         <p className="mt-3 text-sm leading-7 text-(--ink-soft)" id={descriptionId}>
-          Share what shook your heart, and receive a grounded reading path back to sakinah.
+          Share what happened, and Sakinah.now will help you trace the feeling beneath it, find
+          grounding verses, and sit with a human-written reflection in your language.
         </p>
 
         <div className="mt-6 space-y-4">
@@ -99,8 +100,11 @@ export function ChatHomeIntroModal() {
               1
             </span>
             <div>
-              <p className="text-sm font-medium text-(--ink-strong)">Describe the moment</p>
-              <p className="text-xs leading-5 text-(--ink-soft)">What disrupted your peace?</p>
+              <p className="text-sm font-medium text-(--ink-strong)">Share what happened</p>
+              <p className="text-xs leading-5 text-(--ink-soft)">
+                A conversation, a post, a disappointment, a fear, or anything that disturbed your
+                peace.
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -108,8 +112,10 @@ export function ChatHomeIntroModal() {
               2
             </span>
             <div>
-              <p className="text-sm font-medium text-(--ink-strong)">Name what you feel</p>
-              <p className="text-xs leading-5 text-(--ink-soft)">So the reading can meet you there.</p>
+              <p className="text-sm font-medium text-(--ink-strong)">Name the feeling if you can</p>
+              <p className="text-xs leading-5 text-(--ink-soft)">
+                You can add the feeling yourself, or we can infer it from what you share.
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -117,20 +123,27 @@ export function ChatHomeIntroModal() {
               3
             </span>
             <div>
-              <p className="text-sm font-medium text-(--ink-strong)">Sit with a guided verse</p>
+              <p className="text-sm font-medium text-(--ink-strong)">
+                Reflect with Quranic guidance
+              </p>
               <p className="text-xs leading-5 text-(--ink-soft)">
-                A reflection and Quran passage to steady your heart.
+                Receive relevant ayahs, a human-written reflection, and a calm reading path back
+                to perspective in your language.
               </p>
             </div>
           </div>
         </div>
+
+        <p className="mt-6 text-xs leading-6 text-(--ink-soft)">
+          Your past reflection history stays on this device and is not sent to our servers.
+        </p>
 
         <button
           className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-(--ink-strong) px-5 py-3 text-sm font-semibold text-white transition hover:bg-(--accent)"
           onClick={hideModal}
           type="button"
         >
-          Start reflecting
+          Begin reflection
         </button>
       </div>
     </div>
