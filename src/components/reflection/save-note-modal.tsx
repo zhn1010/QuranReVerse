@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useRef, type ReactNode } from 'react';
+import { MagicStarsIcon } from '@/components/icons';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 
@@ -117,6 +118,7 @@ export function SaveNoteModal({
               onClick={onGenerateDraft}
               type="button"
             >
+              <MagicStarsIcon className="h-3.5 w-3.5 shrink-0" />
               {isGenerating ? generatingLabel : generateLabel}
             </button>
           </div>
