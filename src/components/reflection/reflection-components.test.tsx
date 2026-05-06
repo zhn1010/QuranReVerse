@@ -92,4 +92,26 @@ describe('SaveNoteModal', () => {
     expect(html).toContain('Save note');
     expect(html).toContain('Write here...');
   });
+
+  it('detects rtl note text direction automatically', () => {
+    const html = renderToStaticMarkup(
+      <SaveNoteModal
+        body="قلبي متعب"
+        description="This note will be saved."
+        error="حدث خطأ"
+        isGenerating={false}
+        isOpen
+        isSaving={false}
+        onBodyChange={() => {}}
+        onClose={() => {}}
+        onGenerateDraft={() => {}}
+        onSave={() => {}}
+        placeholder="Write here..."
+        title="Save a note"
+      />,
+    );
+
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain('text-right');
+  });
 });

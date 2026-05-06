@@ -2,7 +2,7 @@
 
 import { useId, useRef, type ReactNode } from 'react';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
-import { getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
+import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 
 export function SaveNoteModal({
   body,
@@ -49,6 +49,10 @@ export function SaveNoteModal({
   const errorId = useId();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const statusMessage = isGenerating ? generatingLabel : isSaving ? savingLabel : '';
+  const resolvedBodyDirection = detectTextDirection(body, bodyDirection ?? 'ltr');
+  const resolvedFeedbackDirection = error
+    ? detectTextDirection(error, feedbackDirection ?? resolvedBodyDirection)
+    : feedbackDirection;
   const { descriptionId, dialogRef, titleId } = useAccessibleDialog<HTMLDivElement>({
     initialFocusRef: textareaRef,
     isOpen,
@@ -95,11 +99,11 @@ export function SaveNoteModal({
           </label>
           <textarea
             aria-describedby={error ? `${descriptionId} ${errorId}` : descriptionId}
-            className={`min-h-64 w-full rounded-(--radius-field) border border-(--line) bg-(--surface-input) px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-(--border-focus) focus:ring-4 focus:ring-(--focus-ring) sm:min-h-80 ${
-              bodyDirection ? getDirectionStyles(bodyDirection) : ''
-            }`}
+            className={`min-h-64 w-full rounded-(--radius-field) border border-(--line) bg-(--surface-input) px-5 py-4 pb-14 text-base leading-8 text-(--ink-strong) outline-none transition focus:border-(--border-focus) focus:ring-4 focus:ring-(--focus-ring) sm:min-h-80 ${getDirectionStyles(
+              resolvedBodyDirection,
+            )}`}
             disabled={isSaving || isGenerating}
-            dir={bodyDirection}
+            dir={resolvedBodyDirection}
             id={textareaId}
             onChange={(inputEvent) => onBodyChange(inputEvent.target.value)}
             placeholder={placeholder}
@@ -120,9 +124,9 @@ export function SaveNoteModal({
         {error ? (
           <p
             className={`mt-2 text-sm text-(--ink-warning) ${
-              feedbackDirection ? getDirectionStyles(feedbackDirection) : ''
+              resolvedFeedbackDirection ? getDirectionStyles(resolvedFeedbackDirection) : ''
             }`}
-            dir={feedbackDirection}
+            dir={resolvedFeedbackDirection}
             id={errorId}
             role="alert"
           >
