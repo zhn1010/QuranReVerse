@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Sakinah.now",
+  "version": "0.1.0",
+  "description": "Reflect selected text through Sakinah.now.",
+  "permissions": ["activeTab", "contextMenus", "scripting", "storage", "tabs"],
+  "host_permissions": ["__SAKINAH_APP_ORIGIN__/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["__SAKINAH_APP_ORIGIN__/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/logo.png",
+      "32": "icons/logo.png",
+      "48": "icons/logo.png",
+      "128": "icons/logo.png"
+    },
+    "default_title": "Sakinah.now"
+  },
+  "icons": {
+    "16": "icons/logo.png",
+    "32": "icons/logo.png",
+    "48": "icons/logo.png",
+    "128": "icons/logo.png"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": ["<all_urls>"],
+      "resources": ["icons/logo.png"]
+    }
+  ]
+}
