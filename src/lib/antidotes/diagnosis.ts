@@ -2,12 +2,14 @@ import { callStructuredOpenAI } from '@/lib/openai-client';
 import { normalizeAyahNo, normalizeLanguageCode } from '@/lib/antidotes/language';
 import {
   antidoteSystemPrompt,
+  feelingInferenceInputGuardPrompt,
   feelingInferenceSystemPrompt,
   inputValidationSystemPrompt,
   languageDetectionSystemPrompt,
 } from '@/lib/antidotes/prompts';
 import {
   antidoteResponseSchema,
+  feelingInferenceInputGuardResponseSchema,
   feelingInferenceResponseSchema,
   inputValidationResponseSchema,
   languageDetectionResponseSchema,
@@ -15,6 +17,7 @@ import {
 import type {
   AntidoteResponse,
   EnrichedAntidote,
+  FeelingInferenceInputGuardResponse,
   FeelingInferenceResponse,
   InputValidationResponse,
   LanguageDetectionResponse,
@@ -53,6 +56,27 @@ export async function validateUserInput(
       maxOutputTokens: 90,
       schema: inputValidationResponseSchema,
       schemaName: 'reflection_input_validation',
+    },
+    {
+      debugLogger,
+    },
+  );
+}
+
+export async function validateFeelingInferenceInput(
+  eventText: string,
+  {
+    debugLogger = noopDebugLogger,
+    structuredOpenAICaller = callStructuredOpenAI,
+  }: OpenAIServiceDeps = {},
+) {
+  return structuredOpenAICaller<FeelingInferenceInputGuardResponse>(
+    {
+      inputText: `Event/Content: "${eventText}"`,
+      instructions: feelingInferenceInputGuardPrompt,
+      maxOutputTokens: 70,
+      schema: feelingInferenceInputGuardResponseSchema,
+      schemaName: 'feeling_inference_input_guard',
     },
     {
       debugLogger,

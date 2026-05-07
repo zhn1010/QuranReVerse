@@ -32,6 +32,14 @@ export type InputValidationResponse = {
   reply_message: string;
 };
 
+export type FeelingInferenceInputGuardDecision = 'invalid' | 'usable';
+
+export type FeelingInferenceInputGuardResponse = {
+  decision: FeelingInferenceInputGuardDecision;
+  reason_code: 'link_only' | 'noise' | 'prompt_injection' | 'usable';
+  reply_message: string;
+};
+
 export type FeelingInferenceResponse = {
   inferred_feeling: string;
 };

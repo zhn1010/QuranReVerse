@@ -81,6 +81,26 @@ export const inputValidationResponseSchema = {
   type: 'object',
 } as const;
 
+export const feelingInferenceInputGuardResponseSchema = {
+  additionalProperties: false,
+  properties: {
+    decision: {
+      enum: ['usable', 'invalid'],
+      type: 'string',
+    },
+    reason_code: {
+      enum: ['usable', 'noise', 'prompt_injection', 'link_only'],
+      type: 'string',
+    },
+    reply_message: {
+      maxLength: 140,
+      type: 'string',
+    },
+  },
+  required: ['decision', 'reason_code', 'reply_message'],
+  type: 'object',
+} as const;
+
 export const feelingInferenceResponseSchema = {
   additionalProperties: false,
   properties: {

@@ -4,8 +4,8 @@ import { guardMeaningfulReflectionInput } from '@/lib/antidotes/input-guard';
 describe('guardMeaningfulReflectionInput', () => {
   it('allows meaningful input to proceed', async () => {
     const validateInput = vi.fn(async () => ({
-      decision: 'valid' as const,
-      reason_code: 'meaningful' as const,
+      decision: 'usable' as const,
+      reason_code: 'usable' as const,
       reply_message: '',
     }));
 
@@ -17,11 +17,11 @@ describe('guardMeaningfulReflectionInput', () => {
     ).resolves.toBeNull();
   });
 
-  it('returns a respectful validation failure for vague input', async () => {
+  it('returns a respectful validation failure only for invalid input', async () => {
     const validateInput = vi.fn(async () => ({
-      decision: 'needs_clarification' as const,
-      reason_code: 'too_vague' as const,
-      reply_message: 'Please share what happened and how it affected you.',
+      decision: 'invalid' as const,
+      reason_code: 'noise' as const,
+      reply_message: 'Please share a real situation, thought, or concern.',
     }));
 
     await expect(
@@ -30,8 +30,8 @@ describe('guardMeaningfulReflectionInput', () => {
         validateInput,
       }),
     ).resolves.toEqual({
-      error: 'Please share what happened and how it affected you.',
-      reason_code: 'too_vague',
+      error: 'Please share a real situation, thought, or concern.',
+      reason_code: 'noise',
       status: 422,
     });
   });

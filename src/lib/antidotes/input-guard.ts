@@ -1,5 +1,5 @@
-import { validateUserInput } from '@/lib/antidotes/service';
-import type { InputValidationResponse } from '@/lib/antidotes/types';
+import { validateFeelingInferenceInput } from '@/lib/antidotes/service';
+import type { FeelingInferenceInputGuardResponse } from '@/lib/antidotes/types';
 import type { AntidoteDebugLogger } from '@/lib/antidotes/service-shared';
 
 export type InputGuardFailure = {
@@ -12,23 +12,22 @@ export async function guardMeaningfulReflectionInput(
   eventContent: string,
   {
     debugLogger,
-    validateInput = validateUserInput,
+    validateInput = validateFeelingInferenceInput,
   }: {
     debugLogger: AntidoteDebugLogger;
     validateInput?: (
       eventText: string,
-      feelingText: string,
       options: {
         debugLogger: AntidoteDebugLogger;
       },
-    ) => Promise<InputValidationResponse>;
+    ) => Promise<FeelingInferenceInputGuardResponse>;
   },
 ): Promise<InputGuardFailure | null> {
-  const validation = await validateInput(eventContent, '', {
+  const validation = await validateInput(eventContent, {
     debugLogger,
   });
 
-  if (validation.decision === 'valid') {
+  if (validation.decision === 'usable') {
     return null;
   }
 

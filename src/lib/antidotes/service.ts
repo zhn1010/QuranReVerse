@@ -3,6 +3,7 @@ export {
   detectInputLanguage,
   enrichAntidotes,
   inferUserFeeling,
+  validateFeelingInferenceInput,
   validateUserInput,
 } from '@/lib/antidotes/diagnosis';
 export { curateReflection } from '@/lib/antidotes/curation';

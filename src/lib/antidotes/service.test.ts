@@ -10,6 +10,7 @@ import {
   inferUserFeeling,
   looksLikeTruncatedJsonError,
   translateSelectedReflectionIfNeeded,
+  validateFeelingInferenceInput,
   validateUserInput,
 } from '@/lib/antidotes/service';
 import type { CuratedReflectionCandidate, Diagnosis, SelectedReflection } from '@/lib/antidotes/types';
@@ -150,6 +151,26 @@ describe('validateUserInput', () => {
     expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
       maxOutputTokens: 90,
       schemaName: 'reflection_input_validation',
+    });
+  });
+});
+
+describe('validateFeelingInferenceInput', () => {
+  it('delegates to the structured OpenAI caller with the looser feeling guard schema', async () => {
+    const structuredOpenAICallerMock = createStructuredOpenAIResultMock({
+      decision: 'usable',
+      reason_code: 'usable',
+      reply_message: '',
+    });
+
+    await validateFeelingInferenceInput('event', {
+      structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+    });
+
+    expect(structuredOpenAICallerMock).toHaveBeenCalledTimes(1);
+    expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
+      maxOutputTokens: 70,
+      schemaName: 'feeling_inference_input_guard',
     });
   });
 });
