@@ -138,8 +138,8 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
 
             {/* AI response — left aligned */}
             {thread.status === 'pending' ? (
-              <div className="flex justify-start">
-                <div className="max-w-[90%] sm:max-w-[80%]">
+              <div className="flex justify-center">
+                <div className="mx-auto w-full max-w-[90%] sm:max-w-[80%]">
                   <ChatLoadingState stepStatus={loadingStepStatus} />
                 </div>
               </div>
