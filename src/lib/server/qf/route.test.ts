@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getErrorMessage, getQfErrorStatus, isQfAuthenticationErrorMessage } from '@/lib/server/qf/route';
+import {
+  getErrorMessage,
+  getQfErrorStatus,
+  isQfAuthenticationErrorMessage,
+  isQfUpstreamTimeoutErrorMessage,
+} from '@/lib/server/qf/route';
 
 describe('qf route error helpers', () => {
   it('recognizes QF authentication and connection-expiration errors', () => {
@@ -10,9 +15,25 @@ describe('qf route error helpers', () => {
     expect(isQfAuthenticationErrorMessage('Unexpected upstream failure.')).toBe(false);
   });
 
-  it('maps auth-related errors to 401 and others to 500', () => {
+  it('recognizes upstream timeout errors', () => {
+    expect(
+      isQfUpstreamTimeoutErrorMessage(
+        'Quran Foundation request timed out after 15000ms: https://apis.quran.foundation/auth/v1/collections',
+      ),
+    ).toBe(true);
+    expect(isQfUpstreamTimeoutErrorMessage('Unexpected upstream failure.')).toBe(false);
+  });
+
+  it('maps auth-related errors to 401, timeouts to 504, and others to 500', () => {
     expect(getQfErrorStatus(new Error('connection expired'))).toBe(401);
     expect(getQfErrorStatus(new Error('connect your Quran Foundation'))).toBe(401);
+    expect(
+      getQfErrorStatus(
+        new Error(
+          'Quran Foundation request timed out after 15000ms: https://apis.quran.foundation/auth/v1/collections',
+        ),
+      ),
+    ).toBe(504);
     expect(getQfErrorStatus(new Error('Unexpected error'))).toBe(500);
   });
 

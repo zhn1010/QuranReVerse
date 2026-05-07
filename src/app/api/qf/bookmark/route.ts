@@ -101,15 +101,15 @@ export async function GET(request: Request) {
     const message = getErrorMessage(error);
     const status = getQfErrorStatus(error);
 
-    if (status === 401) {
-      return NextResponse.json({ error: message }, { status: 401 });
+    if (status === 401 || status === 504) {
+      return NextResponse.json({ error: message }, { status });
     }
 
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Unexpected error',
       },
-      { status: 500 },
+      { status },
     );
   }
 }

@@ -13,6 +13,9 @@ export const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
 // Define the shape of your session data
 export type SessionData = {
   // Add required fields as you need them
+  qfBookmarkCollectionId?: string;
+  qfBookmarkCollectionName?: string;
+  qfBookmarkCollectionUpdatedAt?: string;
   userId?: string;
   quranFoundationId?: string;
   role?: string;

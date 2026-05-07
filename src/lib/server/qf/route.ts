@@ -8,6 +8,20 @@ export function isQfAuthenticationErrorMessage(message: string) {
   );
 }
 
+export function isQfUpstreamTimeoutErrorMessage(message: string) {
+  return message.includes('Quran Foundation request timed out');
+}
+
 export function getQfErrorStatus(error: unknown) {
-  return isQfAuthenticationErrorMessage(getErrorMessage(error)) ? 401 : 500;
+  const message = getErrorMessage(error);
+
+  if (isQfAuthenticationErrorMessage(message)) {
+    return 401;
+  }
+
+  if (isQfUpstreamTimeoutErrorMessage(message)) {
+    return 504;
+  }
+
+  return 500;
 }

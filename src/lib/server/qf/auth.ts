@@ -18,8 +18,15 @@ export type PendingAuthFlow = {
   state: string;
 };
 
+export type QfCachedCollection = {
+  id: string;
+  name: string;
+  updatedAt: string;
+};
+
 export type QfSessionCookie = {
   accessToken: string;
+  bookmarkCollection?: QfCachedCollection;
   expiresAt: number;
   refreshToken?: string;
   user: {
