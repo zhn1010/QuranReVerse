@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type MouseEvent } from 'react';
 import type { ToastContextValue } from '@/components/toast-public';
-import { buildQfLoginHref, fetchQfBookmarkStates, toggleQfBookmark } from '@/lib/client/qf/browser';
+import { buildQfLoginHref, fetchQfBookmarkStates, toggleQfBookmark } from '@/lib/client/qf/api-client';
 import { revalidateSidebarBookmarks } from '@/lib/client/stores/sidebar-bookmarks-store';
 
 type BookmarkState = {

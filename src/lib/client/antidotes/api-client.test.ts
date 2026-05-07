@@ -3,7 +3,7 @@ import {
   requestAntidoteStream,
   streamInferredFeeling,
   validateAntidoteInput,
-} from '@/lib/client/antidotes/browser';
+} from '@/lib/client/antidotes/api-client';
 
 function createJsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
   return new Response(JSON.stringify(body), {

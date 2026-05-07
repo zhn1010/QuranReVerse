@@ -8,7 +8,7 @@ import {
   streamQfNoteDraft,
   toggleQfBookmark,
   updateQfNote,
-} from '@/lib/client/qf/browser';
+} from '@/lib/client/qf/api-client';
 import type { ApiResponse } from '@/lib/shared/antidotes/api-types';
 
 function createJsonResponse(body: Record<string, unknown>, init?: ResponseInit) {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { ToastContextValue } from '@/components/toast-public';
-import { deleteQfNote, updateQfNote } from '@/lib/client/qf/browser';
+import { deleteQfNote, updateQfNote } from '@/lib/client/qf/api-client';
 import { detectTextDirection, type TextDirection } from '@/lib/shared/reflection/ui';
 import { revalidateSidebarNotes } from '@/lib/client/stores/sidebar-notes-store';
 import type { QfSavedNote } from '@/lib/shared/qf/types';

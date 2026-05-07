@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
-import { requestAntidoteStream } from '@/lib/client/antidotes/browser';
-import { getBrowserFingerprint } from '@/lib/client/browser/fingerprint';
+import { requestAntidoteStream } from '@/lib/client/antidotes/api-client';
+import { getBrowserFingerprint } from '@/lib/client/runtime/fingerprint';
 import {
   completeChatThread,
   failChatThread,

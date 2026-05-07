@@ -1,4 +1,4 @@
-import { validateAntidoteInput } from '@/lib/client/antidotes/browser';
+import { validateAntidoteInput } from '@/lib/client/antidotes/api-client';
 import { createPendingChatThread } from '@/lib/client/chat/store';
 
 export type ReflectionStartInput = {

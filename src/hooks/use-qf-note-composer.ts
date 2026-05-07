@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ToastContextValue } from '@/components/toast-public';
 import type { ApiResponse } from '@/lib/shared/antidotes/api-types';
-import { buildQfNoteDraftPayload, saveQfNote, streamQfNoteDraft } from '@/lib/client/qf/browser';
+import { buildQfNoteDraftPayload, saveQfNote, streamQfNoteDraft } from '@/lib/client/qf/api-client';
 import { revalidateSidebarNotes } from '@/lib/client/stores/sidebar-notes-store';
 
 type NoteState = {

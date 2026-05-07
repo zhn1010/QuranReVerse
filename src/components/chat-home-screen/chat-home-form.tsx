@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MagicStarsIcon, SendArrowIcon } from '@/components/icons';
-import { streamInferredFeeling } from '@/lib/client/antidotes/browser';
+import { streamInferredFeeling } from '@/lib/client/antidotes/api-client';
 import type { ExtensionReflectPayload } from '@/lib/shared/extension/handoff';
 import { startReflectionFromInput } from '@/lib/client/chat/start';
 import { detectTextDirection, getDirectionStyles } from '@/lib/shared/reflection/ui';
