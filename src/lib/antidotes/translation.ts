@@ -6,7 +6,11 @@ import type {
   ReflectionTranslationResponse,
   SelectedReflection,
 } from '@/lib/antidotes/types';
-import { noopDebugLogger, type OpenAIServiceDeps } from '@/lib/antidotes/service-shared';
+import {
+  callStructuredOpenAIWithRetry,
+  noopDebugLogger,
+  type OpenAIServiceDeps,
+} from '@/lib/antidotes/service-shared';
 
 export async function translateSelectedReflectionIfNeeded(
   selectedReflection: SelectedReflection | null,
@@ -14,6 +18,7 @@ export async function translateSelectedReflectionIfNeeded(
   {
     debugLogger = noopDebugLogger,
     structuredOpenAICaller = callStructuredOpenAI,
+    warnLogger = console,
   }: OpenAIServiceDeps = {},
 ) {
   if (!selectedReflection?.reflection) {
@@ -61,8 +66,10 @@ export async function translateSelectedReflectionIfNeeded(
     targetLanguageCode,
   });
 
-  const translation = await structuredOpenAICaller<ReflectionTranslationResponse>(
-    {
+  const translation = await callStructuredOpenAIWithRetry<ReflectionTranslationResponse>({
+    debugLogger,
+    initialMaxOutputTokens: 1200,
+    requestParams: {
       inputText: `Target language code: ${targetLanguageCode}
 
 Source language code: ${sourceLanguageCode}
@@ -70,14 +77,19 @@ Source language code: ${sourceLanguageCode}
 Reflection text:
 ${selectedReflection.reflection.body}`,
       instructions: reflectionTranslationSystemPrompt,
-      maxOutputTokens: 1200,
       schema: reflectionTranslationResponseSchema,
       schemaName: 'selected_reflection_translation',
     },
-    {
-      debugLogger,
+    retryMaxOutputTokens: 1800,
+    structuredOpenAICaller,
+    warnContext: {
+      reflectionId: selectedReflection.reflection.id,
+      sourceLanguageCode,
+      targetLanguageCode,
     },
-  );
+    warnLabel: 'reflection-translation',
+    warnLogger,
+  });
 
   const translatedText = translation.translated_text.trim();
   const usedOriginalFallback = translatedText.length === 0;

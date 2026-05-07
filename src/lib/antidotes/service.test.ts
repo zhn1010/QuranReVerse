@@ -411,6 +411,40 @@ describe('translateSelectedReflectionIfNeeded', () => {
       reflection_source_language_code: 'en',
     });
   });
+
+  it('retries translation with a larger token budget when the first response looks truncated', async () => {
+    const structuredOpenAICallerMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Unterminated string in JSON'))
+      .mockResolvedValueOnce({
+        translated_text: 'Yansima.',
+      });
+    const warnLogger = { warn: vi.fn() };
+
+    await expect(
+      translateSelectedReflectionIfNeeded(sampleSelectedReflection, 'tr', {
+        structuredOpenAICaller: toStructuredOpenAICaller(structuredOpenAICallerMock),
+        warnLogger,
+      }),
+    ).resolves.toEqual({
+      ...sampleSelectedReflection,
+      reflection: {
+        ...sampleSelectedReflection.reflection!,
+        body: 'Yansima.',
+      },
+      reflection_is_translated: true,
+      reflection_source_language_code: 'en',
+    });
+
+    expect(structuredOpenAICallerMock).toHaveBeenCalledTimes(2);
+    expect(structuredOpenAICallerMock.mock.calls[0]?.[0]).toMatchObject({
+      maxOutputTokens: 1200,
+    });
+    expect(structuredOpenAICallerMock.mock.calls[1]?.[0]).toMatchObject({
+      maxOutputTokens: 1800,
+    });
+    expect(warnLogger.warn).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('buildReflectionGuide', () => {
