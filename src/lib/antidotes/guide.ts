@@ -3,7 +3,7 @@ import { chatTitleSystemPrompt, spiritualGuideSystemPrompt } from '@/lib/antidot
 import { chatTitleResponseSchema, spiritualGuideResponseSchema } from '@/lib/antidotes/schemas';
 import {
   FALLBACK_CHAT_TITLE,
-  callStructuredOpenAIWithRetry,
+  looksLikeTruncatedJsonError,
   noopDebugLogger,
   type OpenAIServiceDeps,
 } from '@/lib/antidotes/service-shared';
@@ -68,18 +68,36 @@ Constraint: Do not reproduce the reflection text itself—only reference its the
     schemaName: 'spiritual_guide_wrapper',
   } as const;
 
-  return callStructuredOpenAIWithRetry<SpiritualGuideResponse>({
-    debugLogger,
-    initialMaxOutputTokens: 900,
-    requestParams,
-    retryMaxOutputTokens: 1400,
-    structuredOpenAICaller,
-    warnContext: {
+  try {
+    return await structuredOpenAICaller<SpiritualGuideResponse>(
+      {
+        ...requestParams,
+        maxOutputTokens: 900,
+      },
+      {
+        debugLogger,
+      },
+    );
+  } catch (error) {
+    if (!looksLikeTruncatedJsonError(error)) {
+      throw error;
+    }
+
+    warnLogger.warn('[spiritual-guide] retrying after likely truncated JSON', {
       detectedLanguageCode,
-    },
-    warnLabel: 'spiritual-guide',
-    warnLogger,
-  });
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    return structuredOpenAICaller<SpiritualGuideResponse>(
+      {
+        ...requestParams,
+        maxOutputTokens: 1400,
+      },
+      {
+        debugLogger,
+      },
+    );
+  }
 }
 
 export async function generateChatTitle(

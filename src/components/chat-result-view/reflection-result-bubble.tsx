@@ -3,7 +3,11 @@
 import type { ReactNode } from 'react';
 import { ReflectionBody } from '@/components/reflection/reflection-body';
 import type { ApiResponse } from '@/lib/antidote-types';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
+import {
+  detectTextDirection,
+  getDirectionStyles,
+  type TextDirection,
+} from '@/lib/reflection-ui';
 
 export function ReflectionResultBubble({
   children,
@@ -23,7 +27,7 @@ export function ReflectionResultBubble({
       <div className="space-y-6">
         {result.reflection_guide ? (
           <p
-            className={`text-sm leading-8 text-(--ink-strong) ${getDirectionStyles(
+            className={`text-base leading-8 text-(--ink-strong) ${getDirectionStyles(
               detectTextDirection(result.reflection_guide.intro_text, outputFallbackDirection),
             )}`}
             dir={detectTextDirection(result.reflection_guide.intro_text, outputFallbackDirection)}
@@ -52,7 +56,7 @@ export function ReflectionResultBubble({
         {result.reflection_guide ? (
           <div className="border-t border-(--border-subtle) pt-4">
             <p
-              className={`text-sm leading-8 text-(--ink-strong) ${getDirectionStyles(
+              className={`text-base leading-8 text-(--ink-strong) ${getDirectionStyles(
                 detectTextDirection(
                   result.reflection_guide.conclusion_text,
                   outputFallbackDirection,

@@ -125,7 +125,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
                 </p>
                 {thread.userFeeling ? (
                   <p
-                    className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
+                    className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-soft) ${getDirectionStyles(
                       detectTextDirection(thread.userFeeling),
                     )}`}
                     dir={detectTextDirection(thread.userFeeling)}

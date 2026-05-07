@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
+import {
+  detectTextDirection,
+  getDirectionStyles,
+  type TextDirection,
+} from '@/lib/reflection-ui';
 
 type ReflectionBodyProps = {
   authorName?: string | null;
@@ -39,7 +43,7 @@ export function ReflectionBody({
   return (
     <div className={metaLayout === 'stacked' ? 'mt-3' : undefined}>
       <p
-        className={`whitespace-pre-line text-base leading-7 text-(--ink-strong) ${getDirectionStyles(
+        className={`whitespace-pre-line text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
           direction,
         )} ${!expanded && shouldCollapse ? 'line-clamp-6' : ''}`}
         dir={direction}

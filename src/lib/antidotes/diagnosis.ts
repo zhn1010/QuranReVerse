@@ -25,7 +25,7 @@ import type {
 } from '@/lib/antidotes/types';
 import { getRelatedReflectionsForAyah, type RelatedReflection } from '@/lib/quran-reflect';
 import {
-  callStructuredOpenAIWithRetry,
+  looksLikeTruncatedJsonError,
   noopDebugLogger,
   type OpenAIServiceDeps,
   type ReflectionServiceDeps,
@@ -100,20 +100,48 @@ export async function inferUserFeeling(
   } as const;
 
   try {
-    const response = await callStructuredOpenAIWithRetry<FeelingInferenceResponse>({
-      debugLogger,
-      initialMaxOutputTokens: 140,
-      requestParams,
-      retryMaxOutputTokens: 220,
-      structuredOpenAICaller,
-      warnLabel: 'feeling-inference',
-      warnLogger,
-    });
+    const response = await structuredOpenAICaller<FeelingInferenceResponse>(
+      {
+        ...requestParams,
+        maxOutputTokens: 140,
+      },
+      {
+        debugLogger,
+      },
+    );
 
     const inferredFeeling = response.inferred_feeling.trim();
 
     return inferredFeeling.length > 0 ? inferredFeeling : 'seeking clarity';
   } catch (error) {
+    if (looksLikeTruncatedJsonError(error)) {
+      warnLogger.warn('[feeling-inference] retrying after likely truncated JSON', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+
+      try {
+        const retryResponse = await structuredOpenAICaller<FeelingInferenceResponse>(
+          {
+            ...requestParams,
+            maxOutputTokens: 220,
+          },
+          {
+            debugLogger,
+          },
+        );
+
+        const retryFeeling = retryResponse.inferred_feeling.trim();
+
+        return retryFeeling.length > 0 ? retryFeeling : 'seeking clarity';
+      } catch (retryError) {
+        warnLogger.warn('[feeling-inference] falling back after retry failure', {
+          message: retryError instanceof Error ? retryError.message : String(retryError),
+        });
+
+        return 'seeking clarity';
+      }
+    }
+
     warnLogger.warn('[feeling-inference] falling back after inference failure', {
       message: error instanceof Error ? error.message : String(error),
     });
