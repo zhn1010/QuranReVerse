@@ -1,24 +1,40 @@
-import React from 'react';
-type ListProps<T> = {
-  items: T[];
-  renderItem: (item: T) => React.ReactNode;
-};
+import React, { useState } from 'react';
 
-function List<T>({ items, renderItem }: ListProps<T>) {
-  return <div>{items.map((item) => renderItem(item))}</div>;
+export default function SearchableUserList() {
+  type User = {
+    id: number;
+    name: string;
+    email: string;
+  };
+
+  const users: User[] = [
+    { id: 1, name: 'Saeed Ahmadi', email: 'saeed@example.com' },
+    { id: 2, name: 'Anna Müller', email: 'anna@scalable.capital' },
+    { id: 3, name: 'Max Schneider', email: 'max@example.com' },
+    { id: 4, name: 'Laura Becker', email: 'laura@test.com' },
+  ];
+
+  const [query, setQuery] = useState<string>('');
+
+  return (
+    <>
+      <div>
+        <label htmlFor="query">Search:</label>
+        <input
+          id="query"
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+
+      <div>
+        {users.map((user) => (
+          <p key={user.id}>
+            `${user.name}\t${user.email}`
+          </p>
+        ))}
+      </div>
+    </>
+  );
 }
-
-type User = {
-  name: string;
-  id: string;
-};
-
-export default function Draft({ users }: { users: User[] }) {
-  return <List items={users} renderItem={(user) => <div>{`${user.id}-${user.name}`}</div>} />;
-}
-
-type State<T> =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; data: T[] }
-  | { status: 'error'; error: string };

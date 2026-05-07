@@ -1,4 +1,4 @@
-import { handleAuthCallback } from '@/lib/qf-user';
+import { handleAuthCallback } from '@/lib/server/qf/user';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);

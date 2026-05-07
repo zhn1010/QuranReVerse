@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/server/qf/route';
 import {
   bookmarkAyahsInSakinahCollection,
   getAyahBookmarksInSakinahCollection,
   persistQfUserSession,
   removeAyahBookmarksFromSakinahCollection,
-} from '@/lib/qf-user';
+} from '@/lib/server/qf/user';
 
 export async function POST(request: Request) {
   try {

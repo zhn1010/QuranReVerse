@@ -1,6 +1,6 @@
 'use client';
 
-import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
+import { detectTextDirection, getDirectionStyles } from '@/lib/shared/reflection/ui';
 
 export function PromptSummaryCard({
   eventContent,

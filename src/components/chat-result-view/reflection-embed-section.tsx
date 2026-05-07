@@ -3,8 +3,8 @@
 import type { MouseEvent } from 'react';
 import { QuranEmbedBookmarkAction } from '@/components/reflection/quran-embed-bookmark-action';
 import { QuranEmbedCard } from '@/components/reflection/quran-embed-card';
-import type { AyahReference } from '@/lib/ayah';
-import type { QfSessionSummary } from '@/lib/qf-user';
+import type { AyahReference } from '@/lib/shared/quran/ayah';
+import type { QfSessionSummary } from '@/lib/shared/qf/types';
 
 type BookmarkState = {
   savedKeys: Record<string, boolean>;

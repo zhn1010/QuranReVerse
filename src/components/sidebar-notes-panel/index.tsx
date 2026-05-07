@@ -9,7 +9,7 @@ import {
   prefetchSidebarNotes,
   resetSidebarNotes,
   subscribeSidebarNotes,
-} from '@/lib/sidebar-notes-store';
+} from '@/lib/client/stores/sidebar-notes-store';
 import { SidebarNoteModal } from './sidebar-note-modal';
 import { SidebarNotesList } from './sidebar-notes-list';
 

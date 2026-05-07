@@ -4,17 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChatResultView } from '@/components/chat-result-view';
 import { ChatShell } from '@/components/chat-shell';
-import { requestAntidoteStream } from '@/lib/antidotes/browser';
-import { getBrowserFingerprint } from '@/lib/browser-fingerprint';
+import { requestAntidoteStream } from '@/lib/client/antidotes/browser';
+import { getBrowserFingerprint } from '@/lib/client/browser/fingerprint';
 import {
   completeChatThread,
   failChatThread,
   getChatThread,
   resetChatThreadToPending,
   type LocalChatThread,
-} from '@/lib/chat-store';
-import type { QfSessionSummary } from '@/lib/qf-user';
-import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
+} from '@/lib/client/chat/store';
+import type { QfSessionSummary } from '@/lib/shared/qf/types';
+import { detectTextDirection, getDirectionStyles } from '@/lib/shared/reflection/ui';
 import {
   ChatLoadingState,
   createInitialLoadingStepStatus,

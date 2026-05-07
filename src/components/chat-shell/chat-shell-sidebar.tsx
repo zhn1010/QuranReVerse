@@ -15,7 +15,7 @@ import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import { SidebarBookmarksPanel } from '@/components/sidebar-bookmarks-panel';
 import { SidebarNotesPanel } from '@/components/sidebar-notes-panel';
 import { ChatHistoryList } from './chat-history-list';
-import type { LocalChatThread } from '@/lib/chat-store';
+import type { LocalChatThread } from '@/lib/client/chat/store';
 
 const SIDEBAR_TABS = [
   { id: 'chats', label: 'Chats', Icon: ChatBubbleIcon, className: 'h-4.5 w-4.5' },

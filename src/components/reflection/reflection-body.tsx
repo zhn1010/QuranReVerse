@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
+import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/shared/reflection/ui';
 
 type ReflectionBodyProps = {
   authorName?: string | null;

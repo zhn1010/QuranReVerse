@@ -7,9 +7,9 @@ import {
   parseExtensionReflectPayload,
   stripExtensionRequestParams,
   type ExtensionReflectPayload,
-} from '@/lib/extension-handoff';
-import { HOME_TITLE_INDEX_STORAGE_KEY } from '@/lib/app-constants';
-import type { QfSessionSummary } from '@/lib/qf-user';
+} from '@/lib/shared/extension/handoff';
+import { HOME_TITLE_INDEX_STORAGE_KEY } from '@/lib/shared/constants/app';
+import type { QfSessionSummary } from '@/lib/shared/qf/types';
 import { ChatHomeExamples, type ChatHomeExample } from './chat-home-examples';
 import { ChatHomeForm } from './chat-home-form';
 import { ChatHomeIntroModal } from './chat-home-intro-modal';

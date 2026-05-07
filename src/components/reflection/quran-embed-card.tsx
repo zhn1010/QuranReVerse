@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { buildQuranEmbedUrl } from '@/lib/reflection-ui';
+import { buildQuranEmbedUrl } from '@/lib/shared/reflection/ui';
 
 export function QuranEmbedCard({
   ayahNo,

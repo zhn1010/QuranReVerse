@@ -3,16 +3,16 @@
 import Script from 'next/script';
 import { useEffect, useMemo } from 'react';
 import { useToast } from '@/components/toast';
-import type { ApiResponse } from '@/lib/antidote-types';
+import type { ApiResponse } from '@/lib/shared/antidotes/api-types';
 import { useQfBookmarks } from '@/hooks/use-qf-bookmarks';
 import { useQfNoteComposer } from '@/hooks/use-qf-note-composer';
-import type { QfSessionSummary } from '@/lib/qf-user';
+import type { QfSessionSummary } from '@/lib/shared/qf/types';
 import {
   getDirectionFromLanguageCode,
   getSelectedReflectionEmbeds,
   getTranslationIdForLanguageCode,
   type TextDirection,
-} from '@/lib/reflection-ui';
+} from '@/lib/shared/reflection/ui';
 import { ReflectionEmbedSection } from './reflection-embed-section';
 import { ReflectionResultActions } from './reflection-result-actions';
 import { ReflectionResultBubble } from './reflection-result-bubble';

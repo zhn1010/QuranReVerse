@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createPipelineStep, toJsonLine } from '@/lib/antidotes/events';
-import { buildReflectionCandidates } from '@/lib/antidotes/reflections';
-import { checkAntidoteRateLimit } from '@/lib/antidotes/rate-limit';
+import { createPipelineStep, toJsonLine } from '@/lib/shared/antidotes/events';
+import { buildReflectionCandidates } from '@/lib/server/antidotes/reflections';
+import { checkAntidoteRateLimit } from '@/lib/server/antidotes/rate-limit';
 import {
   buildReflectionGuide,
   callAntidoteModel,
@@ -12,11 +12,11 @@ import {
   generateChatTitle,
   inferUserFeeling,
   translateSelectedReflectionIfNeeded,
-} from '@/lib/antidotes/service';
+} from '@/lib/server/antidotes/service';
 import type {
   PipelineEvent,
   PipelineResultEvent,
-} from '@/lib/antidotes/types';
+} from '@/lib/shared/antidotes/types';
 
 const logLlmDebug = createLlmDebugLogger();
 

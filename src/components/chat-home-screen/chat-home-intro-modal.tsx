@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
-import { HERO_HIDDEN_STORAGE_KEY } from '@/lib/app-constants';
+import { HERO_HIDDEN_STORAGE_KEY } from '@/lib/shared/constants/app';
 
 export function ChatHomeIntroModal() {
   const [isVisible, setIsVisible] = useState(() => {
