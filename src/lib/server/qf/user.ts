@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { QF_BOOKMARK_COLLECTION_NAME } from '@/lib/shared/constants/app';
 import { qfApiFetch, readApiResponse } from '@/lib/server/qf/client';
 import {
@@ -32,8 +33,16 @@ export {
   removeAyahBookmarksFromSakinahCollection,
 };
 
-export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
+export async function getQfUserSessionSummary(context = 'unknown'): Promise<QfSessionSummary> {
+  const summaryRequestId = randomUUID().slice(0, 8);
+  const startedAt = Date.now();
   const session = await getQfUserSession();
+
+  qfAuthDebug('loading user session summary', {
+    context,
+    hasSession: Boolean(session),
+    summaryRequestId,
+  });
 
   if (!session) {
     return {
@@ -50,15 +59,28 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
     let resolvedProfilePath: string | null = null;
     let lastProfileError: Error | null = null;
 
-    for (const profilePath of profilePaths) {
+    for (const [index, profilePath] of profilePaths.entries()) {
+      const attemptStartedAt = Date.now();
+
+      qfAuthDebug('profile request attempting path', {
+        attempt: index + 1,
+        context,
+        path: profilePath,
+        summaryRequestId,
+      });
+
       try {
         const { response } = await qfApiFetch(session, profilePath);
 
         qfAuthDebug('profile request completed', {
+          attempt: index + 1,
+          context,
+          durationMs: Date.now() - attemptStartedAt,
           ok: response.ok,
           path: profilePath,
           responseUrl: response.url,
           status: response.status,
+          summaryRequestId,
         });
 
         payload = await readApiResponse<Record<string, unknown>>(response);
@@ -67,8 +89,12 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         qfAuthDebug('profile request failed for path', {
+          attempt: index + 1,
+          context,
+          durationMs: Date.now() - attemptStartedAt,
           message,
           path: profilePath,
+          summaryRequestId,
         });
         lastProfileError = error instanceof Error ? error : new Error(message);
       }
@@ -79,7 +105,10 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
     }
 
     qfAuthDebug('profile request resolved', {
+      context,
+      durationMs: Date.now() - startedAt,
       path: resolvedProfilePath,
+      summaryRequestId,
     });
 
     const resolution = deriveQfSessionSummaryFromProfilePayload(
@@ -89,13 +118,18 @@ export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
 
     qfAuthDebug('profile payload inspected for avatar', {
       ...resolution.diagnostics,
+      context,
       hasAvatarUrl: Boolean(resolution.summary.avatarUrl),
+      summaryRequestId,
     });
 
     return resolution.summary;
   } catch (error) {
     qfAuthDebug('failed to load user profile summary', {
+      context,
+      durationMs: Date.now() - startedAt,
       message: error instanceof Error ? error.message : String(error),
+      summaryRequestId,
     });
 
     return {

@@ -8,7 +8,7 @@ export default async function ChatPage({
 }: {
   params: Promise<{ chatId: string }>;
 }) {
-  const [{ chatId }, auth] = await Promise.all([params, getQfUserSessionSummary()]);
+  const [{ chatId }, auth] = await Promise.all([params, getQfUserSessionSummary('chat_page')]);
 
   return <ChatThreadScreen auth={auth} chatId={chatId} />;
 }

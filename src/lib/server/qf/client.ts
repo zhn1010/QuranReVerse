@@ -2,10 +2,138 @@ import { clearSession } from '@/lib/server/session/store';
 import {
   buildSessionFromTokenResponse,
   extractTokenScopes,
+  randomBase64Url,
   type QfSessionCookie,
   type QfTokenResponse,
 } from '@/lib/server/qf/auth';
 import { getQfConfig, isQfAuthDebugEnabled, qfAuthDebug } from '@/lib/server/qf/config';
+
+const DEFAULT_QF_FETCH_TIMEOUT_MS = 15_000;
+
+function getQfFetchTimeoutMs() {
+  const rawValue = process.env.QF_FETCH_TIMEOUT_MS?.trim();
+  const parsedValue = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsedValue) && parsedValue > 0) {
+    return parsedValue;
+  }
+
+  return DEFAULT_QF_FETCH_TIMEOUT_MS;
+}
+
+function buildAbortError(message: string) {
+  const error = new Error(message);
+  error.name = 'AbortError';
+  return error;
+}
+
+function isAbortLikeError(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function createMergedAbortSignal(timeoutMs: number, upstreamSignal?: AbortSignal) {
+  const controller = new AbortController();
+  let didTimeout = false;
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort(buildAbortError(`Timed out after ${timeoutMs}ms.`));
+  }, timeoutMs);
+
+  const handleUpstreamAbort = () => {
+    controller.abort(
+      upstreamSignal?.reason instanceof Error
+        ? upstreamSignal.reason
+        : buildAbortError('The upstream signal aborted the request.'),
+    );
+  };
+
+  if (upstreamSignal) {
+    if (upstreamSignal.aborted) {
+      handleUpstreamAbort();
+    } else {
+      upstreamSignal.addEventListener('abort', handleUpstreamAbort, { once: true });
+    }
+  }
+
+  return {
+    didTimeout: () => didTimeout,
+    dispose() {
+      clearTimeout(timeoutId);
+      upstreamSignal?.removeEventListener('abort', handleUpstreamAbort);
+    },
+    signal: controller.signal,
+  };
+}
+
+async function fetchWithQfTimeout(
+  url: string,
+  init: RequestInit | undefined,
+  fetchImpl: typeof fetch,
+  metadata: {
+    logLabel: string;
+    logMetadata: Record<string, unknown>;
+  },
+) {
+  const requestId = randomBase64Url(6);
+  const timeoutMs = getQfFetchTimeoutMs();
+  const startedAt = Date.now();
+  const timeoutController = createMergedAbortSignal(timeoutMs, init?.signal ?? undefined);
+  const requestInit = {
+    ...init,
+    signal: timeoutController.signal,
+  } satisfies RequestInit;
+
+  qfAuthDebug(`${metadata.logLabel} starting`, {
+    ...metadata.logMetadata,
+    requestId,
+    timeoutMs,
+    url,
+  });
+
+  try {
+    const response = await fetchImpl(url, requestInit);
+
+    qfAuthDebug(`${metadata.logLabel} completed`, {
+      ...metadata.logMetadata,
+      durationMs: Date.now() - startedAt,
+      ok: response.ok,
+      requestId,
+      status: response.status,
+      timeoutMs,
+      url: response.url || url,
+    });
+
+    return response;
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+
+    if (timeoutController.didTimeout()) {
+      qfAuthDebug(`${metadata.logLabel} timed out`, {
+        ...metadata.logMetadata,
+        durationMs,
+        requestId,
+        timeoutMs,
+        url,
+      });
+      throw new Error(`Quran Foundation request timed out after ${timeoutMs}ms: ${url}`);
+    }
+
+    qfAuthDebug(`${metadata.logLabel} failed`, {
+      ...metadata.logMetadata,
+      durationMs,
+      isAbortError: isAbortLikeError(error),
+      message: error instanceof Error ? error.message : String(error),
+      requestId,
+      timeoutMs,
+      url,
+    });
+
+    throw error;
+  } finally {
+    timeoutController.dispose();
+  }
+}
 
 export async function exchangeToken(params: URLSearchParams, fetchImpl: typeof fetch = fetch) {
   const { authBaseUrl, clientId, clientSecret } = getQfConfig();
@@ -29,11 +157,21 @@ export async function exchangeToken(params: URLSearchParams, fetchImpl: typeof f
     redirectUri: params.get('redirect_uri'),
   });
 
-  const response = await fetchImpl(`${authBaseUrl}/oauth2/token`, {
-    body: params.toString(),
-    headers,
-    method: 'POST',
-  });
+  const response = await fetchWithQfTimeout(
+    `${authBaseUrl}/oauth2/token`,
+    {
+      body: params.toString(),
+      headers,
+      method: 'POST',
+    },
+    fetchImpl,
+    {
+      logLabel: 'qf token exchange request',
+      logMetadata: {
+        grantType: params.get('grant_type'),
+      },
+    },
+  );
 
   if (!response.ok) {
     const details = await response.text();
@@ -117,24 +255,29 @@ export async function qfApiFetch(
     });
   }
 
-  const execute = async (token: string) =>
-    fetchImpl(`${apiBaseUrl}${path}`, {
-      ...init,
-      headers: {
-        ...(init?.headers ?? {}),
-        'x-auth-token': token,
-        'x-client-id': clientId,
+  const execute = async (token: string, attempt: 'initial' | 'retry') =>
+    fetchWithQfTimeout(
+      `${apiBaseUrl}${path}`,
+      {
+        ...init,
+        headers: {
+          ...(init?.headers ?? {}),
+          'x-auth-token': token,
+          'x-client-id': clientId,
+        },
       },
-    });
+      fetchImpl,
+      {
+        logLabel: 'qf api fetch',
+        logMetadata: {
+          attempt,
+          method: init?.method ?? 'GET',
+          path,
+        },
+      },
+    );
 
-  let response = await execute(activeSession.accessToken);
-
-  qfAuthDebug('qf api request completed', {
-    ok: response.ok,
-    path,
-    status: response.status,
-    url: response.url,
-  });
+  let response = await execute(activeSession.accessToken, 'initial');
 
   const shouldInspect403Body = response.status === 403 && activeSession.refreshToken;
   const firstResponseBodyPreview = shouldInspect403Body
@@ -167,7 +310,7 @@ export async function qfApiFetch(
       status: response.status,
     });
     activeSession = await refreshSession(activeSession, fetchImpl);
-    response = await execute(activeSession.accessToken);
+    response = await execute(activeSession.accessToken, 'retry');
     qfAuthDebug('qf api request retry completed', {
       ok: response.ok,
       path,
