@@ -31,7 +31,7 @@ export function ReflectionResultActions({
 }) {
   return (
     <>
-      <div className="flex flex-col items-start gap-2 pl-2">
+      <div className="flex gap-3 pl-2">
         {isAuthenticated ? (
           <button
             className="inline-flex items-center gap-2 rounded-full border border-(--border-soft) bg-(--surface-card) px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
@@ -59,22 +59,6 @@ export function ReflectionResultActions({
             Connect to save as a note
           </a>
         )}
-        <div className="flex flex-col items-start gap-2">
-          <button
-            className="inline-flex items-center rounded-full border border-dashed border-(--border-soft) bg-(--surface-subtle) px-4 py-2 text-xs font-medium text-(--ink-placeholder) transition disabled:cursor-not-allowed disabled:opacity-100"
-            disabled
-            type="button"
-          >
-            I still disagree with this (Coming soon)
-          </button>
-          <button
-            className="inline-flex items-center rounded-full border border-dashed border-(--border-soft) bg-(--surface-subtle) px-4 py-2 text-xs font-medium text-(--ink-placeholder) transition disabled:cursor-not-allowed disabled:opacity-100"
-            disabled
-            type="button"
-          >
-            Help me apply this today (Coming soon)
-          </button>
-        </div>
       </div>
 
       <SaveNoteModal
