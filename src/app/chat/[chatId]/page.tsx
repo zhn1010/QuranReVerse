@@ -1,5 +1,5 @@
 import { ChatThreadScreen } from '@/components/chat-thread';
-import { getQfUserSessionSummary } from '@/lib/server/qf/user';
+import { getQfUserSessionSummary } from '@/lib/qf-user';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +8,7 @@ export default async function ChatPage({
 }: {
   params: Promise<{ chatId: string }>;
 }) {
-  const [{ chatId }, auth] = await Promise.all([params, getQfUserSessionSummary('chat_page')]);
+  const [{ chatId }, auth] = await Promise.all([params, getQfUserSessionSummary()]);
 
   return <ChatThreadScreen auth={auth} chatId={chatId} />;
 }

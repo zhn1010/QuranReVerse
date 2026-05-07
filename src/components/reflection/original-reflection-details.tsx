@@ -4,7 +4,7 @@ import {
   detectTextDirection,
   getDirectionStyles,
   type TextDirection,
-} from '@/lib/shared/reflection/ui';
+} from '@/lib/reflection-ui';
 
 export function OriginalReflectionDetails({
   body,

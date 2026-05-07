@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { guardMeaningfulReflectionInput } from '@/lib/server/antidotes/input-guard';
-import { checkAntidoteRateLimit } from '@/lib/server/antidotes/rate-limit';
-import { createLlmDebugLogger, inferUserFeeling } from '@/lib/server/antidotes/service';
+import { guardMeaningfulReflectionInput } from '@/lib/antidotes/input-guard';
+import { checkAntidoteRateLimit } from '@/lib/antidotes/rate-limit';
+import { createLlmDebugLogger, inferUserFeeling } from '@/lib/antidotes/service';
 
 const logLlmDebug = createLlmDebugLogger();
 

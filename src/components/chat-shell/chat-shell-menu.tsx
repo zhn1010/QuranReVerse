@@ -3,8 +3,8 @@
 import Image from 'next/image';
 import { useId } from 'react';
 import { UserIcon } from '@/components/icons';
-import { APP_CANONICAL_ORIGIN, APP_NAME } from '@/lib/shared/constants/app';
-import type { QfSessionSummary } from '@/lib/shared/qf/types';
+import { APP_CANONICAL_ORIGIN, APP_NAME } from '@/lib/app-constants';
+import type { QfSessionSummary } from '@/lib/qf-user';
 
 export function ChatShellMenu({
   auth,

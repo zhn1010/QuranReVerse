@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { guardMeaningfulReflectionInput } from '@/lib/server/antidotes/input-guard';
-import { feelingInferenceStreamSystemPrompt } from '@/lib/server/antidotes/prompts';
-import { checkAntidoteRateLimit } from '@/lib/server/antidotes/rate-limit';
-import { createLlmDebugLogger } from '@/lib/server/antidotes/service';
-import { createTextStreamFromOpenAIResponse, postOpenAIResponse } from '@/lib/server/openai/client';
+import { guardMeaningfulReflectionInput } from '@/lib/antidotes/input-guard';
+import { feelingInferenceStreamSystemPrompt } from '@/lib/antidotes/prompts';
+import { checkAntidoteRateLimit } from '@/lib/antidotes/rate-limit';
+import { createLlmDebugLogger } from '@/lib/antidotes/service';
+import { createTextStreamFromOpenAIResponse, postOpenAIResponse } from '@/lib/openai-client';
 
 const logLlmDebug = createLlmDebugLogger();
 

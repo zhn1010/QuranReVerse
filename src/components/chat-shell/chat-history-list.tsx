@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { LocalChatThread } from '@/lib/client/chat/store';
+import type { LocalChatThread } from '@/lib/chat-store';
 
 export function ChatHistoryList({
   activeChatId,

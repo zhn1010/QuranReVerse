@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { usePathname } from 'next/navigation';
 import { ChatShellHeader } from './chat-shell-header';
 import { ChatShellSidebar, type SidebarTabId } from './chat-shell-sidebar';
-import type { QfSessionSummary } from '@/lib/shared/qf/types';
-import { prefetchSidebarNotes, resetSidebarNotes } from '@/lib/client/stores/sidebar-notes-store';
-import { prefetchSidebarBookmarks, resetSidebarBookmarks } from '@/lib/client/stores/sidebar-bookmarks-store';
-import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/lib/client/chat/store';
+import type { QfSessionSummary } from '@/lib/qf-user';
+import { prefetchSidebarNotes, resetSidebarNotes } from '@/lib/sidebar-notes-store';
+import { prefetchSidebarBookmarks, resetSidebarBookmarks } from '@/lib/sidebar-bookmarks-store';
+import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/lib/chat-store';
 
 const DESKTOP_SIDEBAR_EXPANDED_KEY = 'sakinah:desktop-sidebar-expanded';
 

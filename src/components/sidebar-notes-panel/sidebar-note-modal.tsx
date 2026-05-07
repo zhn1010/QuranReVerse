@@ -1,7 +1,7 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/shared/reflection/ui';
+import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 import { useId, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
 import type { ActiveSidebarNoteState } from '@/hooks/use-qf-sidebar-note-editor';

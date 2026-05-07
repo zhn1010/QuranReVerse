@@ -3,10 +3,10 @@
 import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MagicStarsIcon, SendArrowIcon } from '@/components/icons';
-import { streamInferredFeeling } from '@/lib/client/antidotes/api-client';
-import type { ExtensionReflectPayload } from '@/lib/shared/extension/handoff';
-import { startReflectionFromInput } from '@/lib/client/chat/start';
-import { detectTextDirection, getDirectionStyles } from '@/lib/shared/reflection/ui';
+import { streamInferredFeeling } from '@/lib/antidotes/browser';
+import type { ExtensionReflectPayload } from '@/lib/extension-handoff';
+import { startReflectionFromInput } from '@/lib/reflection-start';
+import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 
 const FEELING_GUESS_MIN_EVENT_LENGTH = 20;
 

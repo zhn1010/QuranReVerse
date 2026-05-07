@@ -9,7 +9,7 @@ import {
   revalidateSidebarBookmarks,
   resetSidebarBookmarks,
   subscribeSidebarBookmarks,
-} from '@/lib/client/stores/sidebar-bookmarks-store';
+} from '@/lib/sidebar-bookmarks-store';
 
 export function SidebarBookmarksPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const state = useSyncExternalStore(

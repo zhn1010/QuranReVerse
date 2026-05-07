@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getErrorMessage, getQfErrorStatus } from '@/lib/server/qf/route';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
 import {
   createNoteInQfAccount,
   deleteNoteInQfAccount,
   listNotesInQfAccount,
   persistQfUserSession,
   updateNoteInQfAccount,
-} from '@/lib/server/qf/user';
-import type { QfNoteAttachedEntity } from '@/lib/shared/qf/types';
+} from '@/lib/qf-user';
+import type { QfNoteAttachedEntity } from '@/lib/qf-user';
 
 export async function POST(request: Request) {
   try {

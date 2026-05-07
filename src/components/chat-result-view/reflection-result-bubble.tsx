@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { ReflectionBody } from '@/components/reflection/reflection-body';
-import type { ApiResponse } from '@/lib/shared/antidotes/api-types';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/shared/reflection/ui';
+import type { ApiResponse } from '@/lib/antidote-types';
+import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 
 export function ReflectionResultBubble({
   children,

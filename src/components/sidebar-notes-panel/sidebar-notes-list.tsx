@@ -1,8 +1,8 @@
 'use client';
 
-import { detectTextDirection, getDirectionStyles } from '@/lib/shared/reflection/ui';
-import type { QfSavedNote } from '@/lib/shared/qf/types';
-import type { SidebarNotesSnapshot } from '@/lib/client/stores/sidebar-notes-store';
+import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
+import type { QfSavedNote } from '@/lib/qf/types';
+import type { SidebarNotesSnapshot } from '@/lib/sidebar-notes-store';
 
 function buildNotePreview(note: QfSavedNote) {
   const normalized = note.body.replace(/\s+/gu, ' ').trim();

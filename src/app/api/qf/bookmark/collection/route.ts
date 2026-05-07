@@ -1,12 +1,12 @@
 import type { ChapterId } from '@quranjs/api';
 import { NextResponse } from 'next/server';
-import { getErrorMessage, getQfErrorStatus } from '@/lib/server/qf/route';
-import { getQuranClient, getVerseWithTranslation } from '@/lib/server/quran/client';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
+import { getQuranClient, getVerseWithTranslation } from '@/lib/quran-client';
 import {
   listAyahBookmarksInSakinahCollection,
   persistQfUserSession,
   QF_BOOKMARK_COLLECTION_NAME,
-} from '@/lib/server/qf/user';
+} from '@/lib/qf-user';
 
 async function buildSurahNames(surahNumbers: number[]) {
   const client = getQuranClient();

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createLlmDebugLogger, validateUserInput } from '@/lib/server/antidotes/service';
+import { createLlmDebugLogger, validateUserInput } from '@/lib/antidotes/service';
 
 const logLlmDebug = createLlmDebugLogger();
 

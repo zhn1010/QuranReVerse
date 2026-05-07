@@ -1,4 +1,4 @@
-import { buildLoginRedirect } from '@/lib/server/qf/user';
+import { buildLoginRedirect } from '@/lib/qf-user';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);

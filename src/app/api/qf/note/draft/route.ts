@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createTextStreamFromOpenAIResponse, postOpenAIResponse } from '@/lib/server/openai/client';
+import { createTextStreamFromOpenAIResponse, postOpenAIResponse } from '@/lib/openai-client';
 
 const NOTE_DRAFT_SYSTEM_PROMPT = `You are a personal journal ghostwriter for a Muslim who has just gone through a Quranic grounding session on Sakinah.now. The user came to the app feeling spiritually unsettled, received a diagnosis of their inner state, read a curated community reflection tied to specific Quran verses, and was guided back toward a God-centric perspective.
 

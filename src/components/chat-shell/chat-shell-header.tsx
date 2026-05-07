@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { HamburgerIcon } from '@/components/icons';
-import type { QfSessionSummary } from '@/lib/shared/qf/types';
+import type { QfSessionSummary } from '@/lib/qf-user';
 import { ChatShellMenu } from './chat-shell-menu';
 
 export function ChatShellHeader({

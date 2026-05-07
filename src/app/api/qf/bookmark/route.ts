@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getErrorMessage, getQfErrorStatus } from '@/lib/server/qf/route';
+import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
 import {
   bookmarkAyahsInSakinahCollection,
   getAyahBookmarksInSakinahCollection,
   persistQfUserSession,
   removeAyahBookmarksFromSakinahCollection,
-} from '@/lib/server/qf/user';
+} from '@/lib/qf-user';
 
 export async function POST(request: Request) {
   try {
@@ -101,15 +101,15 @@ export async function GET(request: Request) {
     const message = getErrorMessage(error);
     const status = getQfErrorStatus(error);
 
-    if (status === 401 || status === 504) {
-      return NextResponse.json({ error: message }, { status });
+    if (status === 401) {
+      return NextResponse.json({ error: message }, { status: 401 });
     }
 
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Unexpected error',
       },
-      { status },
+      { status: 500 },
     );
   }
 }

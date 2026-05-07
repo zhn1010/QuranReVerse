@@ -3,7 +3,7 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { MagicStarsIcon } from '@/components/icons';
 import { useAccessibleDialog } from '@/hooks/use-accessible-dialog';
-import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/shared/reflection/ui';
+import { detectTextDirection, getDirectionStyles, type TextDirection } from '@/lib/reflection-ui';
 
 export function SaveNoteModal({
   body,
