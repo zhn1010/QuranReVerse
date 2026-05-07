@@ -14,15 +14,6 @@ export const LOADING_STEPS = [
 export type PipelineStepKey = (typeof LOADING_STEPS)[number]['key'];
 export type PipelineStepStatus = 'completed' | 'in_progress' | 'pending';
 
-const STEP_VISUAL_COPY: Record<PipelineStepKey, string> = {
-  language_detection: 'Guide circles and quiet axes are drawn to establish the measure.',
-  ayah_selection: 'The outer gold boundary is traced as a measured contour beneath the construction lines.',
-  reflection_fetch: 'The eight outer petals are sketched clockwise, widening the form around the center.',
-  reflection_curation: 'The inner hearts are drawn inward one by one to complete the hidden rhythm.',
-  reflection_translation: 'All contours settle into a finished line drawing before any color is introduced.',
-  guide_generation: 'The completed mark receives its full color and turns softly while your guided reading is prepared.',
-};
-
 export function createInitialLoadingStepStatus(): Record<PipelineStepKey, PipelineStepStatus> {
   return {
     ayah_selection: 'pending',
@@ -60,14 +51,8 @@ export function ChatLoadingState({
       <div className="relative z-10 flex flex-col items-center text-center">
         <ChatLoadingPattern phase={displayIndex + 1} />
 
-        <p className="eyebrow mt-2 text-[0.68rem] tracking-[0.32em] text-(--ink-soft)">
-          Mark In Formation
-        </p>
         <p className="mt-3 max-w-md text-lg font-semibold text-(--ink-strong)">
           {currentStep.label}
-        </p>
-        <p className="mt-2 max-w-sm text-sm leading-7 text-(--ink-soft)">
-          {STEP_VISUAL_COPY[currentStep.key]}
         </p>
 
         <div className="mt-5 flex items-center gap-2">

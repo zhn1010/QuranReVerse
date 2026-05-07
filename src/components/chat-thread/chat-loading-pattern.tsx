@@ -12,10 +12,15 @@ import {
 const GOLD_PATH = LOGO_PATHS[GOLD_PATH_INDEX];
 const OUTER_LOBE_PATHS = OUTER_LOBE_INDICES.map((index) => LOGO_PATHS[index]);
 const INNER_HEART_PATHS = INNER_HEART_INDICES.map((index) => LOGO_PATHS[index]);
+const FINAL_OUTER_DELAYS = [180, 320, 430, 540, 650, 540, 430, 320];
+const FINAL_INNER_DELAYS = [760, 860, 940, 1020, 1100, 1020, 940, 860];
 
-function withDelay(delayMs: number): CSSProperties {
+type DelayedAnimationStyle = CSSProperties & { '--pattern-delay': string };
+
+function withDelay(delayMs: number): DelayedAnimationStyle {
   return {
     animationDelay: `${delayMs}ms`,
+    '--pattern-delay': `${delayMs}ms`,
   };
 }
 
@@ -63,8 +68,20 @@ export function ChatLoadingPattern({ phase }: { phase: number }) {
           </radialGradient>
         </defs>
 
-        <circle className="pattern-loader-paper" cx="627" cy="627" fill={`url(#${gradientId}-paper)`} r="585" />
-        <circle className="pattern-loader-halo" cx="627" cy="627" fill={`url(#${gradientId}-halo)`} r="546" />
+        <circle
+          className="pattern-loader-paper"
+          cx="627"
+          cy="627"
+          fill={`url(#${gradientId}-paper)`}
+          r="585"
+        />
+        <circle
+          className="pattern-loader-halo"
+          cx="627"
+          cy="627"
+          fill={`url(#${gradientId}-halo)`}
+          r="546"
+        />
 
         <g className="logo-loader-turn">
           <g className="pattern-loader-stage is-visible">
@@ -78,20 +95,6 @@ export function ChatLoadingPattern({ phase }: { phase: number }) {
                 pathLength="1"
                 r={radius}
                 style={withDelay(index * 120)}
-              />
-            ))}
-
-            {Array.from({ length: 8 }, (_, index) => (
-              <path
-                key={`axis-${index}`}
-                className="pattern-loader-guide-axis pattern-loader-draw"
-                d="M 627 74 L 627 1180"
-                pathLength="1"
-                style={{
-                  ...withDelay(420 + index * 50),
-                  transform: `rotate(${index * 45}deg)`,
-                  transformOrigin: '627px 627px',
-                }}
               />
             ))}
           </g>
@@ -183,14 +186,14 @@ export function ChatLoadingPattern({ phase }: { phase: number }) {
           </g>
 
           <g className={`pattern-loader-stage ${phase >= 6 ? 'is-visible' : ''}`}>
-            <GoldMark className="logo-loader-final-fill" />
+            <GoldMark className="logo-loader-final-fill" style={withDelay(40)} />
             {OUTER_LOBE_PATHS.map((path, index) => (
               <path
                 key={`outer-lobe-final-${index}`}
                 className="logo-loader-final-fill"
                 d={path.d}
                 fill={path.fill}
-                style={withDelay(index * 40)}
+                style={withDelay(FINAL_OUTER_DELAYS[index] ?? 0)}
               />
             ))}
             {INNER_HEART_PATHS.map((path, index) => (
@@ -199,7 +202,7 @@ export function ChatLoadingPattern({ phase }: { phase: number }) {
                 className="logo-loader-final-fill"
                 d={path.d}
                 fill={path.fill}
-                style={withDelay(120 + index * 35)}
+                style={withDelay(FINAL_INNER_DELAYS[index] ?? 0)}
               />
             ))}
           </g>

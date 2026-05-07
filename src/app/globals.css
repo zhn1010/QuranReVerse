@@ -392,6 +392,21 @@ code {
   }
 }
 
+@keyframes pattern-loader-color-wash {
+  0% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 0.36;
+  }
+  72% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .pattern-loader-paper {
   animation: pattern-loader-paper 8s ease-in-out infinite;
   transform-origin: 50% 50%;
@@ -484,8 +499,8 @@ code {
 
 .pattern-loader-stage.is-visible .logo-loader-final-fill {
   animation:
-    pattern-loader-rise 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    pattern-loader-final-breathe 6.2s ease-in-out 1.5s infinite;
+    pattern-loader-color-wash 1.9s cubic-bezier(0.24, 0.08, 0.22, 1) var(--pattern-delay, 0ms) forwards,
+    pattern-loader-final-breathe 6.2s ease-in-out calc(var(--pattern-delay, 0ms) + 1900ms) infinite;
   filter: drop-shadow(0 0 14px rgb(217 177 75 / 0.14));
 }
 
