@@ -163,24 +163,13 @@ export function ChatLoadingPattern({ phase }: { phase: number }) {
               pathLength={1}
               style={withDelay(40)}
             />
-            {OUTER_LOBE_PATHS.map((path, index) => (
-              <path
-                key={`outer-lobe-settle-${index}`}
-                className="logo-loader-stroke-settle pattern-loader-draw"
-                d={path.d}
-                fill={path.fill}
-                pathLength={1}
-                style={withDelay(120 + index * 50)}
-              />
-            ))}
             {INNER_HEART_PATHS.map((path, index) => (
               <path
-                key={`inner-heart-settle-${index}`}
-                className="logo-loader-stroke-settle pattern-loader-draw"
+                key={`inner-heart-final-${index}`}
+                className="logo-loader-final-fill"
                 d={path.d}
                 fill={path.fill}
-                pathLength={1}
-                style={withDelay(300 + index * 40)}
+                style={withDelay(FINAL_INNER_DELAYS[index] ?? 0)}
               />
             ))}
           </g>
@@ -194,15 +183,6 @@ export function ChatLoadingPattern({ phase }: { phase: number }) {
                 d={path.d}
                 fill={path.fill}
                 style={withDelay(FINAL_OUTER_DELAYS[index] ?? 0)}
-              />
-            ))}
-            {INNER_HEART_PATHS.map((path, index) => (
-              <path
-                key={`inner-heart-final-${index}`}
-                className="logo-loader-final-fill"
-                d={path.d}
-                fill={path.fill}
-                style={withDelay(FINAL_INNER_DELAYS[index] ?? 0)}
               />
             ))}
           </g>
