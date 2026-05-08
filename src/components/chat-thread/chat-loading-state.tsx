@@ -45,7 +45,7 @@ export function ChatLoadingState({
       aria-atomic="true"
       aria-live="polite"
       aria-label={`Preparing your guided reading. ${loadingLabel}.`}
-      className="pattern-loader-card max-w-136 rounded-4xl border border-(--border-accent-soft) bg-(--surface-card) p-5 sm:p-7"
+      className="pattern-loader-card w-full rounded-4xl border border-(--border-accent-soft) bg-(--surface-card) p-5 sm:p-7"
       role="status"
     >
       <div className="relative z-10 flex flex-col items-center text-center">

@@ -19,7 +19,7 @@ export function ReflectionResultBubble({
   }
 
   return (
-    <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-(--border-strong) bg-(--surface-subtle-soft) px-5 py-5 sm:max-w-[75%] sm:px-6">
+    <div className="w-full rounded-2xl border border-(--border-strong) bg-(--surface-subtle-soft) px-5 py-5 sm:px-6">
       <div className="space-y-6">
         {result.reflection_guide ? (
           <p

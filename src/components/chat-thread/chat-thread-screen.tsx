@@ -98,75 +98,63 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
     <ChatShell activeChatId={chatId} auth={auth}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-16">
         {!thread ? (
-          <div className="flex justify-start">
-            <div
-              className="rounded-2xl bg-(--surface-subtle-soft) px-5 py-4 text-sm leading-7 text-(--ink-soft)"
-              role="status"
-            >
-              This local reflection thread could not be found.{' '}
-              <Link className="underline" href="/">
-                Start a new one
-              </Link>
-              .
-            </div>
+          <div
+            className="w-full rounded-2xl bg-(--surface-subtle-soft) px-5 py-4 text-sm leading-7 text-(--ink-soft)"
+            role="status"
+          >
+            This local reflection thread could not be found.{' '}
+            <Link className="underline" href="/">
+              Start a new one
+            </Link>
+            .
           </div>
         ) : (
           <>
-            {/* User message — right aligned */}
-            <div className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-(--surface-bubble) px-5 py-4 sm:max-w-[75%]">
+            <div className="w-full rounded-2xl border border-(--border-subtle) bg-(--surface-bubble) px-5 py-4">
+              <p
+                className={`text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
+                  detectTextDirection(thread.eventContent),
+                )}`}
+                dir={detectTextDirection(thread.eventContent)}
+              >
+                {thread.eventContent}
+              </p>
+              {thread.userFeeling ? (
                 <p
-                  className={`text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
-                    detectTextDirection(thread.eventContent),
+                  className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
+                    detectTextDirection(thread.userFeeling),
                   )}`}
-                  dir={detectTextDirection(thread.eventContent)}
+                  dir={detectTextDirection(thread.userFeeling)}
                 >
-                  {thread.eventContent}
+                  {thread.userFeeling}
                 </p>
-                {thread.userFeeling ? (
-                  <p
-                    className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
-                      detectTextDirection(thread.userFeeling),
-                    )}`}
-                    dir={detectTextDirection(thread.userFeeling)}
-                  >
-                    {thread.userFeeling}
-                  </p>
-                ) : null}
-              </div>
+              ) : null}
             </div>
 
-            {/* AI response — left aligned */}
             {thread.status === 'pending' ? (
-              <div className="flex justify-center">
-                <div className="mx-auto w-full max-w-[90%] sm:max-w-[80%]">
-                  <ChatLoadingState stepStatus={loadingStepStatus} />
-                </div>
-              </div>
+              <ChatLoadingState stepStatus={loadingStepStatus} />
             ) : thread.status === 'error' ? (
-              <div className="flex justify-start">
-                <div
-                  aria-live="assertive"
-                  className="max-w-[85%] rounded-2xl rounded-bl-md border border-(--border-danger) bg-(--surface-danger) px-5 py-4 sm:max-w-[75%]"
-                  role="alert"
+              <div
+                aria-live="assertive"
+                className="w-full rounded-2xl border border-(--border-danger) bg-(--surface-danger) px-5 py-4"
+                role="alert"
+              >
+                <p className="text-sm font-semibold text-(--ink-danger)">
+                  Could not prepare this reading.
+                </p>
+                <p className="mt-2 text-sm leading-7 text-(--ink-danger)">{thread.error}</p>
+                <button
+                  className="mt-4 inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--accent)"
+                  onClick={() => {
+                    const nextThread = resetChatThreadToPending(chatId);
+                    startedRef.current = null;
+                    setThread(nextThread);
+                    setLoadingStepStatus(createInitialLoadingStepStatus());
+                  }}
+                  type="button"
                 >
-                  <p className="text-sm font-semibold text-(--ink-danger)">
-                    Could not prepare this reading.
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-(--ink-danger)">{thread.error}</p>
-                  <button
-                    className="mt-4 inline-flex items-center justify-center rounded-full bg-(--ink-strong) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--accent)"
-                    onClick={() => {
-                      const nextThread = resetChatThreadToPending(chatId);
-                      startedRef.current = null;
-                      setThread(nextThread);
-                      setLoadingStepStatus(createInitialLoadingStepStatus());
-                    }}
-                    type="button"
-                  >
-                    Retry
-                  </button>
-                </div>
+                  Retry
+                </button>
               </div>
             ) : thread.result ? (
               <div className="flex flex-col gap-4">

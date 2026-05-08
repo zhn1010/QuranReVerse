@@ -9,7 +9,7 @@ const RELATED_REFLECTION_LIMIT = 10;
 const RELATED_REFLECTION_TAB = 'popular';
 const VERIFIED_ONLY = true;
 const REFLECTION_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
-const DEFAULT_QURAN_REFLECT_REQUEST_TIMEOUT_MS = 8_000;
+const DEFAULT_QURAN_REFLECT_REQUEST_TIMEOUT_MS = 10_000;
 
 type QuranReflectTokenCache = {
   expiresAt: number;
@@ -88,11 +88,7 @@ function getQuranReflectRequestTimeoutMs() {
   return Math.floor(parsedTimeout);
 }
 
-async function fetchWithTimeout(
-  input: string | URL,
-  init: RequestInit,
-  requestLabel: string,
-) {
+async function fetchWithTimeout(input: string | URL, init: RequestInit, requestLabel: string) {
   const controller = new AbortController();
   const timeoutMs = getQuranReflectRequestTimeoutMs();
   const timeoutId = setTimeout(() => {
