@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { ChatLoadingPattern } from './chat-loading-pattern';
 
 export const LOADING_STEPS = [
   { key: 'language_detection', label: 'Detecting your input language' },
@@ -45,21 +45,34 @@ export function ChatLoadingState({
       aria-atomic="true"
       aria-live="polite"
       aria-label={`Preparing your guided reading. ${loadingLabel}.`}
-      className="inline-flex items-center gap-4 rounded-full border border-(--border-accent-soft) bg-(--surface-card) px-4 py-2"
+      className="pattern-loader-card max-w-136 rounded-4xl border border-(--border-accent-soft) bg-(--surface-card) p-5 sm:p-7"
       role="status"
     >
-      <div className="relative h-9 w-9 overflow-hidden rounded-full">
-        <Image
-          alt="Sakinah.now logo"
-          className="gentle-rotate object-contain p-1.5"
-          fill
-          sizes="36px"
-          src="/LogoSakinah.now.png"
-        />
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <ChatLoadingPattern phase={displayIndex + 1} />
+
+        <p className="mt-3 max-w-md text-lg font-semibold text-(--ink-strong)">
+          {currentStep.label}
+        </p>
+
+        <div className="mt-5 flex items-center gap-2">
+          {LOADING_STEPS.map((step, index) => {
+            const status = stepStatus[step.key];
+
+            return (
+              <span
+                key={step.key}
+                aria-hidden="true"
+                className={`pattern-loader-step-dot ${status} ${index === displayIndex ? 'is-current' : ''}`}
+              />
+            );
+          })}
+        </div>
+
+        <p className="mt-3 text-xs tracking-[0.18em] text-(--ink-soft) uppercase">
+          Step {displayIndex + 1} of {total}
+        </p>
       </div>
-      <p className="shimmer-text-soft text-sm font-medium">
-        {displayIndex + 1}/{total} {currentStep.label}
-      </p>
     </div>
   );
 }

@@ -125,7 +125,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
                 </p>
                 {thread.userFeeling ? (
                   <p
-                    className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-soft) ${getDirectionStyles(
+                    className={`mt-2 border-t border-(--border-subtle) pt-2 text-sm leading-7 text-(--ink-strong) ${getDirectionStyles(
                       detectTextDirection(thread.userFeeling),
                     )}`}
                     dir={detectTextDirection(thread.userFeeling)}
@@ -138,8 +138,8 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
 
             {/* AI response — left aligned */}
             {thread.status === 'pending' ? (
-              <div className="flex justify-start">
-                <div className="max-w-[90%] sm:max-w-[80%]">
+              <div className="flex justify-center">
+                <div className="mx-auto w-full max-w-[90%] sm:max-w-[80%]">
                   <ChatLoadingState stepStatus={loadingStepStatus} />
                 </div>
               </div>

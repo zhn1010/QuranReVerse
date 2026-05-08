@@ -9,6 +9,7 @@ const RELATED_REFLECTION_LIMIT = 10;
 const RELATED_REFLECTION_TAB = 'popular';
 const VERIFIED_ONLY = true;
 const REFLECTION_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
+const DEFAULT_QURAN_REFLECT_REQUEST_TIMEOUT_MS = 8_000;
 
 type QuranReflectTokenCache = {
   expiresAt: number;
@@ -71,6 +72,49 @@ function getQuranReflectConfig() {
   };
 }
 
+function getQuranReflectRequestTimeoutMs() {
+  const rawTimeout = process.env.QURAN_REFLECT_REQUEST_TIMEOUT_MS;
+
+  if (!rawTimeout) {
+    return DEFAULT_QURAN_REFLECT_REQUEST_TIMEOUT_MS;
+  }
+
+  const parsedTimeout = Number(rawTimeout);
+
+  if (!Number.isFinite(parsedTimeout) || parsedTimeout <= 0) {
+    return DEFAULT_QURAN_REFLECT_REQUEST_TIMEOUT_MS;
+  }
+
+  return Math.floor(parsedTimeout);
+}
+
+async function fetchWithTimeout(
+  input: string | URL,
+  init: RequestInit,
+  requestLabel: string,
+) {
+  const controller = new AbortController();
+  const timeoutMs = getQuranReflectRequestTimeoutMs();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`${requestLabel} timed out after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function getAccessToken() {
   const { authBaseUrl, clientId, clientSecret } = getQuranReflectConfig();
   const tokenCacheKey = `${authBaseUrl}:${clientId}`;
@@ -89,15 +133,19 @@ async function getAccessToken() {
     scope: 'post.read',
   });
 
-  const response = await fetch(`${authBaseUrl}/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Basic ${basicAuth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
+  const response = await fetchWithTimeout(
+    `${authBaseUrl}/oauth2/token`,
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Basic ${basicAuth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
     },
-    body,
-  });
+    'Quran Reflect token request',
+  );
 
   if (!response.ok) {
     const details = await response.text();
@@ -180,13 +228,17 @@ async function fetchRelatedReflectionsForAyah(
 
   const { clientId } = getQuranReflectConfig();
   const token = await getAccessToken();
-  const response = await fetch(buildFeedUrl(surahNo, selection.from, selection.to, limit), {
-    headers: {
-      Accept: 'application/json',
-      'x-auth-token': token,
-      'x-client-id': clientId,
+  const response = await fetchWithTimeout(
+    buildFeedUrl(surahNo, selection.from, selection.to, limit),
+    {
+      headers: {
+        Accept: 'application/json',
+        'x-auth-token': token,
+        'x-client-id': clientId,
+      },
     },
-  });
+    'Quran Reflect feed request',
+  );
 
   if (!response.ok) {
     const details = await response.text();

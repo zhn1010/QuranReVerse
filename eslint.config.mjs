@@ -17,6 +17,7 @@ const eslintConfig = defineConfig([
           cssPath: './src/app/globals.css',
         },
       ],
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
   // Override default ignores of eslint-config-next.
