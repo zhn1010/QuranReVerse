@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { HamburgerIcon } from '@/components/icons';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import { ChatShellExtensionCta } from './chat-shell-extension-cta';
 import { ChatShellMenu } from './chat-shell-menu';
 
 export function ChatShellHeader({
@@ -59,14 +60,18 @@ export function ChatShellHeader({
           </Link>
         </div>
 
-        <div className="relative">
-          <ChatShellMenu
-            auth={auth}
-            avatarLabel={avatarLabel}
-            isMenuOpen={isMenuOpen}
-            pathname={pathname}
-            setIsMenuOpen={setIsMenuOpen}
-          />
+        <div className="flex items-center gap-3">
+          <ChatShellExtensionCta />
+
+          <div className="relative">
+            <ChatShellMenu
+              auth={auth}
+              avatarLabel={avatarLabel}
+              isMenuOpen={isMenuOpen}
+              pathname={pathname}
+              setIsMenuOpen={setIsMenuOpen}
+            />
+          </div>
         </div>
       </div>
     </header>

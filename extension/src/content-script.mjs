@@ -1,6 +1,8 @@
 const browserApi = globalThis.browser ?? globalThis.chrome;
 
 const APP_ORIGIN = '__SAKINAH_APP_ORIGIN__';
+const EXTENSION_PING_MESSAGE_TYPE = 'SAKINAH_EXTENSION_PING';
+const EXTENSION_PING_RESULT_MESSAGE_TYPE = 'SAKINAH_EXTENSION_PING_RESULT';
 const EXTENSION_HANDOFF_RESULT_MESSAGE_TYPE = 'SAKINAH_EXTENSION_HANDOFF_RESULT';
 const EXTENSION_REFLECT_MESSAGE_TYPE = 'SAKINAH_EXTENSION_REFLECT';
 const QUERY_REQUEST_KEY = 'request';
@@ -70,6 +72,40 @@ function postReflectPayload(request) {
     },
     window.location.origin,
   );
+}
+
+function acknowledgePresence() {
+  const handlePresencePing = (event) => {
+    if (event.source !== window) {
+      return;
+    }
+
+    const data = event.data;
+
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      data.type !== EXTENSION_PING_MESSAGE_TYPE ||
+      !data.payload ||
+      typeof data.payload !== 'object' ||
+      typeof data.payload.requestId !== 'string'
+    ) {
+      return;
+    }
+
+    window.postMessage(
+      {
+        payload: {
+          installed: true,
+          requestId: data.payload.requestId,
+        },
+        type: EXTENSION_PING_RESULT_MESSAGE_TYPE,
+      },
+      window.location.origin,
+    );
+  };
+
+  window.addEventListener('message', handlePresencePing);
 }
 
 async function handoffRequest() {
@@ -147,4 +183,5 @@ async function handoffRequest() {
   sendUntilAck();
 }
 
+acknowledgePresence();
 void handoffRequest();
