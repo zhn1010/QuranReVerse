@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ChatShell } from '@/components/chat-shell';
 import type { QfSessionSummary } from '@/lib/qf-user';
 
@@ -150,7 +151,15 @@ export function ExtensionGuideScreen({ auth }: { auth: QfSessionSummary }) {
           <h2 className="text-lg font-semibold text-(--ink-strong)">A note on privacy</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-(--ink-soft)">
             The companion flow is designed to stay narrow and intentional. It is meant to carry the
-            selected text and the feeling you choose to share, not your wider browsing trail.
+            selected text and the feeling you choose to share, not your wider browsing trail. Read
+            the{' '}
+            <Link
+              className="underline decoration-(--underline-soft) underline-offset-4"
+              href="/privacy"
+            >
+              privacy policy
+            </Link>
+            .
           </p>
         </div>
       </section>
