@@ -140,7 +140,7 @@ export function ChatShell({
 
   return (
     <div className="app-shell-gradient min-h-screen">
-      <div className="mx-auto flex min-h-screen w-full max-w-400">
+      <div className="flex min-h-screen w-full">
         <ChatShellSidebar
           activeChatId={activeChatId}
           activeSidebarTab={activeSidebarTab}

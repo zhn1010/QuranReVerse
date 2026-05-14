@@ -13,7 +13,7 @@ function PlaceholderFrame({
       <div className="aspect-4/3 rounded-[1.4rem] border border-dashed border-(--border-accent-strong) bg-[linear-gradient(180deg,rgb(255_255_255/0.72),rgb(244_244_245/0.94))] p-5">
         <div className="flex h-full flex-col items-center justify-center rounded-[1.1rem] border border-(--border-subtle) bg-(--surface-subtle-soft) text-center">
           <p className="text-sm font-semibold tracking-[0.18em] text-(--accent-strong) uppercase">
-            Placeholder
+            Preview
           </p>
           <p className="mt-3 max-w-xs text-base font-medium text-(--ink-strong)">{label}</p>
           <p className="mt-2 max-w-xs text-sm leading-6 text-(--ink-soft)">{description}</p>
@@ -126,24 +126,23 @@ export function ExtensionGuideScreen({ auth }: { auth: QfSessionSummary }) {
           <div>
             <p className="eyebrow">Visual Guide</p>
             <h2 className="mt-3 text-2xl font-medium tracking-[-0.03em] text-(--ink-strong)">
-              Place the two companion screenshots here
+              See the companion flow at a glance
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-(--ink-soft)">
-              These placeholders are for the right-click menu with the Sakinah item and the in-page
-              popover. Once added, they will make the flow immediately clear without heavy
-              explanation.
+              These preview frames mark the two moments that matter most: the right-click menu and
+              the in-page popover that opens the reflection flow.
             </p>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <PlaceholderFrame
-            description="Replace this with the browser right-click menu showing the Sakinah item."
-            label="Right-click menu screenshot"
+            description="Browser menu preview showing where the Sakinah action appears."
+            label="Right-click menu preview"
           />
           <PlaceholderFrame
-            description="Replace this with the popover where the user adds a feeling and opens Sakinah.now."
-            label="Popover screenshot"
+            description="Popover preview for naming a feeling and opening the reflection flow."
+            label="In-page popover preview"
           />
         </div>
 
