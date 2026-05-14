@@ -58,7 +58,7 @@ SAKINAH_EXTENSION_APP_ORIGIN=http://localhost:3000 node extension/scripts/build.
 6. Right-click and choose `Bring me back to Sakinah now`.
 7. In the in-page popover:
    - enter a feeling if you want
-   - click `Open in Sakinah.now`
+   - click `Begin Quranic reflection`
 8. Confirm a new Sakinah.now tab opens and the reflection auto-starts.
 
 ## Manual Acceptance Checks

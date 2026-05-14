@@ -309,12 +309,12 @@ function ensurePopoverShell() {
                 <path d="m18.5 14 .67 1.83L21 16.5l-1.83.67L18.5 19l-.67-1.83L16 16.5l1.83-.67L18.5 14Z" />
                 <path d="m5.5 14 .67 1.83L8 16.5l-1.83.67L5.5 19l-.67-1.83L3 16.5l1.83-.67L5.5 14Z" />
               </svg>
-              <span class="detect-label">Detect automatically</span>
+              <span class="detect-label">Detect Nafs-driven reading</span>
             </button>
           </div>
           <p class="error" hidden></p>
           <div class="actions">
-            <button class="button" type="button">Open in Sakinah.now</button>
+            <button class="button" type="button">Begin Quranic reflection</button>
           </div>
         </div>
       </div>
@@ -360,7 +360,7 @@ function installPopoverController() {
   function syncButtonState() {
     button.disabled = state.isSubmitting || state.isDetecting;
     detectButton.disabled = state.isSubmitting || state.isDetecting;
-    detectLabel.textContent = state.isDetecting ? 'Detecting...' : 'Detect automatically';
+    detectLabel.textContent = state.isDetecting ? 'Detecting...' : 'Detect Nafs-driven reading';
   }
 
   function hide() {

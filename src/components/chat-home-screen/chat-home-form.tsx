@@ -237,7 +237,7 @@ export function ChatHomeForm({
                         type="button"
                       >
                         <MagicStarsIcon className="h-3.5 w-3.5 shrink-0" />
-                        {isGuessingFeeling ? 'Detecting...' : 'Detect automatically'}
+                        {isGuessingFeeling ? 'Detecting...' : 'Detect Nafs-driven reading'}
                       </button>
                     </>
                   ) : null}
