@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import { ToastProvider } from '@/components/toast';
 import {
   getStructuredData,
@@ -61,6 +62,7 @@ export default function RootLayout({
           type="application/ld+json"
         />
         <ToastProvider>{children}</ToastProvider>
+        <Analytics />
       </body>
     </html>
   );
