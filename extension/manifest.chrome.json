@@ -3,7 +3,7 @@
   "name": "Sakinah.now",
   "version": "0.1.0",
   "description": "A Quran reflection browser extension with relevant ayahs and human-written reflections from QuranReflect.com.",
-  "permissions": ["activeTab", "contextMenus", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "contextMenus", "scripting", "storage"],
   "host_permissions": ["__SAKINAH_APP_ORIGIN__/*"],
   "background": {
     "service_worker": "background.js",
