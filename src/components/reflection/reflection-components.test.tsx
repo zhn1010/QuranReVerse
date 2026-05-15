@@ -72,7 +72,7 @@ describe('SaveNoteModal', () => {
   it('renders the shared note modal content', () => {
     const html = renderToStaticMarkup(
       <SaveNoteModal
-        body="Draft body"
+        body=""
         description="This note will be saved."
         error={null}
         isGenerating={false}
@@ -91,6 +91,27 @@ describe('SaveNoteModal', () => {
     expect(html).toContain('Generate draft');
     expect(html).toContain('Save note');
     expect(html).toContain('Write here...');
+  });
+
+  it('hides the draft action when the textarea already has content', () => {
+    const html = renderToStaticMarkup(
+      <SaveNoteModal
+        body="Draft body"
+        description="This note will be saved."
+        error={null}
+        isGenerating={false}
+        isOpen
+        isSaving={false}
+        onBodyChange={() => {}}
+        onClose={() => {}}
+        onGenerateDraft={() => {}}
+        onSave={() => {}}
+        placeholder="Write here..."
+        title="Save a note"
+      />,
+    );
+
+    expect(html).not.toContain('Generate draft');
   });
 
   it('detects rtl note text direction automatically', () => {
