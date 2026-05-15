@@ -8,8 +8,6 @@ const EXTENSION_PING_MESSAGE_TYPE = 'SAKINAH_EXTENSION_PING';
 const EXTENSION_PING_RESULT_MESSAGE_TYPE = 'SAKINAH_EXTENSION_PING_RESULT';
 const EXTENSION_DETECTION_TIMEOUT_MS = 650;
 
-type BrowserFamily = 'chrome' | 'firefox';
-
 type ExtensionPingResult = {
   installed: boolean;
   requestId: string;
@@ -19,9 +17,9 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object';
 }
 
-function getSupportedDesktopBrowser(): BrowserFamily | null {
+function isSupportedDesktopChrome(): boolean {
   if (typeof window === 'undefined') {
-    return null;
+    return false;
   }
 
   const userAgent = navigator.userAgent;
@@ -29,21 +27,13 @@ function getSupportedDesktopBrowser(): BrowserFamily | null {
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
 
   if (isMobileBrowser || !window.matchMedia('(min-width: 768px)').matches) {
-    return null;
-  }
-
-  if (/Firefox\//.test(userAgent)) {
-    return 'firefox';
+    return false;
   }
 
   const isChromeFamily = /Chrome\//.test(userAgent) || /Chromium\//.test(userAgent);
   const isExcludedBrowser = /Edg\//.test(userAgent) || /OPR\//.test(userAgent);
 
-  if (isChromeFamily && !isExcludedBrowser) {
-    return 'chrome';
-  }
-
-  return null;
+  return isChromeFamily && !isExcludedBrowser;
 }
 
 function parseExtensionPingResult(data: unknown): ExtensionPingResult | null {
@@ -71,14 +61,12 @@ export function ChatShellExtensionCta() {
   const [shouldShow, setShouldShow] = useState(false);
 
   useEffect(() => {
-    const browser = getSupportedDesktopBrowser();
-
-    if (!browser) {
+    if (!isSupportedDesktopChrome()) {
       return;
     }
 
     const requestId =
-      window.crypto?.randomUUID?.() ?? `${browser}-${Date.now()}-${Math.random().toString(16)}`;
+      window.crypto?.randomUUID?.() ?? `chrome-${Date.now()}-${Math.random().toString(16)}`;
 
     let settled = false;
     const timeoutId = window.setTimeout(() => {
@@ -129,7 +117,7 @@ export function ChatShellExtensionCta() {
       href="/extension"
     >
       <MagicStarsIcon className="h-4 w-4" />
-      Browser add-on
+      Chrome extension
     </Link>
   );
 }

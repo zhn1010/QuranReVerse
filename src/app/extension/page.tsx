@@ -6,14 +6,14 @@ import { createPageMetadata } from '@/lib/site-metadata';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Quran Reflection Browser Companion',
+  title: 'Chrome Extension for Quran Reflection',
   description:
-    'Carry difficult text into guided Quranic reflection with relevant ayahs, nafs-driven reading support, and human-written reflections from QuranReflect.com.',
+    'Install the Sakinah.now Chrome extension to carry difficult text into guided Quranic reflection with relevant ayahs and human-written reflections from QuranReflect.com.',
   keywords: [
     'Quran reflection browser extension',
     'browser extension for Quranic reflection',
     'Chrome extension for Quran reflection',
-    'Firefox extension for Quran reflection',
+    'Chrome Web Store Quran reflection',
     'guided Quran reflection',
     'Quranic guidance',
     'Nafs-driven reading',
