@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { ChatShellHeader } from './chat-shell-header';
+import { ChatShellAuthProvider } from './chat-shell-auth-context';
 import { ChatShellSidebar, type SidebarTabId } from './chat-shell-sidebar';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import { prefetchSidebarNotes, resetSidebarNotes } from '@/lib/sidebar-notes-store';
@@ -12,14 +13,13 @@ import { getServerSnapshot, listChatThreads, subscribeToChatHistory } from '@/li
 const DESKTOP_SIDEBAR_EXPANDED_KEY = 'sakinah:desktop-sidebar-expanded';
 
 export function ChatShell({
-  activeChatId,
   auth,
   children,
 }: {
-  activeChatId?: string;
   auth: QfSessionSummary;
   children: React.ReactNode;
 }) {
+  const params = useParams<{ chatId?: string }>();
   const pathname = usePathname();
   const history = useSyncExternalStore(subscribeToChatHistory, listChatThreads, getServerSnapshot);
   const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(false);
@@ -28,6 +28,7 @@ export function ChatShell({
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTabId>('chats');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
+  const activeChatId = typeof params.chatId === 'string' ? params.chatId : undefined;
 
   const avatarLabel = useMemo(() => {
     if (auth.displayName?.trim()) {
@@ -139,50 +140,52 @@ export function ChatShell({
   };
 
   return (
-    <div className="app-shell-gradient min-h-screen">
-      <div className="flex min-h-screen w-full">
-        <ChatShellSidebar
-          activeChatId={activeChatId}
-          activeSidebarTab={activeSidebarTab}
-          authIsAuthenticated={auth.isAuthenticated}
-          history={history}
-          isDesktopSidebarExpanded={isDesktopSidebarExpanded}
-          isMobileSidebarOpen={isMobileSidebarOpen}
-          onSidebarCollapse={handleSidebarCollapse}
-          onSidebarNavigation={handleSidebarNavigation}
-          onSidebarToggle={handleSidebarToggle}
-          setActiveSidebarTab={setActiveSidebarTab}
-        />
-
-        {isMobileSidebarOpen ? (
-          <button
-            aria-label="Close sidebar"
-            className="fixed inset-0 z-30 bg-(--surface-scrim-sidebar) md:hidden"
-            onClick={() => setIsMobileSidebarOpen(false)}
-            tabIndex={-1}
-            type="button"
+    <ChatShellAuthProvider auth={auth}>
+      <div className="app-shell-gradient min-h-screen">
+        <div className="flex min-h-screen w-full">
+          <ChatShellSidebar
+            activeChatId={activeChatId}
+            activeSidebarTab={activeSidebarTab}
+            authIsAuthenticated={auth.isAuthenticated}
+            history={history}
+            isDesktopSidebarExpanded={isDesktopSidebarExpanded}
+            isMobileSidebarOpen={isMobileSidebarOpen}
+            onSidebarCollapse={handleSidebarCollapse}
+            onSidebarNavigation={handleSidebarNavigation}
+            onSidebarToggle={handleSidebarToggle}
+            setActiveSidebarTab={setActiveSidebarTab}
           />
-        ) : null}
 
-        <div
-          aria-hidden={isMobileSidebarOpen ? true : undefined}
-          className="flex min-h-screen min-w-0 flex-1 flex-col"
-        >
-          <div ref={menuContainerRef}>
-            <ChatShellHeader
-              auth={auth}
-              avatarLabel={avatarLabel}
-              isMobileSidebarOpen={isMobileSidebarOpen}
-              isMenuOpen={isMenuOpen}
-              pathname={pathname || '/'}
-              setIsMenuOpen={setIsMenuOpen}
-              setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+          {isMobileSidebarOpen ? (
+            <button
+              aria-label="Close sidebar"
+              className="fixed inset-0 z-30 bg-(--surface-scrim-sidebar) md:hidden"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              tabIndex={-1}
+              type="button"
             />
-          </div>
+          ) : null}
 
-          <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+          <div
+            aria-hidden={isMobileSidebarOpen ? true : undefined}
+            className="flex min-h-screen min-w-0 flex-1 flex-col"
+          >
+            <div ref={menuContainerRef}>
+              <ChatShellHeader
+                auth={auth}
+                avatarLabel={avatarLabel}
+                isMobileSidebarOpen={isMobileSidebarOpen}
+                isMenuOpen={isMenuOpen}
+                pathname={pathname || '/'}
+                setIsMenuOpen={setIsMenuOpen}
+                setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+              />
+            </div>
+
+            <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+          </div>
         </div>
       </div>
-    </div>
+    </ChatShellAuthProvider>
   );
 }

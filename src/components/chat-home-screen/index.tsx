@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChatShell } from '@/components/chat-shell';
+import { useChatShellAuth } from '@/components/chat-shell/chat-shell-auth-context';
 import {
   createExtensionHandoffResultMessage,
   parseExtensionReflectPayload,
@@ -9,7 +9,6 @@ import {
   type ExtensionReflectPayload,
 } from '@/lib/extension-handoff';
 import { HOME_TITLE_INDEX_STORAGE_KEY } from '@/lib/app-constants';
-import type { QfSessionSummary } from '@/lib/qf-user';
 import { ChatHomeExamples, type ChatHomeExample } from './chat-home-examples';
 import { ChatHomeForm } from './chat-home-form';
 import { ChatHomeIntroModal } from './chat-home-intro-modal';
@@ -29,7 +28,8 @@ const HOME_TITLES = [
   'What do you need help seeing through a Quranic lens?',
 ] as const;
 
-export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
+export function ChatHomeScreen() {
+  const auth = useChatShellAuth();
   const [selectedExample, setSelectedExample] = useState<ChatHomeExample | null>(null);
   const [homeTitle, setHomeTitle] = useState<(typeof HOME_TITLES)[number]>(HOME_TITLES[0]);
   const [extensionRequest, setExtensionRequest] = useState<ExtensionReflectPayload | null>(null);
@@ -96,7 +96,7 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
   }, []);
 
   return (
-    <ChatShell auth={auth}>
+    <>
       <section className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-3xl flex-col items-start justify-center px-4 pb-[16vh] sm:px-6">
         <div className="mb-10">
           <p className="text-lg text-(--ink-soft)">
@@ -117,6 +117,6 @@ export function ChatHomeScreen({ auth }: { auth: QfSessionSummary }) {
       </section>
 
       <ChatHomeIntroModal />
-    </ChatShell>
+    </>
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { ChatHomeScreen } from '@/components/chat-home-screen';
-import { getQfUserSessionSummary } from '@/lib/qf-user';
 import { createPageMetadata } from '@/lib/site-metadata';
 
 export const dynamic = 'force-dynamic';
@@ -21,8 +20,6 @@ export const metadata: Metadata = createPageMetadata({
   pathname: '/',
 });
 
-export default async function Home() {
-  const auth = await getQfUserSessionSummary();
-
-  return <ChatHomeScreen auth={auth} />;
+export default function Home() {
+  return <ChatHomeScreen />;
 }

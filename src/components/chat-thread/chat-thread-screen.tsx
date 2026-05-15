@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useChatShellAuth } from '@/components/chat-shell/chat-shell-auth-context';
 import { ChatResultView } from '@/components/chat-result-view';
-import { ChatShell } from '@/components/chat-shell';
 import { requestAntidoteStream } from '@/lib/antidotes/browser';
 import { getBrowserFingerprint } from '@/lib/browser-fingerprint';
 import {
@@ -13,7 +13,6 @@ import {
   resetChatThreadToPending,
   type LocalChatThread,
 } from '@/lib/chat-store';
-import type { QfSessionSummary } from '@/lib/qf-user';
 import { detectTextDirection, getDirectionStyles } from '@/lib/reflection-ui';
 import {
   ChatLoadingState,
@@ -22,7 +21,8 @@ import {
   type PipelineStepStatus,
 } from './chat-loading-state';
 
-export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; chatId: string }) {
+export function ChatThreadScreen({ chatId }: { chatId: string }) {
+  const auth = useChatShellAuth();
   const [thread, setThread] = useState<LocalChatThread | null>(null);
   const [loadingStepStatus, setLoadingStepStatus] = useState<
     Record<PipelineStepKey, PipelineStepStatus>
@@ -95,7 +95,7 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
   }, [chatId, thread]);
 
   return (
-    <ChatShell activeChatId={chatId} auth={auth}>
+    <>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-16">
         {!thread ? (
           <div
@@ -170,6 +170,6 @@ export function ChatThreadScreen({ auth, chatId }: { auth: QfSessionSummary; cha
           </>
         )}
       </div>
-    </ChatShell>
+    </>
   );
 }
