@@ -150,15 +150,17 @@ export async function streamQfNoteDraft(
 
 export async function saveQfNote(
   {
+    attachSelectedReflection = true,
     body,
     selectedReflection,
   }: {
+    attachSelectedReflection?: boolean;
     body: string;
     selectedReflection: SelectedReflectionLike;
   },
   fetchImpl: typeof fetch = fetch,
 ) {
-  const attachedEntities = selectedReflection?.reflection
+  const attachedEntities = attachSelectedReflection && selectedReflection?.reflection
     ? [
         {
           entityId: String(selectedReflection.reflection.id),
@@ -167,21 +169,42 @@ export async function saveQfNote(
       ]
     : [];
 
+  const payload: {
+    attachedEntities?: Array<{
+      entityId: string;
+      entityType: 'reflection';
+    }>;
+    body: string;
+    ranges: string[];
+  } = {
+    body,
+    ranges: buildNoteRangesFromSelectedReflection(selectedReflection),
+  };
+
+  if (attachedEntities.length > 0) {
+    payload.attachedEntities = attachedEntities;
+  }
+
   const response = await fetchImpl('/api/qf/note', {
-    body: JSON.stringify({
-      attachedEntities,
-      body,
-      ranges: buildNoteRangesFromSelectedReflection(selectedReflection),
-    }),
+    body: JSON.stringify(payload),
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   });
-  const payload = (await response.json()) as { error?: string };
+  const responsePayload = (await response.json()) as {
+    error?: string;
+    note?: {
+      id?: string;
+    };
+  };
 
   if (!response.ok) {
-    throw new Error(payload.error || 'Could not save the note.');
+    throw new Error(responsePayload.error || 'Could not save the note.');
   }
+
+  return {
+    noteId: typeof responsePayload.note?.id === 'string' ? responsePayload.note.id : null,
+  };
 }
 
 export async function updateQfNote(

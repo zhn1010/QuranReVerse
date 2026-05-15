@@ -4,6 +4,8 @@ import { ReflectionResultActions } from '@/components/chat-result-view/reflectio
 
 function buildProps() {
   return {
+    description: 'This note will be saved.',
+    existingNoteBody: '',
     handleConnectClick: () => {},
     handleNoteDraftGenerate: () => {},
     handleNoteSave: () => {},
@@ -16,15 +18,16 @@ function buildProps() {
       isSaving: false,
       open: false,
     },
+    saveLabel: 'Save note',
     setNoteState: () => {},
+    title: 'Save a note',
+    triggerLabel: 'Save a note',
   };
 }
 
 describe('ReflectionResultActions', () => {
   it('renders the save action when no matching note exists', () => {
-    const html = renderToStaticMarkup(
-      <ReflectionResultActions existingNote={null} {...buildProps()} />,
-    );
+    const html = renderToStaticMarkup(<ReflectionResultActions {...buildProps()} />);
 
     expect(html).toContain('Save a note');
     expect(html).not.toContain('Edit note');
@@ -33,20 +36,12 @@ describe('ReflectionResultActions', () => {
   it('renders the edit action when a matching note already exists', () => {
     const html = renderToStaticMarkup(
       <ReflectionResultActions
-        existingNote={{
-          attachedEntities: [
-            {
-              entityId: '9',
-              entityType: 'reflection',
-            },
-          ],
-          body: 'Saved body',
-          createdAt: null,
-          id: 'note-1',
-          ranges: ['2:255-2:255'],
-          updatedAt: null,
-        }}
         {...buildProps()}
+        description="This note will be updated."
+        existingNoteBody="Saved body"
+        saveLabel="Save changes"
+        title="Edit note"
+        triggerLabel="Edit note"
       />,
     );
 

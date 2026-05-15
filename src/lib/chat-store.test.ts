@@ -77,6 +77,7 @@ describe('chat-store', () => {
     expect(chatStore.getChatThread('thread-1')).toMatchObject({
       eventContent: 'Something happened',
       id: 'thread-1',
+      qfNoteId: null,
       status: 'pending',
       title: 'New reflection',
       userFeeling: 'Uneasy',
@@ -114,6 +115,24 @@ describe('chat-store', () => {
       'thread-2',
     ]);
     expect(chatStore.getChatThread('thread-1')?.title).toBe('Grounded again');
+  });
+
+  it('links a QF note id to an existing chat thread', async () => {
+    vi.useFakeTimers();
+
+    const chatStore = await loadChatStore();
+
+    vi.setSystemTime(new Date('2026-05-05T10:00:00.000Z'));
+    chatStore.createPendingChatThread({
+      eventContent: 'Event',
+      id: 'thread-1',
+      userFeeling: 'Feeling',
+    });
+
+    vi.setSystemTime(new Date('2026-05-05T11:00:00.000Z'));
+    chatStore.linkQfNoteToChatThread('thread-1', 'note-42');
+
+    expect(chatStore.getChatThread('thread-1')?.qfNoteId).toBe('note-42');
   });
 
   it('notifies subscribers when chat history changes', async () => {

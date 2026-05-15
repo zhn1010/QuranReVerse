@@ -8,6 +8,7 @@ export type LocalChatThread = {
   error: string | null;
   eventContent: string;
   id: string;
+  qfNoteId: string | null;
   result: ApiResponse | null;
   status: ChatThreadStatus;
   title: string;
@@ -55,6 +56,9 @@ function readThreadsUnsafe() {
         typeof record.eventContent === 'string' &&
         typeof record.userFeeling === 'string' &&
         typeof record.title === 'string' &&
+        (record.qfNoteId === undefined ||
+          record.qfNoteId === null ||
+          typeof record.qfNoteId === 'string') &&
         typeof record.createdAt === 'string' &&
         typeof record.updatedAt === 'string' &&
         (record.status === 'pending' || record.status === 'completed' || record.status === 'error')
@@ -113,6 +117,7 @@ export function createPendingChatThread({
     error: null,
     eventContent,
     id,
+    qfNoteId: null,
     result: null,
     status: 'pending',
     title: 'New reflection',
@@ -129,6 +134,24 @@ export function createPendingChatThread({
 export function saveChatThread(thread: LocalChatThread) {
   const threads = readThreadsUnsafe().filter((entry) => entry.id !== thread.id);
   writeThreadsUnsafe([{ ...thread, updatedAt: new Date().toISOString() }, ...threads]);
+}
+
+export function linkQfNoteToChatThread(id: string, qfNoteId: string) {
+  const existing = getChatThread(id);
+
+  if (!existing) {
+    return null;
+  }
+
+  const nextThread: LocalChatThread = {
+    ...existing,
+    qfNoteId,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveChatThread(nextThread);
+
+  return nextThread;
 }
 
 export function completeChatThread(id: string, result: ApiResponse) {

@@ -6,7 +6,7 @@ import { useToast } from '@/components/toast';
 import type { ApiResponse } from '@/lib/antidote-types';
 import { useQfBookmarks } from '@/hooks/use-qf-bookmarks';
 import { useQfNoteComposer } from '@/hooks/use-qf-note-composer';
-import { findQfNoteByReflectionId } from '@/lib/qf/notes';
+import { findQfNoteById, findQfNoteByReflectionId } from '@/lib/qf/notes';
 import type { QfSessionSummary } from '@/lib/qf-user';
 import {
   getSidebarNotesServerSnapshot,
@@ -27,12 +27,16 @@ export function ChatResultView({
   auth,
   chatPath,
   eventContent,
+  linkedNoteId,
+  onLinkedNoteIdChange,
   result,
   userFeeling,
 }: {
   auth: QfSessionSummary;
   chatPath: string;
   eventContent: string;
+  linkedNoteId: string | null;
+  onLinkedNoteIdChange: (noteId: string) => void;
   result: ApiResponse;
   userFeeling: string;
 }) {
@@ -81,14 +85,20 @@ export function ChatResultView({
     () => getDirectionFromLanguageCode(result.detected_language_code),
     [result.detected_language_code],
   );
+  const noteFromLinkedId = useMemo(
+    () => findQfNoteById(notesState.notes, linkedNoteId),
+    [linkedNoteId, notesState.notes],
+  );
   const existingNote = useMemo(
     () =>
+      noteFromLinkedId ??
       findQfNoteByReflectionId(
         notesState.notes,
         result.selected_reflection?.reflection ? String(result.selected_reflection.reflection.id) : null,
       ),
-    [notesState.notes, result.selected_reflection],
+    [noteFromLinkedId, notesState.notes, result.selected_reflection],
   );
+  const existingNoteId = existingNote?.id ?? linkedNoteId ?? null;
   const { bookmarkState, handleBookmarkToggle, handleConnectClick, loginHref } = useQfBookmarks({
     auth,
     chatPath,
@@ -96,8 +106,9 @@ export function ChatResultView({
     toast,
   });
   const { noteState, setNoteState, handleNoteDraftGenerate, handleNoteSave } = useQfNoteComposer({
-    existingNote,
+    existingNoteId,
     eventContent,
+    onLinkedNoteIdChange,
     result,
     toast,
     userFeeling,
@@ -128,14 +139,22 @@ export function ChatResultView({
       </ReflectionResultBubble>
 
       <ReflectionResultActions
-        existingNote={existingNote}
+        description={
+          existingNoteId
+            ? 'This note will be updated in your Quran Foundation account.'
+            : 'This note will be saved to your Quran Foundation account.'
+        }
+        existingNoteBody={existingNote?.body ?? ''}
         handleConnectClick={handleConnectClick}
         handleNoteDraftGenerate={handleNoteDraftGenerate}
         handleNoteSave={handleNoteSave}
         isAuthenticated={auth.isAuthenticated}
         loginHref={loginHref}
         noteState={noteState}
+        saveLabel={existingNoteId ? 'Save changes' : 'Save note'}
         setNoteState={setNoteState}
+        title={existingNoteId ? 'Edit note' : 'Save a note'}
+        triggerLabel={existingNoteId ? 'Edit note' : 'Save a note'}
       />
     </>
   );

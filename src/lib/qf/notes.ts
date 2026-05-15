@@ -106,3 +106,11 @@ export function findQfNoteByReflectionId(notes: QfSavedNote[], reflectionId: str
     ) ?? null
   );
 }
+
+export function findQfNoteById(notes: QfSavedNote[], noteId: string | null) {
+  if (!noteId) {
+    return null;
+  }
+
+  return notes.find((note) => note.id === noteId) ?? null;
+}

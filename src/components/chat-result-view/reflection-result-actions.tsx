@@ -3,7 +3,6 @@
 import type { Dispatch, MouseEvent, SetStateAction } from 'react';
 import { NotePenIcon } from '@/components/icons';
 import { SaveNoteModal } from '@/components/reflection/save-note-modal';
-import type { QfSavedNote } from '@/lib/qf/types';
 
 type NoteState = {
   body: string;
@@ -14,26 +13,32 @@ type NoteState = {
 };
 
 export function ReflectionResultActions({
-  existingNote,
+  description,
+  existingNoteBody,
   handleConnectClick,
   handleNoteDraftGenerate,
   handleNoteSave,
   loginHref,
   noteState,
+  saveLabel,
   setNoteState,
+  title,
+  triggerLabel,
   isAuthenticated,
 }: {
-  existingNote: QfSavedNote | null;
+  description: string;
+  existingNoteBody: string;
   handleConnectClick: (event: MouseEvent<HTMLAnchorElement>) => void;
   handleNoteDraftGenerate: () => void;
   handleNoteSave: () => void;
   loginHref: string;
   noteState: NoteState;
+  saveLabel: string;
   setNoteState: Dispatch<SetStateAction<NoteState>>;
+  title: string;
+  triggerLabel: string;
   isAuthenticated: boolean;
 }) {
-  const isEditing = Boolean(existingNote);
-
   return (
     <>
       <div className="flex flex-col items-start gap-2 pl-2">
@@ -42,7 +47,7 @@ export function ReflectionResultActions({
             className="inline-flex items-center gap-2 rounded-full border border-(--border-soft) bg-(--surface-card) px-4 py-2 text-xs font-medium text-(--ink-soft) transition hover:bg-white hover:text-(--ink-strong)"
             onClick={() =>
               setNoteState({
-                body: existingNote?.body ?? '',
+                body: existingNoteBody,
                 error: null,
                 isGenerating: false,
                 isSaving: false,
@@ -52,7 +57,7 @@ export function ReflectionResultActions({
             type="button"
           >
             <NotePenIcon className="h-3.5 w-3.5" />
-            {isEditing ? 'Edit note' : 'Save a note'}
+            {triggerLabel}
           </button>
         ) : (
           <a
@@ -84,11 +89,7 @@ export function ReflectionResultActions({
 
       <SaveNoteModal
         body={noteState.body}
-        description={
-          isEditing
-            ? 'This note will be updated in your Quran Foundation account.'
-            : 'This note will be saved to your Quran Foundation account.'
-        }
+        description={description}
         error={noteState.error}
         isGenerating={noteState.isGenerating}
         isOpen={noteState.open}
@@ -104,8 +105,8 @@ export function ReflectionResultActions({
         onGenerateDraft={handleNoteDraftGenerate}
         onSave={handleNoteSave}
         placeholder="Write your personal note here..."
-        saveLabel={isEditing ? 'Save changes' : 'Save note'}
-        title={isEditing ? 'Edit note' : 'Save a note'}
+        saveLabel={saveLabel}
+        title={title}
       />
     </>
   );

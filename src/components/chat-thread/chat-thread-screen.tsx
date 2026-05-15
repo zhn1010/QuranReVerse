@@ -10,6 +10,7 @@ import {
   completeChatThread,
   failChatThread,
   getChatThread,
+  linkQfNoteToChatThread,
   resetChatThreadToPending,
   type LocalChatThread,
 } from '@/lib/chat-store';
@@ -162,6 +163,14 @@ export function ChatThreadScreen({ chatId }: { chatId: string }) {
                   auth={auth}
                   chatPath={`/chat/${chatId}`}
                   eventContent={thread.eventContent}
+                  linkedNoteId={thread.qfNoteId}
+                  onLinkedNoteIdChange={(noteId) => {
+                    const nextThread = linkQfNoteToChatThread(chatId, noteId);
+
+                    if (nextThread) {
+                      setThread(nextThread);
+                    }
+                  }}
                   result={thread.result}
                   userFeeling={thread.userFeeling}
                 />

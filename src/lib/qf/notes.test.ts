@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { findQfNoteByReflectionId, normalizeQfNote, normalizeQfNotesFromPayload } from '@/lib/qf/notes';
+import {
+  findQfNoteById,
+  findQfNoteByReflectionId,
+  normalizeQfNote,
+  normalizeQfNotesFromPayload,
+} from '@/lib/qf/notes';
 
 describe('normalizeQfNote', () => {
   it('normalizes reflection entities, ranges, and numeric ids', () => {
@@ -117,5 +122,29 @@ describe('findQfNoteByReflectionId', () => {
         '99',
       ),
     ).toBeNull();
+  });
+});
+
+describe('findQfNoteById', () => {
+  it('returns a note by id', () => {
+    expect(
+      findQfNoteById(
+        [
+          {
+            attachedEntities: [],
+            body: 'Saved note',
+            createdAt: null,
+            id: 'note-42',
+            ranges: [],
+            updatedAt: null,
+          },
+        ],
+        'note-42',
+      )?.body,
+    ).toBe('Saved note');
+  });
+
+  it('returns null when the id is missing', () => {
+    expect(findQfNoteById([], 'missing')).toBeNull();
   });
 });

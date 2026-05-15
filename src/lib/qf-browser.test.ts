@@ -194,15 +194,19 @@ describe('streamQfNoteDraft', () => {
 
 describe('saveQfNote', () => {
   it('sends the canonical note payload with attached reflection entities and ranges', async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async () => createJsonResponse({ success: true }));
-
-    await saveQfNote(
-      {
-        body: 'A saved note.',
-        selectedReflection: sampleResult.selected_reflection,
-      },
-      fetchImpl,
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      createJsonResponse({ note: { id: 'note-1' }, success: true }),
     );
+
+    await expect(
+      saveQfNote(
+        {
+          body: 'A saved note.',
+          selectedReflection: sampleResult.selected_reflection,
+        },
+        fetchImpl,
+      ),
+    ).resolves.toEqual({ noteId: 'note-1' });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body))).toEqual({
@@ -212,6 +216,24 @@ describe('saveQfNote', () => {
           entityType: 'reflection',
         },
       ],
+      body: 'A saved note.',
+      ranges: ['2:255-2:255'],
+    });
+  });
+
+  it('can save without attaching the selected reflection', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => createJsonResponse({ success: true }));
+
+    await saveQfNote(
+      {
+        attachSelectedReflection: false,
+        body: 'A saved note.',
+        selectedReflection: sampleResult.selected_reflection,
+      },
+      fetchImpl,
+    );
+
+    expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body))).toEqual({
       body: 'A saved note.',
       ranges: ['2:255-2:255'],
     });
