@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeQfNote, normalizeQfNotesFromPayload } from '@/lib/qf/notes';
+import { findQfNoteByReflectionId, normalizeQfNote, normalizeQfNotesFromPayload } from '@/lib/qf/notes';
 
 describe('normalizeQfNote', () => {
   it('normalizes reflection entities, ranges, and numeric ids', () => {
@@ -66,5 +66,56 @@ describe('normalizeQfNotesFromPayload', () => {
         },
       }).map((note) => note.id),
     ).toEqual(['2', '1']);
+  });
+});
+
+describe('findQfNoteByReflectionId', () => {
+  it('returns the first note attached to the selected reflection', () => {
+    expect(
+      findQfNoteByReflectionId(
+        [
+          {
+            attachedEntities: [],
+            body: 'Unattached note',
+            createdAt: null,
+            id: '1',
+            ranges: [],
+            updatedAt: null,
+          },
+          {
+            attachedEntities: [
+              {
+                entityId: '42',
+                entityType: 'reflection',
+              },
+            ],
+            body: 'Matched note',
+            createdAt: null,
+            id: '2',
+            ranges: [],
+            updatedAt: null,
+          },
+        ],
+        '42',
+      )?.id,
+    ).toBe('2');
+  });
+
+  it('returns null when no matching reflection note exists', () => {
+    expect(
+      findQfNoteByReflectionId(
+        [
+          {
+            attachedEntities: [],
+            body: 'Unattached note',
+            createdAt: null,
+            id: '1',
+            ranges: [],
+            updatedAt: null,
+          },
+        ],
+        '99',
+      ),
+    ).toBeNull();
   });
 });

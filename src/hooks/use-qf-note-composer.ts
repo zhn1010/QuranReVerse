@@ -3,8 +3,14 @@
 import { useState } from 'react';
 import type { ToastContextValue } from '@/components/toast-public';
 import type { ApiResponse } from '@/lib/antidote-types';
-import { buildQfNoteDraftPayload, saveQfNote, streamQfNoteDraft } from '@/lib/qf-browser';
-import { revalidateSidebarNotes } from '@/lib/sidebar-notes-store';
+import { buildQfNoteDraftPayload, saveQfNote, streamQfNoteDraft, updateQfNote } from '@/lib/qf-browser';
+import { findQfNoteByReflectionId } from '@/lib/qf/notes';
+import type { QfSavedNote } from '@/lib/qf/types';
+import {
+  getSidebarNotesSnapshot,
+  prefetchSidebarNotes,
+  revalidateSidebarNotes,
+} from '@/lib/sidebar-notes-store';
 
 type NoteState = {
   body: string;
@@ -15,11 +21,13 @@ type NoteState = {
 };
 
 export function useQfNoteComposer({
+  existingNote,
   eventContent,
   result,
   toast,
   userFeeling,
 }: {
+  existingNote: QfSavedNote | null;
   eventContent: string;
   result: Pick<ApiResponse, 'diagnosis' | 'reflection_guide' | 'selected_reflection'>;
   toast: Pick<ToastContextValue, 'error' | 'success'>;
@@ -72,10 +80,27 @@ export function useQfNoteComposer({
     setNoteState((prev) => ({ ...prev, error: null, isSaving: true }));
 
     try {
-      await saveQfNote({
-        body: noteState.body.trim(),
-        selectedReflection: result.selected_reflection,
-      });
+      const reflectionId = result.selected_reflection?.reflection
+        ? String(result.selected_reflection.reflection.id)
+        : null;
+      let noteToUpdate = existingNote;
+
+      if (reflectionId && !getSidebarNotesSnapshot().hasFetched) {
+        await prefetchSidebarNotes();
+        noteToUpdate = findQfNoteByReflectionId(getSidebarNotesSnapshot().notes, reflectionId);
+      }
+
+      if (noteToUpdate) {
+        await updateQfNote({
+          body: noteState.body.trim(),
+          id: noteToUpdate.id,
+        });
+      } else {
+        await saveQfNote({
+          body: noteState.body.trim(),
+          selectedReflection: result.selected_reflection,
+        });
+      }
 
       setNoteState({
         body: '',
@@ -85,7 +110,11 @@ export function useQfNoteComposer({
         open: false,
       });
       void revalidateSidebarNotes();
-      toast.success('Note saved to your Quran Foundation account.');
+      toast.success(
+        noteToUpdate
+          ? 'Note updated in your Quran Foundation account.'
+          : 'Note saved to your Quran Foundation account.',
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save the note.';
       setNoteState((prev) => ({

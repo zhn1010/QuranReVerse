@@ -1,12 +1,18 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useToast } from '@/components/toast';
 import type { ApiResponse } from '@/lib/antidote-types';
 import { useQfBookmarks } from '@/hooks/use-qf-bookmarks';
 import { useQfNoteComposer } from '@/hooks/use-qf-note-composer';
+import { findQfNoteByReflectionId } from '@/lib/qf/notes';
 import type { QfSessionSummary } from '@/lib/qf-user';
+import {
+  getSidebarNotesServerSnapshot,
+  getSidebarNotesSnapshot,
+  subscribeSidebarNotes,
+} from '@/lib/sidebar-notes-store';
 import {
   getDirectionFromLanguageCode,
   getSelectedReflectionEmbeds,
@@ -31,6 +37,11 @@ export function ChatResultView({
   userFeeling: string;
 }) {
   const toast = useToast();
+  const notesState = useSyncExternalStore(
+    subscribeSidebarNotes,
+    getSidebarNotesSnapshot,
+    getSidebarNotesServerSnapshot,
+  );
 
   useEffect(() => {
     if (!auth.isAuthenticated) {
@@ -70,6 +81,14 @@ export function ChatResultView({
     () => getDirectionFromLanguageCode(result.detected_language_code),
     [result.detected_language_code],
   );
+  const existingNote = useMemo(
+    () =>
+      findQfNoteByReflectionId(
+        notesState.notes,
+        result.selected_reflection?.reflection ? String(result.selected_reflection.reflection.id) : null,
+      ),
+    [notesState.notes, result.selected_reflection],
+  );
   const { bookmarkState, handleBookmarkToggle, handleConnectClick, loginHref } = useQfBookmarks({
     auth,
     chatPath,
@@ -77,6 +96,7 @@ export function ChatResultView({
     toast,
   });
   const { noteState, setNoteState, handleNoteDraftGenerate, handleNoteSave } = useQfNoteComposer({
+    existingNote,
     eventContent,
     result,
     toast,
@@ -108,6 +128,7 @@ export function ChatResultView({
       </ReflectionResultBubble>
 
       <ReflectionResultActions
+        existingNote={existingNote}
         handleConnectClick={handleConnectClick}
         handleNoteDraftGenerate={handleNoteDraftGenerate}
         handleNoteSave={handleNoteSave}

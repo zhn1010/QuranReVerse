@@ -92,3 +92,17 @@ export function normalizeQfNotesFromPayload(payload: { data?: unknown[] | { note
         Date.parse(left.updatedAt ?? left.createdAt ?? ''),
     );
 }
+
+export function findQfNoteByReflectionId(notes: QfSavedNote[], reflectionId: string | null) {
+  if (!reflectionId) {
+    return null;
+  }
+
+  return (
+    notes.find((note) =>
+      note.attachedEntities.some(
+        (entity) => entity.entityType === 'reflection' && entity.entityId === reflectionId,
+      ),
+    ) ?? null
+  );
+}
