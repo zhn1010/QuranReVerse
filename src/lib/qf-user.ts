@@ -292,3 +292,85 @@ export async function createNoteInQfAccount(
     session: updatedSession,
   };
 }
+
+export async function findNotesByAttachedEntityInQfAccount(attachedEntity: QfNoteAttachedEntity) {
+  const session = await getQfUserSession();
+
+  if (!session) {
+    throw new Error('You need to connect your Quran Foundation account first.');
+  }
+
+  const searchParams = new URLSearchParams({
+    entityId: attachedEntity.entityId,
+    entityType: attachedEntity.entityType,
+  });
+  const candidatePaths = [
+    `/auth/v1/notes/by-attached-entity?${searchParams.toString()}`,
+    `/auth/v1/notes/attached-entity?${searchParams.toString()}`,
+    `/auth/v1/notes/by-attachedEntity?${searchParams.toString()}`,
+    `/auth/v1/notes?${searchParams.toString()}`,
+  ];
+  let activeSession = session;
+  const attempts: Array<{
+    bodyPreview?: string;
+    ok: boolean;
+    path: string;
+    status: number;
+  }> = [];
+
+  for (const path of candidatePaths) {
+    const { response, session: updatedSession } = await qfApiFetch(activeSession, path);
+    activeSession = updatedSession;
+
+    if (response.ok) {
+      const payload = (await response.json()) as {
+        data?: unknown[] | { notes?: unknown[] };
+        success?: boolean;
+      };
+      const notes = normalizeQfNotesFromPayload(payload);
+
+      qfAuthDebug('attached-entity note lookup succeeded', {
+        noteCount: notes.length,
+        path,
+      });
+
+      return {
+        attempts: [
+          ...attempts,
+          {
+            ok: true,
+            path,
+            status: response.status,
+          },
+        ],
+        notes,
+        path,
+        session: activeSession,
+      };
+    }
+
+    const bodyPreview = await response
+      .text()
+      .then((text) => text.slice(0, 700))
+      .catch(() => '');
+
+    attempts.push({
+      bodyPreview,
+      ok: false,
+      path,
+      status: response.status,
+    });
+  }
+
+  qfAuthDebug('attached-entity note lookup failed for all candidate paths', {
+    attachedEntity,
+    attempts,
+  });
+
+  return {
+    attempts,
+    notes: [],
+    path: null,
+    session: activeSession,
+  };
+}

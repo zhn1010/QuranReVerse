@@ -4,6 +4,7 @@ import { getErrorMessage, getQfErrorStatus } from '@/lib/qf-route';
 import {
   createNoteInQfAccount,
   deleteNoteInQfAccount,
+  findNotesByAttachedEntityInQfAccount,
   listNotesInQfAccount,
   persistQfUserSession,
   updateNoteInQfAccount,
@@ -67,8 +68,11 @@ export async function POST(request: Request) {
       message.includes('UniqueViolationError')
     ) {
       try {
-        const diagnostics = await listNotesInQfAccount();
-        const matchingNotes = diagnostics.notes.filter((note) =>
+        const [diagnostics, attachedEntityDiagnostics] = await Promise.all([
+          listNotesInQfAccount(),
+          findNotesByAttachedEntityInQfAccount(attachedEntity),
+        ]);
+        const matchingNotesFromList = diagnostics.notes.filter((note) =>
           note.attachedEntities.some(
             (entity) =>
               entity.entityType === attachedEntity?.entityType &&
@@ -78,8 +82,18 @@ export async function POST(request: Request) {
 
         console.error('[qf-note-conflict]', {
           attachedEntity,
-          matchingNoteCount: matchingNotes.length,
-          matchingNotes: matchingNotes.map((note) => ({
+          attachedEntityLookupAttempts: attachedEntityDiagnostics.attempts,
+          attachedEntityLookupMatchingNoteCount: attachedEntityDiagnostics.notes.length,
+          attachedEntityLookupMatchingNotes: attachedEntityDiagnostics.notes.map((note) => ({
+            attachedEntities: note.attachedEntities,
+            createdAt: note.createdAt,
+            id: note.id,
+            ranges: note.ranges,
+            updatedAt: note.updatedAt,
+          })),
+          attachedEntityLookupPath: attachedEntityDiagnostics.path,
+          matchingNoteCount: matchingNotesFromList.length,
+          matchingNotes: matchingNotesFromList.map((note) => ({
             attachedEntities: note.attachedEntities,
             createdAt: note.createdAt,
             id: note.id,
