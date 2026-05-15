@@ -32,6 +32,19 @@ export {
   removeAyahBookmarksFromSakinahCollection,
 };
 
+function summarizeNoteForDebug(note: QfSavedNote) {
+  return {
+    attachedEntities: note.attachedEntities.map((entity) => ({
+      entityId: entity.entityId,
+      entityType: entity.entityType,
+    })),
+    createdAt: note.createdAt,
+    id: note.id,
+    rangesCount: note.ranges.length,
+    updatedAt: note.updatedAt,
+  };
+}
+
 export async function getQfUserSessionSummary(): Promise<QfSessionSummary> {
   const session = await getQfUserSession();
 
@@ -115,16 +128,55 @@ export async function listNotesInQfAccount() {
     throw new Error('You need to connect your Quran Foundation account first.');
   }
 
-  const { response, session: updatedSession } = await qfApiFetch(session, '/auth/v1/notes');
-  const payload = await readApiResponse<{
-    data?: unknown[] | { notes?: unknown[] };
-    success?: boolean;
-  }>(response);
-  const notes = normalizeQfNotesFromPayload(payload);
+  let activeSession = session;
+  let cursor: string | null = null;
+  const notes: QfSavedNote[] = [];
+
+  do {
+    const searchParams = new URLSearchParams({
+      limit: '50',
+      sortBy: 'newest',
+    });
+
+    if (cursor) {
+      searchParams.set('cursor', cursor);
+    }
+
+    const { response, session: updatedSession } = await qfApiFetch(
+      activeSession,
+      `/auth/v1/notes?${searchParams.toString()}`,
+    );
+    const payload = await readApiResponse<{
+      data?: unknown[] | { notes?: unknown[] };
+      pagination?: {
+        endCursor?: string;
+        hasNextPage?: boolean;
+      };
+      success?: boolean;
+    }>(response);
+    const normalizedPageNotes = normalizeQfNotesFromPayload(payload);
+
+    qfAuthDebug('loaded notes page', {
+      endCursor: payload.pagination?.endCursor ?? null,
+      hasNextPage: payload.pagination?.hasNextPage ?? false,
+      pageNoteCount: normalizedPageNotes.length,
+      requestCursor: cursor,
+      totalNotesBeforePage: notes.length,
+    });
+
+    notes.push(...normalizedPageNotes);
+    activeSession = updatedSession;
+    cursor = payload.pagination?.hasNextPage ? payload.pagination.endCursor ?? null : null;
+  } while (cursor);
+
+  qfAuthDebug('loaded paginated notes', {
+    noteSummaries: notes.slice(0, 10).map(summarizeNoteForDebug),
+    noteCount: notes.length,
+  });
 
   return {
     notes,
-    session: updatedSession,
+    session: activeSession,
   };
 }
 
@@ -194,8 +246,10 @@ export async function createNoteInQfAccount(
   const session = await getQfUserSession();
 
   qfAuthDebug('note creation request received', {
+    attachedEntity,
     bodyLength: body.length,
     hasAttachedEntity: Boolean(attachedEntity),
+    ranges,
     rangesCount: ranges.length,
   });
 
